@@ -1,6 +1,6 @@
 {
   "name": "threadedclass",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -11,6 +11,13 @@
     "name": "Johan Nyman",
     "email": "johan@superfly.tv",
     "url": "http://superfly.tv"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nytamin/threadedClass.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nytamin/threadedClass/issues"
   },
   "scripts": {
     "info": "npm-scripts-info",
@@ -75,7 +82,7 @@
     "typedoc": "^0.8.0",
     "typescript": "^2.4.1"
   },
-  "keywords": [],
+  "keywords": ["thread", "async", "fork", "asynchronous"],
   "dependencies": {
     "callsites": "^2.0.0",
     "tslib": "^1.6.0"
