@@ -23,7 +23,7 @@ test('eventEmitter', async () => {
 	let threaded = await threadedClass<House>('./classes/house.js', House, [['north', 'west'], ['south']])
 
 	let onEvent = jest.fn()
-	threaded.on('test', onEvent)
+	await threaded.on('test', onEvent)
 
 	await threaded.doEmit('test')
 
@@ -37,7 +37,7 @@ test('method with callback', async () => {
 	let threaded = await threadedClass<House>('./classes/house.js', House, [['north', 'west'], ['south']])
 
 	let onEvent = jest.fn()
-	threaded.on('test', onEvent)
+	await threaded.on('test', onEvent)
 
 	let result = await threaded.callCallback('parent', (str) => {
 		return str + ',parent2'
@@ -85,7 +85,7 @@ test('import native class', async () => {
 })
 
 test('single-thread', async () => {
-	let startTime = Date.now()
+	// let startTime = Date.now()
 	let results: Array<number> = []
 	for (let i = 0; i < 10; i++) {
 
@@ -93,14 +93,14 @@ test('single-thread', async () => {
 
 		results.push(myHouse.slowFib(37))
 	}
-	let endTime = Date.now()
+	// let endTime = Date.now()
 
 	// console.log('Single-thread: ', results.length, endTime - startTime)
 	expect(results).toHaveLength(10)
 })
 
 test('multi-thread', async () => {
-	let startTime = Date.now()
+	// let startTime = Date.now()
 	let results: Array<number> = []
 
 	let ps: any = []
@@ -117,7 +117,7 @@ test('multi-thread', async () => {
 		)
 	}
 	await Promise.all(ps)
-	let endTime = Date.now()
+	// let endTime = Date.now()
 
 	// console.log('Multi-thread: ', results.length, endTime - startTime)
 	expect(results).toHaveLength(10)

@@ -15,6 +15,9 @@ export type Promisify<T> = {
 export interface IProxy {
 	_destroyChild: Function
 }
+export class ProxyClass {
+	public _destroyChild: Function
+}
 
 export type ThreadedClass<T> = IProxy & Promisify<T>
 
@@ -27,8 +30,8 @@ let allChildren: Array<ChildProcess> = []
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
 export function threadedClass<T> (orgModule, orgClass: Function, constructorArgs: any[] ): Promise<ThreadedClass<T>> {
-
-	if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
+	// @ts-ignore expression is allways false
+	// if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
 	let orgClassName: string = orgClass.name
 	let parentCallPath = callsites()[1].getFileName()
 	let thisCallPath = callsites()[0].getFileName()
@@ -101,6 +104,7 @@ export function threadedClass<T> (orgModule, orgClass: Function, constructorArgs
 			}
 		})
 		_child.on('close', (code) => {
+			code = code
 			// console.log(`child process exited with code ${code}`)
 			closed = true
 		})
@@ -149,9 +153,6 @@ export function threadedClass<T> (orgModule, orgClass: Function, constructorArgs
 			}
 		})
 	})
-}
-export class ProxyClass {
-	public _destroyChild: Function
 }
 // Close the child processes upon exit:
 process.stdin.resume() // so the program will not close instantly

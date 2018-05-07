@@ -4,6 +4,9 @@ let instance: Object
 let orgConsoleLog = console.log
 console.log = log
 
+let cmdId = 0
+let queue: {[cmdId: string]: Function} = {}
+
 if (process.send) {
 	process.on('message', (m) => {
 		try {
@@ -128,8 +131,6 @@ function log (...str: any[]) {
 		})
 	} else throw Error('process.send undefined!')
 }
-let cmdId = 0
-let queue: {[cmdId: string]: Function} = {}
 function send (o: any, cb?: Function) {
 	if (process.send) {
 		cmdId++

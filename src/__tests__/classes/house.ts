@@ -1,5 +1,14 @@
 import { EventEmitter } from 'events'
 
+function fib (num) {
+	let result = 0
+	if (num < 2) {
+		result = num
+	} else {
+		result = fib(num - 1) + fib(num - 2)
+	}
+	return result
+}
 export class House extends EventEmitter {
 
 	public _windows: Array<string> = []
@@ -37,14 +46,4 @@ export class House extends EventEmitter {
 			})
 		})
 	}
-}
-
-let fib = function (num) {
-	let result = 0
-	if (num < 2) {
-		result = num
-	} else {
-		result = fib(num - 1) + fib(num - 2)
-	}
-	return result
 }
