@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 
-function fib (num) {
+function fib (num: number) {
 	let result = 0
 	if (num < 2) {
 		result = num
@@ -13,7 +13,7 @@ export class House extends EventEmitter {
 
 	public _windows: Array<string> = []
 	private _rooms: Array<string> = []
-	constructor (windows, rooms) {
+	constructor (windows: Array<string>, rooms: Array<string>) {
 		super()
 		this._windows = windows
 		this._rooms = rooms

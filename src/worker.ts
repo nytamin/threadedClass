@@ -1,32 +1,48 @@
+import {
+	MessageInit,
+	MessageFcn,
+	MessageToChild,
+	MessageReply,
+	MessageFromChild,
+	MessageFromChildLogConstr,
+	MessageFromChildLog,
+	MessageFromChildReplyConstr,
+	MessageFromChildReply,
+	MessageFromChildCallbackConstr,
+	MessageFromChildCallback,
+	CallbackFunction
+} from './index'
 
-let instance: Object
+let instance: any
 // Override console.log:
-let orgConsoleLog = console.log
+// let orgConsoleLog = console.log
 console.log = log
 
 let cmdId = 0
 let queue: {[cmdId: string]: Function} = {}
 
 if (process.send) {
-	process.on('message', (m) => {
+	process.on('message', (m: MessageToChild) => {
 		try {
-			if (m.replyTo) {
-				let cb = queue[m.replyTo + '']
-				if (!cb) throw Error('cmdId "' + m.cmdId + '" not found!')
-				if (m.error) {
-					cb(m.error)
+			if (m.cmd === 'reply') {
+				let msg = m as MessageReply
+				let cb = queue[msg.replyTo + '']
+				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
+				if (msg.error) {
+					cb(msg.error)
 				} else {
-					cb(null, m.reply)
+					cb(null, msg.reply)
 				}
-				delete queue[m.replyTo + '']
+				delete queue[msg.replyTo + '']
 			} else if (m.cmd === 'init') {
-				let module = require(m.modulePath)
-				instance = ((...args) => {
-					return new module[m.className](...args)
-				}).apply(null, m.args)
+				let msg = m as MessageInit
+				let module = require(msg.modulePath)
+				instance = ((...args: Array<any>) => {
+					return new module[msg.className](...args)
+				}).apply(null, msg.args)
 
 				let allProps = getAllProperties(instance)
-				let props: Array<any> = []
+				let props: InitProps = []
 				allProps.forEach((prop: string) => {
 					if ([
 						'constructor',
@@ -59,20 +75,20 @@ if (process.send) {
 						})
 					}
 				})
-				reply(m, props)
+				reply(msg, props)
 			} else if (m.cmd === 'fcn') {
-				if (instance[m.fcn]) {
+				let msg = m as MessageFcn
+				if (instance[msg.fcn]) {
 
 					// Go through arguments and de-serialize them
-					let fixedArgs = m.args.map((a) => {
+					let fixedArgs = msg.args.map((a) => {
 						if (a.type === 'string') return a.value
 						if (a.type === 'number') return a.value
 						if (a.type === 'Buffer') return Buffer.from(a.value, 'hex')
 						if (a.type === 'function') {
 							return ((...args: any[]) => {
 								return new Promise((resolve, reject) => {
-									send({
-										cmd: 'callback',
+									sendCallback({
 										callbackId: a.value,
 										args: args
 									}, (err, result) => {
@@ -86,19 +102,19 @@ if (process.send) {
 						return a.value
 					})
 					let p = (
-						typeof instance[m.fcn] === 'function' ?
-						instance[m.fcn](...fixedArgs) :
-						instance[m.fcn]
+						typeof instance[msg.fcn] === 'function' ?
+						instance[msg.fcn](...fixedArgs) :
+						instance[msg.fcn]
 					)
 					Promise.resolve(p)
 					.then((result) => {
-						reply(m, result)
+						reply(msg, result)
 					})
 					.catch((err) => {
-						replyError(m, err)
+						replyError(msg, err)
 					})
 				} else {
-					replyError(m, 'Function "' + m.fcn + '" not found')
+					replyError(msg, 'Function "' + msg.fcn + '" not found')
 				}
 			}
 		} catch (e) {
@@ -109,34 +125,57 @@ if (process.send) {
 } else {
 	throw Error('process.send undefined!')
 }
-function reply (m, reply: any) {
-	let o = {
+function reply (m: MessageToChild, reply: any) {
+	sendReply({
 		replyTo: m.cmdId,
 		reply: reply
-	}
-	send(o)
+	})
 }
-function replyError (m, err: any) {
-	let o = {
+function replyError (m: MessageToChild, err: any) {
+	sendReply({
 		replyTo: m.cmdId,
 		error: err
+	})
+}
+function sendReply (m: MessageFromChildReplyConstr) {
+	cmdId++
+	let msg: MessageFromChildReply = {
+		cmd: 'reply',
+		cmdId: cmdId,
+		replyTo: m.replyTo,
+		error: m.error,
+		reply: m.reply
 	}
-	send(o)
+	processSend(msg)
 }
-function log (...str: any[]) {
-	if (process.send) {
-		process.send({
-			cmd: 'log',
-			log: str
-		})
-	} else throw Error('process.send undefined!')
+function log (...data: any[]) {
+	sendLog({
+		log: data
+	})
 }
-function send (o: any, cb?: Function) {
+function sendLog (m: MessageFromChildLogConstr) {
+	cmdId++
+	let msg: MessageFromChildLog = {
+		cmd: 'log',
+		cmdId: cmdId,
+		log: m.log
+	}
+	processSend(msg)
+}
+function sendCallback (m: MessageFromChildCallbackConstr, cb: CallbackFunction) {
+	cmdId++
+	let msg: MessageFromChildCallback = {
+		cmd: 'callback',
+		cmdId: cmdId,
+		callbackId: m.callbackId,
+		args: m.args
+	}
+	if (cb) queue[cmdId + ''] = cb
+	processSend(msg)
+}
+function processSend (msg: MessageFromChild) {
 	if (process.send) {
-		cmdId++
-		o.cmdId = cmdId
-		if (cb) queue[cmdId + ''] = cb
-		process.send(o)
+		process.send(msg)
 	} else throw Error('process.send undefined!')
 }
 function getAllProperties (obj: Object) {
@@ -147,4 +186,9 @@ function getAllProperties (obj: Object) {
 		obj = Object.getPrototypeOf(obj)
 	} while (obj)
 	return props
+}
+export type InitProps = Array<InitProp>
+export interface InitProp {
+	key: string,
+	type: 'function' | 'value'
 }

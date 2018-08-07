@@ -26,7 +26,7 @@
     "build:main": "tsc -p tsconfig.json",
     "lint": "tslint --project tsconfig.jest.json --config tslint.json",
     "unit": "jest --forceExit",
-    "test": "yarn lint && yarn unit",
+    "test": "yarn lint && yarn build && yarn unit",
     "test:integration": "yarn lint && jest --config=jest-integration.config.js",
     "watch": "jest --watch",
     "cov": "jest; opn coverage/lcov-report/index.html",
@@ -61,6 +61,7 @@
     "node": ">=8.0"
   },
   "devDependencies": {
+    "@types/callsites": "^2.0.0",
     "@types/jest": "^22.1.3",
     "@types/node": "^8.0.4",
     "casparcg-connection": "^3.0.1",
@@ -82,7 +83,12 @@
     "typedoc": "^0.8.0",
     "typescript": "^2.4.1"
   },
-  "keywords": ["thread", "async", "fork", "asynchronous"],
+  "keywords": [
+    "thread",
+    "async",
+    "fork",
+    "asynchronous"
+  ],
   "dependencies": {
     "callsites": "^2.0.0",
     "tslib": "^1.6.0"
