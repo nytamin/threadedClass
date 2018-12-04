@@ -62,7 +62,7 @@ test('import library class', async () => {
 		host: '192.168.0.1',
 		autoConnect: false
 	}])
-	expect(await threaded.host()).toEqual('192.168.0.1')
+	expect(await threaded.host).toEqual('192.168.0.1')
 
 	threaded._destroyChild()
 })
