@@ -25,7 +25,7 @@ if (process.send) {
 	process.on('message', (m: MessageToChild) => {
 		try {
 			if (m.cmd === 'reply') {
-				let msg = m as MessageReply
+				let msg: MessageReply = m
 				let cb = queue[msg.replyTo + '']
 				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
 				if (msg.error) {
@@ -35,7 +35,7 @@ if (process.send) {
 				}
 				delete queue[msg.replyTo + '']
 			} else if (m.cmd === 'init') {
-				let msg = m as MessageInit
+				let msg: MessageInit = m
 				let module = require(msg.modulePath)
 				instance = ((...args: Array<any>) => {
 					return new module[msg.className](...args)
@@ -77,7 +77,7 @@ if (process.send) {
 				})
 				reply(msg, props)
 			} else if (m.cmd === 'fcn') {
-				let msg = m as MessageFcn
+				let msg: MessageFcn = m
 				if (instance[msg.fcn]) {
 
 					// Go through arguments and de-serialize them

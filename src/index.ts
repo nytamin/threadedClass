@@ -30,7 +30,7 @@ let allChildren: Array<ChildProcess> = []
  * @param orgClass The class to be threaded
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-export function threadedClass<T> (orgModule: string, orgClass: Function, constructorArgs: any[] ): Promise<ThreadedClass<T>> {
+export function threadedClass<T> (orgModule: string, orgClass: Function, constructorArgs: any[]): Promise<ThreadedClass<T>> {
 	// @ts-ignore expression is allways false
 	// if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
 	let orgClassName: string = orgClass.name
@@ -118,7 +118,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 		_child.on('message', (m: MessageFromChild) => {
 			// if (m.replyTo) {
 			if (m.cmd === 'reply') {
-				let msg = m as MessageFromChildReply
+				let msg: MessageFromChildReply = m
 				let cb = queue[msg.replyTo + '']
 				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
 				if (msg.error) {
@@ -128,10 +128,10 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 				}
 				delete queue[msg.replyTo + '']
 			} else if (m.cmd === 'log') {
-				let msg = m as MessageFromChildLog
+				let msg: MessageFromChildLog = m
 				console.log.apply(null, ['LOG'].concat(msg.log))
 			} else if (m.cmd === 'callback') {
-				let msg = m as MessageFromChildCallback
+				let msg: MessageFromChildCallback = m
 				let callback = callbacks[msg.callbackId]
 				if (callback) {
 					Promise.resolve(callback(...msg.args))
@@ -165,15 +165,15 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 					if (closed) throw Error('Child process has been closed')
 					const fixArgs = (...args: any[]) => {
 						return args.map((arg) => {
-							if (arg instanceof Buffer) return {type: 'Buffer', value: arg.toString('hex')}
-							if (typeof arg === 'string') return {type: 'string', value: arg}
-							if (typeof arg === 'number') return {type: 'number', value: arg}
+							if (arg instanceof Buffer) return { type: 'Buffer', value: arg.toString('hex') }
+							if (typeof arg === 'string') return { type: 'string', value: arg }
+							if (typeof arg === 'number') return { type: 'number', value: arg }
 							if (typeof arg === 'function') {
 								callbackId++
 								callbacks[callbackId + ''] = arg
-								return {type: 'function', value: callbackId + ''}
+								return { type: 'function', value: callbackId + '' }
 							}
-							return {type: 'other', value: arg}
+							return { type: 'other', value: arg }
 						})
 					}
 
@@ -236,23 +236,23 @@ function exitHandler (options: any, err: Error) {
 	allChildren.forEach((child) => {
 		child.kill()
 	})
-	if (options.cleanup) console.log('clean')
+	// if (options.cleanup) console.log('cleanup')
 	if (err) console.log(err.stack)
 	if (options.exit) process.exit()
 }
 
 // do something when app is closing
-process.on('exit', exitHandler.bind(null,{cleanup: true}))
+process.on('exit', exitHandler.bind(null, { cleanup: true }))
 
 // catches ctrl+c event
-process.on('SIGINT', exitHandler.bind(null, {exit: true}))
+process.on('SIGINT', exitHandler.bind(null, { exit: true }))
 
 // catches "kill pid" (for example: nodemon restart)
-process.on('SIGUSR1', exitHandler.bind(null, {exit: true}))
-process.on('SIGUSR2', exitHandler.bind(null, {exit: true}))
+process.on('SIGUSR1', exitHandler.bind(null, { exit: true }))
+process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
 
 // catches uncaught exceptions
-process.on('uncaughtException', exitHandler.bind(null, {exit: true}))
+process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
 export interface MessageInitConstr {
 	modulePath: string,
 	className: string,
