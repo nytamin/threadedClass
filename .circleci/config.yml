@@ -37,8 +37,6 @@ jobs:
           at: ~/project
       - run: yarn install
       - run: yarn ci
-      - run: yarn types-install
-      - run: yarn types-ci
   Send Coverage:
     <<: *defaults
     steps:
@@ -63,9 +61,6 @@ jobs:
       - run:
           name: Install and build
           command: yarn install && yarn build
-      - run:
-          name: Install and build types
-          command: yarn types-install && yarn types-build
       - persist_to_workspace:
           root: .
           paths: [.]
@@ -106,10 +101,6 @@ jobs:
       #     name: Publish to NPM with npm
       #     command: npm publish --access=public
       #
-      # Also deploy types package to NPM:
-      - run:
-          name: Publish Types to NPM with yarn
-          command: NEW_VERSION=$(node -p "require('./package.json').version") && cd src/types && yarn version --no-git-tag-version --new-version=$NEW_VERSION && yarn publish --access=public --new-version=$NEW_VERSION --network-timeout 100000 && cd ../..
 
 workflows:
   version: 2
