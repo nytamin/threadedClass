@@ -12,6 +12,7 @@ import {
 	MessageFromChildCallback,
 	CallbackFunction
 } from './index'
+import { InitPropType, InitProps, InitPropDescriptor } from './lib'
 
 let instance: any
 // Override console.log:
@@ -46,8 +47,6 @@ if (process.send) {
 				allProps.forEach((prop: string) => {
 					if ([
 						'constructor',
-						'windows',
-						'constructor',
 						'__defineGetter__',
 						'__defineSetter__',
 						'hasOwnProperty',
@@ -60,18 +59,39 @@ if (process.send) {
 						'__proto__',
 						'toLocaleString'
 					].indexOf(prop) !== -1) return
-					// if (prop === 'on') {
-						// eventEmitter
-					// }
+					// console.log(prop, typeof instance[prop])
+
+					let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
+					let inProto = false
+					if (!descriptor) {
+						// Check the prototype of the object:
+						descriptor = Object.getOwnPropertyDescriptor(instance.__proto__, prop)
+						inProto = true
+					}
+
+					if (!descriptor) descriptor = {}
+
+					let descr: InitPropDescriptor = {
+						// configurable:	!!descriptor.configurable,
+						inProto: 		inProto,
+						enumerable:		!!descriptor.enumerable,
+						writable:		!!descriptor.writable,
+						get:			!!descriptor.get,
+						set:			!!descriptor.set,
+						readable:		!!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
+					}
+
 					if (typeof instance[prop] === 'function') {
 						props.push({
 							key: prop,
-							type: 'function'
+							type: InitPropType.FUNCTION,
+							descriptor: descr
 						})
 					} else {
 						props.push({
 							key: prop,
-							type: 'value'
+							type: InitPropType.VALUE,
+							descriptor: descr
 						})
 					}
 				})
@@ -189,9 +209,4 @@ function getAllProperties (obj: Object) {
 		obj = Object.getPrototypeOf(obj)
 	} while (obj)
 	return props
-}
-export type InitProps = Array<InitProp>
-export interface InitProp {
-	key: string,
-	type: 'function' | 'value'
 }

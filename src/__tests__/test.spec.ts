@@ -128,15 +128,28 @@ test('multi-thread', async () => {
 test('properties', async () => {
 	let original = new House([], ['south'])
 
-	original._windows = ['west', 'south']
+	original.setWindows(['west', 'south'])
 	expect(original.getWindows('asdf')).toHaveLength(2)
+	expect(original.windows).toHaveLength(2)
 	expect(original.getRooms()).toHaveLength(1)
+	expect(original.getterRooms).toHaveLength(1)
+
+	original.lamps = 91
+	expect(original.lamps).toHaveLength(91)
 
 	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
-	threaded._windows = ['west', 'south']
+	threaded.setWindows(['west', 'south'])
+	// console.log('threaded.getWindows', threaded.getWindows)
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
+
+	let pWindows = threaded.windows
+	expect(pWindows).toHaveProperty('then')
+	expect(await pWindows).toHaveLength(2)
 	expect(await threaded.getRooms()).toHaveLength(1)
+	let pGetterRooms = threaded.getterRooms
+	expect(pWindows).toHaveProperty('then')
+	expect(await pGetterRooms).toHaveLength(1)
 
 	threaded._destroyChild()
 })

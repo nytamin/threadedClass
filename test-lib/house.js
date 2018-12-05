@@ -4,21 +4,38 @@ const events_1 = require("events");
 class House extends events_1.EventEmitter {
     constructor(windows, rooms) {
         super();
-        this._windows = [];
+        this.windows = [];
         this._rooms = [];
-        this._windows = windows;
+        this._lamps = 0;
+        this._readonly = 42;
+        this._writeonly = 0;
+        this.windows = windows;
         this._rooms = rooms;
     }
-    getWindows(a) {
-        a = a;
-        return this._windows;
+    getWindows (_a) {
+		return this.windows;
     }
-    get windows() {
-        return this._windows;
+    setWindows (windows) {
+		return this.windows = windows
+	}
+	getRooms () {
+		return this._rooms;
+	}
+	get getterRooms () {
+		return this._rooms;
+	}
+	set lamps (l) {
+		this._lamps = l;
+	}
+	get lamps () {
+		return this._lamps;
+	}
+	get readonly () {
+		return this._readonly;
     }
-    getRooms() {
-        return this._rooms;
-    }
+    set writeonly (value) {
+		this._writeonly = value
+	}
     slowFib(num) {
         return fib(num);
     }

@@ -3,14 +3,14 @@ import { fork, ChildProcess } from 'child_process'
 
 import * as callsites from 'callsites'
 import * as path from 'path'
-import { InitProps, InitProp } from './worker'
+import { InitProps, InitProp, InitPropType } from './lib'
 
 // TODO: change this as Variadic types are implemented in TS
 // https://github.com/Microsoft/TypeScript/issues/5453
 export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
 
 export type Promisify<T> = {
-	[K in keyof T]: T[K] extends Function ? (...args: any[]) => Promise<ReturnType<T[K]>> : T[K]
+	[K in keyof T]: T[K] extends Function ? (...args: any[]) => Promise<ReturnType<T[K]>> : Promise<T[K]>
 }
 
 export interface IProxy {
@@ -116,7 +116,6 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			})
 		}
 		_child.on('message', (m: MessageFromChild) => {
-			// if (m.replyTo) {
 			if (m.cmd === 'reply') {
 				let msg: MessageFromChildReply = m
 				let cb = queue[msg.replyTo + '']
@@ -177,38 +176,13 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 						})
 					}
 
-					// console.log(p)
-					if (p.type === 'value') {
-						Object.defineProperty(proxy, p.key, {
-							get: function () {
-								return new Promise((resolve, reject) => {
-									sendFcn({
-										fcn: p.key,
-										args: []
-									}, (err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									})
-								})
-							},
-							set: function (newVal) {
-								let fixedArgs = fixArgs(newVal)
-
-								return new Promise((resolve, reject) => {
-									sendFcn({
-										fcn: p.key,
-										args: fixedArgs
-									}, (err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									})
-								})
-							},
-							configurable: true
-						})
-					} else {
+					if (proxy.hasOwnProperty(p.key)) {
+						// console.log('skipping property ' + p.key)
+						return
+					}
+					if (p.type === InitPropType.FUNCTION) {
 						// @ts-ignore proxy is a class
-						proxy[p.key] = (...args: any[]) => {
+						const fcn = (...args: any[]) => {
 							return new Promise((resolve, reject) => {
 								// go through arguments and serialize them:
 								let fixedArgs = fixArgs(...args)
@@ -222,6 +196,54 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 								})
 							})
 						}
+						if (p.descriptor.inProto) {
+							// @ts-ignore prototype is not in typings
+							proxy.__proto__[p.key] = fcn
+						} else {
+							// @ts-ignore
+							proxy[p.key] = fcn
+						}
+					} else if (p.type === InitPropType.VALUE) {
+
+						let m: PropertyDescriptor = {
+							configurable: 	false, // We do not support configurable properties
+							enumerable: 	p.descriptor.enumerable
+							// writable: // We handle everything through getters & setters instead
+						}
+						if (
+							p.descriptor.get ||
+							p.descriptor.readable
+						) {
+							m.get = function () {
+								return new Promise((resolve, reject) => {
+									sendFcn({
+										fcn: p.key,
+										args: []
+									}, (err, res) => {
+										if (err) reject(err)
+										else resolve(res)
+									})
+								})
+							}
+						}
+						if (
+							p.descriptor.set ||
+							p.descriptor.writable
+						) {
+							m.set = function (newVal) {
+								let fixedArgs = fixArgs(newVal)
+								return new Promise((resolve, reject) => {
+									sendFcn({
+										fcn: p.key,
+										args: fixedArgs
+									}, (err, res) => {
+										if (err) reject(err)
+										else resolve(res)
+									})
+								})
+							}
+						}
+						Object.defineProperty(proxy, p.key, m)
 					}
 				})
 				resolve(proxy)
