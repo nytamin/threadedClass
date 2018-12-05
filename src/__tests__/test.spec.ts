@@ -62,7 +62,7 @@ test('import library class', async () => {
 		host: '192.168.0.1',
 		autoConnect: false
 	}])
-	expect(await threaded.host()).toEqual('192.168.0.1')
+	expect(await threaded.host).toEqual('192.168.0.1')
 
 	threaded._destroyChild()
 })
@@ -121,6 +121,22 @@ test('multi-thread', async () => {
 
 	// console.log('Multi-thread: ', results.length, endTime - startTime)
 	expect(results).toHaveLength(10)
+})
+
+test('properties', async () => {
+	let original = new House([], ['south'])
+
+	original._windows = ['west', 'south']
+	expect(original.getWindows('asdf')).toHaveLength(2)
+	expect(original.getRooms()).toHaveLength(1)
+
+	let threaded = await threadedClass<House>('./classes/house.js', House, [[], ['south']])
+
+	threaded._windows = ['west', 'south']
+	expect(await threaded.getWindows('asdf')).toHaveLength(2)
+	expect(await threaded.getRooms()).toHaveLength(1)
+
+	threaded._destroyChild()
 })
 // TODO: support this:
 // class House2 {

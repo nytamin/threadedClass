@@ -10,7 +10,7 @@ import { InitProps, InitProp } from './worker'
 export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
 
 export type Promisify<T> = {
-	[K in keyof T]: (...args: any[]) => Promise<ReturnType<T[K]>>
+	[K in keyof T]: T[K] extends Function ? (...args: any[]) => Promise<ReturnType<T[K]>> : T[K]
 }
 
 export interface IProxy {
@@ -163,30 +163,65 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 				}
 				props.forEach((p: InitProp) => {
 					if (closed) throw Error('Child process has been closed')
-					// @ts-ignore proxy is a class
-					proxy[p.key] = (...args: any[]) => {
-						return new Promise((resolve, reject) => {
-							// go through arguments and serialize them:
-							let fixedArgs = args.map((arg) => {
-								if (arg instanceof Buffer) return {type: 'Buffer', value: arg.toString('hex')}
-								if (typeof arg === 'string') return {type: 'string', value: arg}
-								if (typeof arg === 'number') return {type: 'number', value: arg}
-								if (typeof arg === 'function') {
-									callbackId++
-									callbacks[callbackId + ''] = arg
-									return {type: 'function', value: callbackId + ''}
-								}
-								return {type: 'other', value: arg}
-							})
-
-							sendFcn({
-								fcn: p.key,
-								args: fixedArgs
-							}, (err, res) => {
-								if (err) reject(err)
-								else resolve(res)
-							})
+					const fixArgs = (...args: any[]) => {
+						return args.map((arg) => {
+							if (arg instanceof Buffer) return {type: 'Buffer', value: arg.toString('hex')}
+							if (typeof arg === 'string') return {type: 'string', value: arg}
+							if (typeof arg === 'number') return {type: 'number', value: arg}
+							if (typeof arg === 'function') {
+								callbackId++
+								callbacks[callbackId + ''] = arg
+								return {type: 'function', value: callbackId + ''}
+							}
+							return {type: 'other', value: arg}
 						})
+					}
+
+					// console.log(p)
+					if (p.type === 'value') {
+						Object.defineProperty(proxy, p.key, {
+							get: function () {
+								return new Promise((resolve, reject) => {
+									sendFcn({
+										fcn: p.key,
+										args: []
+									}, (err, res) => {
+										if (err) reject(err)
+										else resolve(res)
+									})
+								})
+							},
+							set: function (newVal) {
+								let fixedArgs = fixArgs(newVal)
+
+								return new Promise((resolve, reject) => {
+									sendFcn({
+										fcn: p.key,
+										args: fixedArgs
+									}, (err, res) => {
+										if (err) reject(err)
+										else resolve(res)
+									})
+								})
+							},
+							configurable: true
+						})
+					} else {
+						// @ts-ignore proxy is a class
+						proxy[p.key] = (...args: any[]) => {
+							return new Promise((resolve, reject) => {
+								// go through arguments and serialize them:
+								let fixedArgs = fixArgs(...args)
+
+								sendFcn({
+									fcn: p.key,
+									args: fixedArgs
+								}, (err, res) => {
+									if (err) reject(err)
+									else resolve(res)
+								})
+							})
+						}
 					}
 				})
 				resolve(proxy)
