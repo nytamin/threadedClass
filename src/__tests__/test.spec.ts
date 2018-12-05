@@ -151,5 +151,9 @@ test('properties', async () => {
 	expect(pWindows).toHaveProperty('then')
 	expect(await pGetterRooms).toHaveLength(1)
 
+	// @ts-ignore this technically works, though the typings do not:
+	threaded.lamps = 91
+	expect(await threaded.lamps).toEqual(91)
+
 	threaded._destroyChild()
 })

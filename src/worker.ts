@@ -29,7 +29,7 @@ let queue: {[cmdId: string]: Function} = {}
 if (process.send) {
 	process.on('message', (m: MessageToChild) => {
 		try {
-			if (m.cmd === 'reply') {
+			if (m.cmd === MessageType.REPLY) {
 				let msg: MessageReply = m
 				let cb = queue[msg.replyTo + '']
 				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
@@ -100,31 +100,12 @@ if (process.send) {
 					}
 				})
 				reply(msg, props)
-			} else if (m.cmd === 'fcn') {
+			} else if (m.cmd === MessageType.FUNCTION) {
 				let msg: MessageFcn = m
 				if (instance[msg.fcn]) {
 
-					// Go through arguments and de-serialize them
-					let fixedArgs = msg.args.map((a) => {
-						if (a.type === 'string') return a.value
-						if (a.type === 'number') return a.value
-						if (a.type === 'Buffer') return Buffer.from(a.value, 'hex')
-						if (a.type === 'function') {
-							return ((...args: any[]) => {
-								return new Promise((resolve, reject) => {
-									sendCallback({
-										callbackId: a.value,
-										args: args
-									}, (err, result) => {
-										if (err) reject(err)
-										else resolve(result)
-									})
+					const fixedArgs = fixArgs(msg.args)
 
-								})
-							})
-						}
-						return a.value
-					})
 					let p = (
 						typeof instance[msg.fcn] === 'function' ?
 						instance[msg.fcn](...fixedArgs) :
@@ -143,6 +124,13 @@ if (process.send) {
 				} else {
 					replyError(msg, 'Function "' + msg.fcn + '" not found')
 				}
+			} else if (m.cmd === MessageType.SET) {
+				let msg: MessageSet = m
+
+				const fixedValue = fixArgs([msg.value])[0]
+				instance[msg.property] = fixedValue
+
+				reply(msg, fixedValue)
 			}
 		} catch (e) {
 			if (m.cmdId) replyError(m, 'Error: ' + e.toString() + e.stack)
@@ -151,6 +139,29 @@ if (process.send) {
 	})
 } else {
 	throw Error('process.send undefined!')
+}
+function fixArgs (args: Array<any>) {
+	// Go through arguments and de-serialize them
+	return args.map((a) => {
+		if (a.type === 'string') return a.value
+		if (a.type === 'number') return a.value
+		if (a.type === 'Buffer') return Buffer.from(a.value, 'hex')
+		if (a.type === 'function') {
+			return ((...args: any[]) => {
+				return new Promise((resolve, reject) => {
+					sendCallback({
+						callbackId: a.value,
+						args: args
+					}, (err, result) => {
+						if (err) reject(err)
+						else resolve(result)
+					})
+
+				})
+			})
+		}
+		return a.value
+	})
 }
 function reply (m: MessageToChild, reply: any) {
 	sendReply({
@@ -167,7 +178,7 @@ function replyError (m: MessageToChild, err: any) {
 function sendReply (m: MessageFromChildReplyConstr) {
 	cmdId++
 	let msg: MessageFromChildReply = {
-		cmd: 'reply',
+		cmd: MessageType.REPLY,
 		cmdId: cmdId,
 		replyTo: m.replyTo,
 		error: m.error,
@@ -183,7 +194,7 @@ function log (...data: any[]) {
 function sendLog (m: MessageFromChildLogConstr) {
 	cmdId++
 	let msg: MessageFromChildLog = {
-		cmd: 'log',
+		cmd: MessageType.LOG,
 		cmdId: cmdId,
 		log: m.log
 	}

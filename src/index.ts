@@ -42,6 +42,20 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 	let callbackId = 0
 	let callbacks: {[key: string]: Function} = {}
 
+	const fixArgs = (...args: any[]) => {
+		return args.map((arg) => {
+			if (arg instanceof Buffer) return { type: 'Buffer', value: arg.toString('hex') }
+			if (typeof arg === 'string') return { type: 'string', value: arg }
+			if (typeof arg === 'number') return { type: 'number', value: arg }
+			if (typeof arg === 'function') {
+				callbackId++
+				callbacks[callbackId + ''] = arg
+				return { type: 'function', value: callbackId + '' }
+			}
+			return { type: 'other', value: arg }
+		})
+	}
+
 	return new Promise((resolve, reject) => {
 
 		if (!parentCallPath) throw new Error('Unable to resolve parent file path')
@@ -67,7 +81,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageInit = {
-				cmd: 'init',
+				cmd: MessageType.INIT,
 				cmdId: cmdId,
 				modulePath: data.modulePath,
 				className: data.className,
@@ -80,10 +94,22 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageFcn = {
-				cmd: 'fcn',
+				cmd: MessageType.FUNCTION,
 				cmdId: cmdId,
 				fcn: data.fcn,
 				args: data.args
+			}
+			if (cb) queue[msg.cmdId + ''] = cb
+			sendMessage(msg)
+		}
+		function sendSet (data: MessageSetConstr, cb?: CallbackFunction) {
+			cmdId++
+
+			let msg: MessageSet = {
+				cmd: MessageType.SET,
+				cmdId: cmdId,
+				property: data.property,
+				value: data.value
 			}
 			if (cb) queue[msg.cmdId + ''] = cb
 			sendMessage(msg)
@@ -92,7 +118,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageReply = {
-				cmd: 'reply',
+				cmd: MessageType.REPLY,
 				cmdId: cmdId,
 				replyTo: data.replyTo,
 				reply: data.reply
@@ -162,19 +188,6 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 				}
 				props.forEach((p: InitProp) => {
 					if (closed) throw Error('Child process has been closed')
-					const fixArgs = (...args: any[]) => {
-						return args.map((arg) => {
-							if (arg instanceof Buffer) return { type: 'Buffer', value: arg.toString('hex') }
-							if (typeof arg === 'string') return { type: 'string', value: arg }
-							if (typeof arg === 'number') return { type: 'number', value: arg }
-							if (typeof arg === 'function') {
-								callbackId++
-								callbacks[callbackId + ''] = arg
-								return { type: 'function', value: callbackId + '' }
-							}
-							return { type: 'other', value: arg }
-						})
-					}
 
 					if (proxy.hasOwnProperty(p.key)) {
 						// console.log('skipping property ' + p.key)
@@ -232,15 +245,19 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 						) {
 							m.set = function (newVal) {
 								let fixedArgs = fixArgs(newVal)
-								return new Promise((resolve, reject) => {
-									sendFcn({
-										fcn: p.key,
-										args: fixedArgs
-									}, (err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									})
+
+								// in the strictest of worlds, we sould block the main thread here,
+								// until the remote acknowledges the write.
+								// Instead we're going to pretend that everything is okay. *whistling*
+								sendSet({
+									property: p.key,
+									value: fixedArgs[0]
+								}, (err, _result) => {
+									if (err) {
+										console.log('Error in setter', err)
+									}
 								})
+
 							}
 						}
 						Object.defineProperty(proxy, p.key, m)
