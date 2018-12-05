@@ -106,6 +106,9 @@ if (process.send) {
 						instance[msg.fcn](...fixedArgs) :
 						instance[msg.fcn]
 					)
+					if (typeof instance[msg.fcn] !== 'function' && fixedArgs.length === 1) {
+						instance[msg.fcn] = fixedArgs[0]
+					}
 					Promise.resolve(p)
 					.then((result) => {
 						reply(msg, result)
