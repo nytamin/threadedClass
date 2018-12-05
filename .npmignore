@@ -8,6 +8,7 @@ tslint.json
 .github
 build/temp
 build/docs
+test-lib
 
 coverage
 .nyc_output
