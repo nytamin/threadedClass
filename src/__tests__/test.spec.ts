@@ -132,7 +132,7 @@ test('properties', async () => {
 
 	let threaded = await threadedClass<House>('./classes/house.js', House, [[], ['south']])
 
-	await (threaded._windows = ['west', 'south'])
+	threaded._windows = ['west', 'south']
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
 	expect(await threaded.getRooms()).toHaveLength(1)
 
