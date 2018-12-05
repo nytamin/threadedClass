@@ -3,7 +3,7 @@ import { fork, ChildProcess } from 'child_process'
 
 import * as callsites from 'callsites'
 import * as path from 'path'
-import { InitProps, InitProp, InitPropType } from './lib'
+import { InitProps, InitProp, InitPropType, MessageType, CallbackFunction, MessageInitConstr, MessageInit, MessageFcnConstr, MessageFcn, MessageSetConstr, MessageSet, MessageReplyConstr, MessageReply, MessageToChild, MessageFromChildCallback, MessageFromChild, MessageFromChildReply, MessageFromChildLog } from './lib'
 
 // TODO: change this as Variadic types are implemented in TS
 // https://github.com/Microsoft/TypeScript/issues/5453
@@ -275,67 +275,3 @@ process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
 
 // catches uncaught exceptions
 process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
-export interface MessageInitConstr {
-	modulePath: string,
-	className: string,
-	args: Array<any>,
-}
-export interface MessageInit extends MessageInitConstr {
-	cmd: 'init',
-	cmdId: number
-}
-export interface MessageFcnConstr {
-	fcn: string,
-	args: Array<any>
-}
-export interface MessageFcn extends MessageFcnConstr {
-	cmd: 'fcn',
-	cmdId: number
-}
-export interface MessageReplyConstr {
-	replyTo: number,
-	reply?: any,
-	error?: Error
-}
-export interface MessageReply extends MessageReplyConstr {
-	cmd: 'reply',
-	cmdId: number,
-}
-export type MessageToChild = MessageInit | MessageFcn | MessageReply
-export interface MessageFromChildReplyConstr {
-	replyTo: number,
-	error?: Error,
-	reply?: any,
-}
-export interface MessageFromChildReply extends MessageFromChildReplyConstr {
-	cmd: 'reply'
-	cmdId: number,
-}
-export interface MessageFromChildLogConstr {
-	log: Array<any>,
-}
-export interface MessageFromChildLog extends MessageFromChildLogConstr {
-	cmd: 'log'
-	cmdId: number,
-}
-export interface MessageFromChildCallbackConstr {
-	callbackId: string,
-	args: Array<any>
-}
-export interface MessageFromChildCallback extends MessageFromChildCallbackConstr {
-	cmd: 'callback',
-	cmdId: number,
-}
-export type MessageFromChild = MessageFromChildReply | MessageFromChildLog | MessageFromChildCallback
-export type CallbackFunction = (e: Error | null, res?: any) => void
-// export interface MessageFcn {
-// 	cmd: 'fcn',
-// 	modulePath: string,
-// 	className: string,
-// 	args: Array<any>
-
-// 	replyTo?: number,
-// 	cmdId?: number,
-// 	reply?: any,
-// 	error?: Error
-// }

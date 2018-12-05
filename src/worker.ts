@@ -1,4 +1,8 @@
 import {
+	InitPropType,
+	InitProps,
+	InitPropDescriptor,
+	MessageType,
 	MessageInit,
 	MessageFcn,
 	MessageToChild,
@@ -10,9 +14,9 @@ import {
 	MessageFromChildReply,
 	MessageFromChildCallbackConstr,
 	MessageFromChildCallback,
-	CallbackFunction
-} from './index'
-import { InitPropType, InitProps, InitPropDescriptor } from './lib'
+	CallbackFunction,
+	MessageSet
+} from './lib'
 
 let instance: any
 // Override console.log:
