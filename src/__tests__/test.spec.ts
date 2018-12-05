@@ -130,9 +130,9 @@ test('properties', async () => {
 	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
 	// Method with parameter and return value:
-	expect (original.returnValue('myValue')).toEqual('myValue')
+	expect(original.returnValue('myValue')).toEqual('myValue')
 	//
-	expect (await threaded.returnValue('myValue')).toEqual('myValue')
+	expect(await threaded.returnValue('myValue')).toEqual('myValue')
 
 	// Method to set and get value:
 	original.setWindows(['west', 'south'])
