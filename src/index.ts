@@ -192,7 +192,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 								})
 							},
 							set: function (newVal) {
-								let fixedArgs = fixArgs([ newVal ])
+								let fixedArgs = fixArgs(newVal)
 
 								return new Promise((resolve, reject) => {
 									sendFcn({
