@@ -1,9 +1,10 @@
 
-import { House } from './classes/house'
+import { House } from '../../test-lib/house'
 import { CasparCG } from 'casparcg-connection'
 import { StringDecoder, NodeStringDecoder } from 'string_decoder'
 import { threadedClass } from '../index'
 
+const HOUSE_PATH = '../../test-lib/house.js'
 test('import own class', async () => {
 
 	let original = new House(['north', 'west'], ['south'])
@@ -11,7 +12,7 @@ test('import own class', async () => {
 	expect(original.getWindows('asdf')).toHaveLength(2)
 	expect(original.getRooms()).toHaveLength(1)
 
-	let threaded = await threadedClass<House>('./classes/house.js', House, [['north', 'west'], ['south']])
+	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
 
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
 	expect(await threaded.getRooms()).toHaveLength(1)
@@ -20,7 +21,7 @@ test('import own class', async () => {
 })
 test('eventEmitter', async () => {
 
-	let threaded = await threadedClass<House>('./classes/house.js', House, [['north', 'west'], ['south']])
+	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
 
 	let onEvent = jest.fn()
 	await threaded.on('test', onEvent)
@@ -32,9 +33,10 @@ test('eventEmitter', async () => {
 
 	threaded._destroyChild()
 })
+
 test('method with callback', async () => {
 
-	let threaded = await threadedClass<House>('./classes/house.js', House, [['north', 'west'], ['south']])
+	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
 
 	let onEvent = jest.fn()
 	await threaded.on('test', onEvent)
@@ -87,7 +89,7 @@ test('import native class', async () => {
 test('single-thread', async () => {
 	// let startTime = Date.now()
 	let results: Array<number> = []
-	for (let i = 0; i < 10; i++) {
+	for (let i = 0; i < 5; i++) {
 
 		let myHouse = new House(['aa', 'bb'], [])
 
@@ -96,7 +98,7 @@ test('single-thread', async () => {
 	// let endTime = Date.now()
 
 	// console.log('Single-thread: ', results.length, endTime - startTime)
-	expect(results).toHaveLength(10)
+	expect(results).toHaveLength(5)
 })
 
 test('multi-thread', async () => {
@@ -105,9 +107,9 @@ test('multi-thread', async () => {
 
 	let ps: any = []
 
-	for (let i = 0; i < 10; i++) {
+	for (let i = 0; i < 5; i++) {
 		ps.push(
-			threadedClass<House>('./classes/house.js', House, [['aa', 'bb'], []])
+			threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []])
 			.then((myHouse) => {
 				return myHouse.slowFib(37)
 			})
@@ -120,7 +122,7 @@ test('multi-thread', async () => {
 	// let endTime = Date.now()
 
 	// console.log('Multi-thread: ', results.length, endTime - startTime)
-	expect(results).toHaveLength(10)
+	expect(results).toHaveLength(5)
 })
 
 test('properties', async () => {
@@ -130,7 +132,7 @@ test('properties', async () => {
 	expect(original.getWindows('asdf')).toHaveLength(2)
 	expect(original.getRooms()).toHaveLength(1)
 
-	let threaded = await threadedClass<House>('./classes/house.js', House, [[], ['south']])
+	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
 	threaded._windows = ['west', 'south']
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
@@ -138,31 +140,3 @@ test('properties', async () => {
 
 	threaded._destroyChild()
 })
-// TODO: support this:
-// class House2 {
-
-// 	public _windows: Array<string> = []
-// 	private _rooms: Array<string> = []
-// 	constructor (windows, rooms) {
-// 		this._windows = windows
-// 		this._rooms = rooms
-// 	}
-
-// 	public getWindows () {
-// 		return this._windows
-// 	}
-
-// 	public get windows () {
-// 		return this._windows
-// 	}
-// 	public getRooms () {
-// 		return this._rooms
-// 	}
-// }
-// test('internal class', async () => {
-// 	let myHouse = await threadedClass<House2>(null, House2, ['aa', 'bb'])
-
-// 	expect(await myHouse.getWindows()).toHaveLength(2)
-
-// 	myHouse._destroyChild()
-// })
