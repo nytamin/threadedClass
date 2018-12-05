@@ -12,6 +12,9 @@ class House extends events_1.EventEmitter {
         this.windows = windows;
         this._rooms = rooms;
     }
+    returnValue (value) {
+		return value
+	}
     getWindows (_a) {
 		return this.windows;
     }

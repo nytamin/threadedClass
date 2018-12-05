@@ -21,6 +21,9 @@ export class House extends EventEmitter {
 		this.windows = windows
 		this._rooms = rooms
 	}
+	public returnValue<T> (value: T): T {
+		return value
+	}
 	public getWindows (_a: string) {
 		return this.windows
 	}

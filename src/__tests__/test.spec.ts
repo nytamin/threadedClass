@@ -127,33 +127,59 @@ test('multi-thread', async () => {
 
 test('properties', async () => {
 	let original = new House([], ['south'])
-
-	original.setWindows(['west', 'south'])
-	expect(original.getWindows('asdf')).toHaveLength(2)
-	expect(original.windows).toHaveLength(2)
-	expect(original.getRooms()).toHaveLength(1)
-	expect(original.getterRooms).toHaveLength(1)
-
-	original.lamps = 91
-	expect(original.lamps).toEqual(91)
-
 	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
+	// Method with parameter and return value:
+	expect (original.returnValue('myValue')).toEqual('myValue')
+	//
+	expect (await threaded.returnValue('myValue')).toEqual('myValue')
+
+	// Method to set and get value:
+	original.setWindows(['west', 'south'])
+	expect(original.getWindows('')).toHaveLength(2)
+	//
 	await threaded.setWindows(['west', 'south'])
-	// console.log('threaded.getWindows', threaded.getWindows)
-	expect(await threaded.getWindows('asdf')).toHaveLength(2)
+	expect(await threaded.getWindows('')).toHaveLength(2)
 
-	let pWindows = threaded.windows
-	expect(pWindows).toHaveProperty('then')
-	expect(await pWindows).toHaveLength(2)
+	// Public property:
+	original.windows = ['a','b','c','d']
+	expect(original.windows).toEqual(['a','b','c','d'])
+	//
+	// @ts-ignore this technically works, though the typings do not:
+	threaded.windows = ['a','b','c','d']
+	expect(await threaded.windows).toEqual(['a','b','c','d'])
+
+	// Method to get private property:
+	expect(original.getRooms()).toHaveLength(1)
+	//
 	expect(await threaded.getRooms()).toHaveLength(1)
-	let pGetterRooms = threaded.getterRooms
-	expect(pWindows).toHaveProperty('then')
-	expect(await pGetterRooms).toHaveLength(1)
 
+	// Getter to get private property:
+	expect(original.getterRooms).toHaveLength(1)
+	//
+	expect(await threaded.getterRooms).toHaveLength(1)
+
+	// Private property that has both a getter and a setter:
+	original.lamps = 91
+	expect(original.lamps).toEqual(91)
+	//
 	// @ts-ignore this technically works, though the typings do not:
 	threaded.lamps = 91
 	expect(await threaded.lamps).toEqual(91)
+
+	// Private property that only has getter:
+	expect(original.readonly).toEqual(42)
+	// original.readonly = 3 // not allowed according to types (which is correct)
+	//
+	expect(await threaded.readonly).toEqual(42)
+
+	// Private property that only has setter:
+	original.writeonly = 13
+	expect(original.writeonly).toEqual(undefined)
+	//
+	// @ts-ignore this technically works, though the typings do not:
+	threaded.writeonly = 13
+	await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
 
 	threaded._destroyChild()
 })
