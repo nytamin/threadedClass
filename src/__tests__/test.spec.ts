@@ -135,11 +135,11 @@ test('properties', async () => {
 	expect(original.getterRooms).toHaveLength(1)
 
 	original.lamps = 91
-	expect(original.lamps).toHaveLength(91)
+	expect(original.lamps).toEqual(91)
 
 	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
-	threaded.setWindows(['west', 'south'])
+	await threaded.setWindows(['west', 'south'])
 	// console.log('threaded.getWindows', threaded.getWindows)
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
 
