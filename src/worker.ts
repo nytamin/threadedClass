@@ -66,11 +66,13 @@ if (process.send) {
 					// console.log(prop, typeof instance[prop])
 
 					let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
-					let inProto = false
-					if (!descriptor) {
-						// Check the prototype of the object:
-						descriptor = Object.getOwnPropertyDescriptor(instance.__proto__, prop)
-						inProto = true
+					let inProto: number = 0
+					let proto = instance.__proto__
+					while (!descriptor) {
+						if (!proto) break
+						descriptor = Object.getOwnPropertyDescriptor(proto, prop)
+						inProto++
+						proto = proto.__proto__
 					}
 
 					if (!descriptor) descriptor = {}

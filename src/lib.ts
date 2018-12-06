@@ -4,8 +4,8 @@ export enum InitPropType {
 	VALUE = 'value'
 }
 export interface InitPropDescriptor {
-	/** If the property is a part of the prototype */
-	inProto: boolean
+	/** If the property is a part of the prototype (and how many levels deep) */
+	inProto: number
 	// configurable: boolean
 	enumerable: boolean
 	/** If the property has a getter */
