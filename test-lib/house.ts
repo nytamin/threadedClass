@@ -11,23 +11,42 @@ function fib (num: number) {
 }
 export class House extends EventEmitter {
 
-	public _windows: Array<string> = []
+	public windows: Array<string> = []
 	private _rooms: Array<string> = []
+	private _lamps: number = 0
+	private _readonly: number = 42
+	private _writeonly: number = 0
 	constructor (windows: Array<string>, rooms: Array<string>) {
 		super()
-		this._windows = windows
+		this.windows = windows
 		this._rooms = rooms
 	}
-
-	public getWindows (a: string) {
-		a = a
-		return this._windows
+	public returnValue<T> (value: T): T {
+		return value
 	}
-	public get windows () {
-		return this._windows
+	public getWindows (_a: string) {
+		return this.windows
+	}
+	public setWindows (windows: Array<string>) {
+		return this.windows = windows
 	}
 	public getRooms () {
 		return this._rooms
+	}
+	public get getterRooms () {
+		return this._rooms
+	}
+	public set lamps (l: number) {
+		this._lamps = l
+	}
+	public get lamps () {
+		return this._lamps
+	}
+	public get readonly () {
+		return this._readonly
+	}
+	public set writeonly (value: number) {
+		this._writeonly = value
 	}
 	public slowFib (num: number) {
 		return fib(num)

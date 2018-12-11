@@ -3,14 +3,14 @@ import { fork, ChildProcess } from 'child_process'
 
 import * as callsites from 'callsites'
 import * as path from 'path'
-import { InitProps, InitProp } from './worker'
+import { InitProps, InitProp, InitPropType, MessageType, CallbackFunction, MessageInitConstr, MessageInit, MessageFcnConstr, MessageFcn, MessageSetConstr, MessageSet, MessageReplyConstr, MessageReply, MessageToChild, MessageFromChildCallback, MessageFromChild, MessageFromChildReply, MessageFromChildLog } from './lib'
 
 // TODO: change this as Variadic types are implemented in TS
 // https://github.com/Microsoft/TypeScript/issues/5453
 export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
 
 export type Promisify<T> = {
-	[K in keyof T]: T[K] extends Function ? (...args: any[]) => Promise<ReturnType<T[K]>> : T[K]
+	[K in keyof T]: T[K] extends Function ? (...args: any[]) => Promise<ReturnType<T[K]>> : Promise<T[K]>
 }
 
 export interface IProxy {
@@ -30,7 +30,7 @@ let allChildren: Array<ChildProcess> = []
  * @param orgClass The class to be threaded
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-export function threadedClass<T> (orgModule: string, orgClass: Function, constructorArgs: any[] ): Promise<ThreadedClass<T>> {
+export function threadedClass<T> (orgModule: string, orgClass: Function, constructorArgs: any[]): Promise<ThreadedClass<T>> {
 	// @ts-ignore expression is allways false
 	// if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
 	let orgClassName: string = orgClass.name
@@ -41,6 +41,20 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 
 	let callbackId = 0
 	let callbacks: {[key: string]: Function} = {}
+
+	const fixArgs = (...args: any[]) => {
+		return args.map((arg) => {
+			if (arg instanceof Buffer) return { type: 'Buffer', value: arg.toString('hex') }
+			if (typeof arg === 'string') return { type: 'string', value: arg }
+			if (typeof arg === 'number') return { type: 'number', value: arg }
+			if (typeof arg === 'function') {
+				callbackId++
+				callbacks[callbackId + ''] = arg
+				return { type: 'function', value: callbackId + '' }
+			}
+			return { type: 'other', value: arg }
+		})
+	}
 
 	return new Promise((resolve, reject) => {
 
@@ -67,7 +81,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageInit = {
-				cmd: 'init',
+				cmd: MessageType.INIT,
 				cmdId: cmdId,
 				modulePath: data.modulePath,
 				className: data.className,
@@ -80,10 +94,22 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageFcn = {
-				cmd: 'fcn',
+				cmd: MessageType.FUNCTION,
 				cmdId: cmdId,
 				fcn: data.fcn,
 				args: data.args
+			}
+			if (cb) queue[msg.cmdId + ''] = cb
+			sendMessage(msg)
+		}
+		function sendSet (data: MessageSetConstr, cb?: CallbackFunction) {
+			cmdId++
+
+			let msg: MessageSet = {
+				cmd: MessageType.SET,
+				cmdId: cmdId,
+				property: data.property,
+				value: data.value
 			}
 			if (cb) queue[msg.cmdId + ''] = cb
 			sendMessage(msg)
@@ -92,7 +118,7 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			cmdId++
 
 			let msg: MessageReply = {
-				cmd: 'reply',
+				cmd: MessageType.REPLY,
 				cmdId: cmdId,
 				replyTo: data.replyTo,
 				reply: data.reply
@@ -116,9 +142,8 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 			})
 		}
 		_child.on('message', (m: MessageFromChild) => {
-			// if (m.replyTo) {
 			if (m.cmd === 'reply') {
-				let msg = m as MessageFromChildReply
+				let msg: MessageFromChildReply = m
 				let cb = queue[msg.replyTo + '']
 				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
 				if (msg.error) {
@@ -128,10 +153,10 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 				}
 				delete queue[msg.replyTo + '']
 			} else if (m.cmd === 'log') {
-				let msg = m as MessageFromChildLog
+				let msg: MessageFromChildLog = m
 				console.log.apply(null, ['LOG'].concat(msg.log))
 			} else if (m.cmd === 'callback') {
-				let msg = m as MessageFromChildCallback
+				let msg: MessageFromChildCallback = m
 				let callback = callbacks[msg.callbackId]
 				if (callback) {
 					Promise.resolve(callback(...msg.args))
@@ -163,52 +188,14 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 				}
 				props.forEach((p: InitProp) => {
 					if (closed) throw Error('Child process has been closed')
-					const fixArgs = (...args: any[]) => {
-						return args.map((arg) => {
-							if (arg instanceof Buffer) return {type: 'Buffer', value: arg.toString('hex')}
-							if (typeof arg === 'string') return {type: 'string', value: arg}
-							if (typeof arg === 'number') return {type: 'number', value: arg}
-							if (typeof arg === 'function') {
-								callbackId++
-								callbacks[callbackId + ''] = arg
-								return {type: 'function', value: callbackId + ''}
-							}
-							return {type: 'other', value: arg}
-						})
+
+					if (proxy.hasOwnProperty(p.key)) {
+						// console.log('skipping property ' + p.key)
+						return
 					}
-
-					// console.log(p)
-					if (p.type === 'value') {
-						Object.defineProperty(proxy, p.key, {
-							get: function () {
-								return new Promise((resolve, reject) => {
-									sendFcn({
-										fcn: p.key,
-										args: []
-									}, (err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									})
-								})
-							},
-							set: function (newVal) {
-								let fixedArgs = fixArgs(newVal)
-
-								return new Promise((resolve, reject) => {
-									sendFcn({
-										fcn: p.key,
-										args: fixedArgs
-									}, (err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									})
-								})
-							},
-							configurable: true
-						})
-					} else {
+					if (p.type === InitPropType.FUNCTION) {
 						// @ts-ignore proxy is a class
-						proxy[p.key] = (...args: any[]) => {
+						const fcn = (...args: any[]) => {
 							return new Promise((resolve, reject) => {
 								// go through arguments and serialize them:
 								let fixedArgs = fixArgs(...args)
@@ -222,6 +209,58 @@ export function threadedClass<T> (orgModule: string, orgClass: Function, constru
 								})
 							})
 						}
+						if (p.descriptor.inProto) {
+							// @ts-ignore prototype is not in typings
+							proxy.__proto__[p.key] = fcn
+						} else {
+							// @ts-ignore
+							proxy[p.key] = fcn
+						}
+					} else if (p.type === InitPropType.VALUE) {
+
+						let m: PropertyDescriptor = {
+							configurable: 	false, // We do not support configurable properties
+							enumerable: 	p.descriptor.enumerable
+							// writable: // We handle everything through getters & setters instead
+						}
+						if (
+							p.descriptor.get ||
+							p.descriptor.readable
+						) {
+							m.get = function () {
+								return new Promise((resolve, reject) => {
+									sendFcn({
+										fcn: p.key,
+										args: []
+									}, (err, res) => {
+										if (err) reject(err)
+										else resolve(res)
+									})
+								})
+							}
+						}
+						if (
+							p.descriptor.set ||
+							p.descriptor.writable
+						) {
+							m.set = function (newVal) {
+								let fixedArgs = fixArgs(newVal)
+
+								// in the strictest of worlds, we sould block the main thread here,
+								// until the remote acknowledges the write.
+								// Instead we're going to pretend that everything is okay. *whistling*
+								sendSet({
+									property: p.key,
+									value: fixedArgs[0]
+								}, (err, _result) => {
+									if (err) {
+										console.log('Error in setter', err)
+									}
+								})
+
+							}
+						}
+						Object.defineProperty(proxy, p.key, m)
 					}
 				})
 				resolve(proxy)
@@ -236,84 +275,20 @@ function exitHandler (options: any, err: Error) {
 	allChildren.forEach((child) => {
 		child.kill()
 	})
-	if (options.cleanup) console.log('clean')
+	// if (options.cleanup) console.log('cleanup')
 	if (err) console.log(err.stack)
 	if (options.exit) process.exit()
 }
 
 // do something when app is closing
-process.on('exit', exitHandler.bind(null,{cleanup: true}))
+process.on('exit', exitHandler.bind(null, { cleanup: true }))
 
 // catches ctrl+c event
-process.on('SIGINT', exitHandler.bind(null, {exit: true}))
+process.on('SIGINT', exitHandler.bind(null, { exit: true }))
 
 // catches "kill pid" (for example: nodemon restart)
-process.on('SIGUSR1', exitHandler.bind(null, {exit: true}))
-process.on('SIGUSR2', exitHandler.bind(null, {exit: true}))
+process.on('SIGUSR1', exitHandler.bind(null, { exit: true }))
+process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
 
 // catches uncaught exceptions
-process.on('uncaughtException', exitHandler.bind(null, {exit: true}))
-export interface MessageInitConstr {
-	modulePath: string,
-	className: string,
-	args: Array<any>,
-}
-export interface MessageInit extends MessageInitConstr {
-	cmd: 'init',
-	cmdId: number
-}
-export interface MessageFcnConstr {
-	fcn: string,
-	args: Array<any>
-}
-export interface MessageFcn extends MessageFcnConstr {
-	cmd: 'fcn',
-	cmdId: number
-}
-export interface MessageReplyConstr {
-	replyTo: number,
-	reply?: any,
-	error?: Error
-}
-export interface MessageReply extends MessageReplyConstr {
-	cmd: 'reply',
-	cmdId: number,
-}
-export type MessageToChild = MessageInit | MessageFcn | MessageReply
-export interface MessageFromChildReplyConstr {
-	replyTo: number,
-	error?: Error,
-	reply?: any,
-}
-export interface MessageFromChildReply extends MessageFromChildReplyConstr {
-	cmd: 'reply'
-	cmdId: number,
-}
-export interface MessageFromChildLogConstr {
-	log: Array<any>,
-}
-export interface MessageFromChildLog extends MessageFromChildLogConstr {
-	cmd: 'log'
-	cmdId: number,
-}
-export interface MessageFromChildCallbackConstr {
-	callbackId: string,
-	args: Array<any>
-}
-export interface MessageFromChildCallback extends MessageFromChildCallbackConstr {
-	cmd: 'callback',
-	cmdId: number,
-}
-export type MessageFromChild = MessageFromChildReply | MessageFromChildLog | MessageFromChildCallback
-export type CallbackFunction = (e: Error | null, res?: any) => void
-// export interface MessageFcn {
-// 	cmd: 'fcn',
-// 	modulePath: string,
-// 	className: string,
-// 	args: Array<any>
-
-// 	replyTo?: number,
-// 	cmdId?: number,
-// 	reply?: any,
-// 	error?: Error
-// }
+process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
