@@ -91,5 +91,9 @@
   "dependencies": {
     "callsites": "^2.0.0",
     "tslib": "^1.6.0"
+  },
+  "standard-version": {
+    "message": "chore(release): %s [skip ci]",
+    "tagPrefix": ""
   }
 }
