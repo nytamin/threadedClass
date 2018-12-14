@@ -17,7 +17,8 @@ test('import own class', async () => {
 	expect(await threaded.getWindows('asdf')).toHaveLength(2)
 	expect(await threaded.getRooms()).toHaveLength(1)
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
 test('eventEmitter', async () => {
 
@@ -31,7 +32,8 @@ test('eventEmitter', async () => {
 	await new Promise((resolve) => { setTimeout(resolve, 200) })
 	expect(onEvent).toHaveBeenCalledTimes(1)
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
 
 test('method with callback', async () => {
@@ -48,7 +50,8 @@ test('method with callback', async () => {
 	// await new Promise((resolve) => { setTimeout(resolve, 200) })
 	expect(result).toEqual('parent,child,parent2,child2')
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
 
 test('import library class', async () => {
@@ -66,7 +69,8 @@ test('import library class', async () => {
 	}])
 	expect(await threaded.host).toEqual('192.168.0.1')
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
 
 test('import native class', async () => {
@@ -83,7 +87,9 @@ test('import native class', async () => {
 
 	expect(euroSign2).toEqual(euroSign)
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
 
 test('single-thread', async () => {
@@ -181,5 +187,6 @@ test('properties', async () => {
 	threaded.writeonly = 13
 	await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
 
-	threaded._destroyChild()
+	await ThreadedClassManager.destroy(threaded)
+	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 })
