@@ -9,45 +9,71 @@ import {
 	MessageReply,
 	MessageFromChild,
 	MessageFromChildLogConstr,
-	MessageFromChildLog,
 	MessageFromChildReplyConstr,
-	MessageFromChildReply,
 	MessageFromChildCallbackConstr,
-	MessageFromChildCallback,
 	CallbackFunction,
-	MessageSet
-} from './lib'
+	MessageSet,
+	MessageFromChildConstr,
+	ArgDefinition,
+	MessageKill
+} from './internalApi'
 
-let instance: any
+interface InstanceHandle {
+	id: string
+	cmdId: number
+	queue: {[cmdId: string]: CallbackFunction}
+
+	instance: any
+}
+
+const instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 // Override console.log:
-// let orgConsoleLog = console.log
+const _orgConsoleLog = console.log
 console.log = log
 
-let cmdId = 0
-let queue: {[cmdId: string]: Function} = {}
+// _orgConsoleLog('Child process starting')
+
+function killInstance (handle: InstanceHandle) {
+	delete instanceHandles[handle.id]
+}
 
 if (process.send) {
 	process.on('message', (m: MessageToChild) => {
+		let handle = instanceHandles[m.instanceId]
+		if (!handle && m.cmd !== MessageType.INIT) {
+			_orgConsoleLog(`Child process: Unknown instanceId: "${m.instanceId}"`)
+			return // fail silently?
+		}
+		if (!handle) {
+			// create temporary handle:
+			handle = {
+				id: m.instanceId,
+				cmdId: 0,
+				queue: {},
+				instance: {}
+			}
+		}
 		try {
-			if (m.cmd === MessageType.REPLY) {
-				let msg: MessageReply = m
-				let cb = queue[msg.replyTo + '']
-				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
-				if (msg.error) {
-					cb(msg.error)
-				} else {
-					cb(null, msg.reply)
-				}
-				delete queue[msg.replyTo + '']
-			} else if (m.cmd === 'init') {
-				let msg: MessageInit = m
-				let module = require(msg.modulePath)
-				instance = ((...args: Array<any>) => {
-					return new module[msg.className](...args)
-				}).apply(null, msg.args)
+			const instance = handle.instance
 
-				let allProps = getAllProperties(instance)
-				let props: InitProps = []
+			if (m.cmd === MessageType.INIT) {
+				const msg: MessageInit = m
+				const module = require(msg.modulePath)
+
+				const handle: InstanceHandle = {
+					id: msg.instanceId,
+					cmdId: 0,
+					queue: {},
+					instance: ((...args: Array<any>) => {
+						return new module[msg.className](...args)
+					}).apply(null, msg.args)
+				}
+				instanceHandles[handle.id] = handle
+
+				const instance = handle.instance
+
+				const allProps = getAllProperties(instance)
+				const props: InitProps = []
 				allProps.forEach((prop: string) => {
 					if ([
 						'constructor',
@@ -101,12 +127,22 @@ if (process.send) {
 						})
 					}
 				})
-				reply(msg, props)
+				reply(handle, msg, props)
+			} else if (m.cmd === MessageType.REPLY) {
+				const msg: MessageReply = m
+				let cb = handle.queue[msg.replyTo + '']
+				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
+				if (msg.error) {
+					cb(msg.error)
+				} else {
+					cb(null, msg.reply)
+				}
+				delete handle.queue[msg.replyTo + '']
 			} else if (m.cmd === MessageType.FUNCTION) {
 				let msg: MessageFcn = m
 				if (instance[msg.fcn]) {
 
-					const fixedArgs = fixArgs(msg.args)
+					const fixedArgs = fixArgs(handle, msg.args)
 
 					let p = (
 						typeof instance[msg.fcn] === 'function' ?
@@ -118,31 +154,40 @@ if (process.send) {
 					}
 					Promise.resolve(p)
 					.then((result) => {
-						reply(msg, result)
+						reply(handle, msg, result)
 					})
 					.catch((err) => {
-						replyError(msg, err)
+						replyError(handle, msg, err)
 					})
 				} else {
-					replyError(msg, 'Function "' + msg.fcn + '" not found')
+					replyError(handle, msg, 'Function "' + msg.fcn + '" not found')
 				}
 			} else if (m.cmd === MessageType.SET) {
 				let msg: MessageSet = m
 
-				const fixedValue = fixArgs([msg.value])[0]
+				// _orgConsoleLog('msg')
+				const fixedValue = fixArgs(handle, [msg.value])[0]
 				instance[msg.property] = fixedValue
 
-				reply(msg, fixedValue)
+				reply(handle, msg, fixedValue)
+			} else if (m.cmd === MessageType.KILL) {
+				let msg: MessageKill = m
+				// kill off instance
+				killInstance(handle)
+
+				reply(handle, msg, null)
 			}
 		} catch (e) {
-			if (m.cmdId) replyError(m, 'Error: ' + e.toString() + e.stack)
-			else log('Error: ' + e.toString(), e.stack)
+			// _orgConsoleLog('error', e)
+
+			if (m.cmdId) replyError(handle, m, 'Error: ' + e.toString() + e.stack)
+			else log(handle, 'Error: ' + e.toString(), e.stack)
 		}
 	})
 } else {
 	throw Error('process.send undefined!')
 }
-function fixArgs (args: Array<any>) {
+function fixArgs (handle: InstanceHandle, args: Array<ArgDefinition>) {
 	// Go through arguments and de-serialize them
 	return args.map((a) => {
 		if (a.type === 'string') return a.value
@@ -151,71 +196,62 @@ function fixArgs (args: Array<any>) {
 		if (a.type === 'function') {
 			return ((...args: any[]) => {
 				return new Promise((resolve, reject) => {
-					sendCallback({
-						callbackId: a.value,
-						args: args
-					}, (err, result) => {
-						if (err) reject(err)
-						else resolve(result)
-					})
-
+					sendCallback(
+						handle,
+						a.value,
+						args,
+						(err, result) => {
+							if (err) reject(err)
+							else resolve(result)
+						}
+					)
 				})
 			})
 		}
 		return a.value
 	})
 }
-function reply (m: MessageToChild, reply: any) {
-	sendReply({
-		replyTo: m.cmdId,
-		reply: reply
-	})
+function reply (handle: InstanceHandle, m: MessageToChild, reply: any) {
+	sendReply(handle, m.cmdId, undefined, reply)
 }
-function replyError (m: MessageToChild, err: any) {
-	sendReply({
-		replyTo: m.cmdId,
-		error: err
-	})
+function replyError (handle: InstanceHandle, m: MessageToChild, error: any) {
+	sendReply(handle, m.cmdId, error)
 }
-function sendReply (m: MessageFromChildReplyConstr) {
-	cmdId++
-	let msg: MessageFromChildReply = {
+function sendReply (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
+	let msg: MessageFromChildReplyConstr = {
 		cmd: MessageType.REPLY,
-		cmdId: cmdId,
-		replyTo: m.replyTo,
-		error: m.error,
-		reply: m.reply
+		replyTo: replyTo,
+		error: error,
+		reply: reply
 	}
-	processSend(msg)
+	processSend(handle, msg)
 }
-function log (...data: any[]) {
-	sendLog({
-		log: data
-	})
+function log (handle: InstanceHandle, ...data: any[]) {
+	sendLog(handle, data)
 }
-function sendLog (m: MessageFromChildLogConstr) {
-	cmdId++
-	let msg: MessageFromChildLog = {
+function sendLog (handle: InstanceHandle, log: any[]) {
+	let msg: MessageFromChildLogConstr = {
 		cmd: MessageType.LOG,
-		cmdId: cmdId,
-		log: m.log
+		log: log
 	}
-	processSend(msg)
+	processSend(handle, msg)
 }
-function sendCallback (m: MessageFromChildCallbackConstr, cb: CallbackFunction) {
-	cmdId++
-	let msg: MessageFromChildCallback = {
-		cmd: 'callback',
-		cmdId: cmdId,
-		callbackId: m.callbackId,
-		args: m.args
+function sendCallback (handle: InstanceHandle, callbackId: string, args: any[], cb: CallbackFunction) {
+	let msg: MessageFromChildCallbackConstr = {
+		cmd: MessageType.CALLBACK,
+		callbackId: callbackId,
+		args: args
 	}
-	if (cb) queue[cmdId + ''] = cb
-	processSend(msg)
+	processSend(handle, msg, cb)
 }
-function processSend (msg: MessageFromChild) {
+function processSend (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
 	if (process.send) {
-		process.send(msg)
+		const message: MessageFromChild = {...msg, ...{
+			cmdId: handle.cmdId++,
+			instanceId: handle.id
+		}}
+		if (cb) handle.queue[message.cmdId + ''] = cb
+		process.send(message)
 	} else throw Error('process.send undefined!')
 }
 function getAllProperties (obj: Object) {
