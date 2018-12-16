@@ -24,6 +24,7 @@
     "build": "trash dist && yarn build:main",
     "buildtest": "yarn build && yarn unit",
     "build:main": "tsc -p tsconfig.json",
+    "build:test-lib": "tsc -p tsconfig.test-lib.json",
     "lint": "tslint --project tsconfig.jest.json --config tslint.json",
     "unit": "jest --forceExit",
     "test": "yarn lint && yarn build && yarn unit",
