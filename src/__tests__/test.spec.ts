@@ -7,235 +7,253 @@ import {
 	ThreadedClass
 } from '../index'
 import { House } from '../../test-lib/house'
+import { TestClass } from '../../test-lib/testClass'
 
 const HOUSE_PATH = '../../test-lib/house.js'
-test('import own class', async () => {
+const TESTCLASS_PATH = '../../test-lib/testClass.js'
 
-	let original = new House(['north', 'west'], ['south'])
+describe('threadedclass', () => {
 
-	expect(original.getWindows('asdf')).toHaveLength(2)
-	expect(original.getRooms()).toHaveLength(1)
+	afterEach(async () => {
+		await ThreadedClassManager.destroyAll()
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
+	test('import own class', async () => {
 
-	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		let original = new House(['north', 'west'], ['south'])
 
-	expect(await threaded.getWindows('asdf')).toHaveLength(2)
-	expect(await threaded.getRooms()).toHaveLength(1)
+		expect(original.getWindows('asdf')).toHaveLength(2)
+		expect(original.getRooms()).toHaveLength(1)
 
-	await ThreadedClassManager.destroy(threaded)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
-test('eventEmitter', async () => {
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
 
-	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		expect(await threaded.getWindows('asdf')).toHaveLength(2)
+		expect(await threaded.getRooms()).toHaveLength(1)
 
-	let onEvent = jest.fn()
-	await threaded.on('test', onEvent)
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
+	test('eventEmitter', async () => {
 
-	await threaded.doEmit('test')
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
 
-	await new Promise((resolve) => { setTimeout(resolve, 200) })
-	expect(onEvent).toHaveBeenCalledTimes(1)
+		let onEvent = jest.fn()
+		await threaded.on('test', onEvent)
 
-	await ThreadedClassManager.destroy(threaded)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		await threaded.doEmit('test')
 
-test('method with callback', async () => {
+		await new Promise((resolve) => { setTimeout(resolve, 200) })
+		expect(onEvent).toHaveBeenCalledTimes(1)
 
-	let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
-
-	let onEvent = jest.fn()
-	await threaded.on('test', onEvent)
-
-	let result = await threaded.callCallback('parent', (str) => {
-		return str + ',parent2'
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 	})
 
-	// await new Promise((resolve) => { setTimeout(resolve, 200) })
-	expect(result).toEqual('parent,child,parent2,child2')
+	test('method with callback', async () => {
 
-	await ThreadedClassManager.destroy(threaded)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		let original = new House(['north', 'west'], ['south'])
 
-test('import library class', async () => {
+		let result = await original.callCallback('parent', (str) => {
+			return Promise.resolve(str + ',parent2')
+		})
 
-	let original = new CasparCG({
-		host: '192.168.0.1',
-		autoConnect: false
+		expect(result).toEqual('parent,child,parent2,child2')
+
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+
+		let onEvent = jest.fn()
+		await threaded.on('test', onEvent)
+
+		result = await threaded.callCallback('parent', (str) => {
+			return str + ',parent2'
+		})
+
+		// await new Promise((resolve) => { setTimeout(resolve, 200) })
+		expect(result).toEqual('parent,child,parent2,child2')
+
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 	})
-	expect(original.host).toEqual('192.168.0.1')
 
-	let threaded = await threadedClass<CasparCG>('casparcg-connection', CasparCG, [{
-		host: '192.168.0.1',
-		autoConnect: false
-	}])
-	expect(await threaded.host).toEqual('192.168.0.1')
+	test('import library class', async () => {
 
-	await ThreadedClassManager.destroy(threaded)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		let original = new CasparCG({
+			host: '192.168.0.1',
+			autoConnect: false
+		})
+		expect(original.host).toEqual('192.168.0.1')
 
-test('import native class', async () => {
+		let threaded = await threadedClass<CasparCG>('casparcg-connection', CasparCG, [{
+			host: '192.168.0.1',
+			autoConnect: false
+		}])
+		expect(await threaded.host).toEqual('192.168.0.1')
 
-	let original = new StringDecoder('utf8')
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 
-	// €-sign:
-	let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
-	expect(euroSign).toEqual('€')
+	test('import native class', async () => {
 
-	let threaded = await threadedClass<NodeStringDecoder>('string_decoder', StringDecoder, ['utf8'])
+		let original = new StringDecoder('utf8')
 
-	let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
+		// €-sign:
+		let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
+		expect(euroSign).toEqual('€')
 
-	expect(euroSign2).toEqual(euroSign)
+		let threaded = await threadedClass<NodeStringDecoder>('string_decoder', StringDecoder, ['utf8'])
 
-	await ThreadedClassManager.destroy(threaded)
+		let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
 
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		expect(euroSign2).toEqual(euroSign)
 
-test('single-thread', async () => {
-	// let startTime = Date.now()
-	let results: Array<number> = []
-	for (let i = 0; i < 5; i++) {
+		await ThreadedClassManager.destroy(threaded)
 
-		let myHouse = new House(['aa', 'bb'], [])
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 
-		results.push(myHouse.slowFib(37))
-	}
-	// let endTime = Date.now()
+	test('single-thread', async () => {
+		// let startTime = Date.now()
+		let results: Array<number> = []
+		for (let i = 0; i < 5; i++) {
 
-	// console.log('Single-thread: ', results.length, endTime - startTime)
-	expect(results).toHaveLength(5)
-})
+			let myHouse = new House(['aa', 'bb'], [])
 
-test('multi-thread', async () => {
-	// let startTime = Date.now()
-	let threads: ThreadedClass<House>[] = []
-	let results: Array<number> = []
+			results.push(myHouse.slowFib(37))
+		}
+		// let endTime = Date.now()
 
-	let ps: any = []
+		// console.log('Single-thread: ', results.length, endTime - startTime)
+		expect(results).toHaveLength(5)
+	})
 
-	for (let i = 0; i < 5; i++) {
-		ps.push(
-			threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []])
-			.then((myHouse) => {
-				threads.push(myHouse)
-				return myHouse.slowFib(37)
-			})
-			.then((result) => {
-				results.push(result[1])
-			})
-		)
-	}
-	await Promise.all(ps)
-	// let endTime = Date.now()
-	await Promise.all(threads.map((thread) => {
-		return ThreadedClassManager.destroy(thread)
-	}))
+	test('multi-thread', async () => {
+		// let startTime = Date.now()
+		let threads: ThreadedClass<House>[] = []
+		let results: Array<number> = []
 
-	// console.log('Multi-thread: ', results.length, endTime - startTime)
-	expect(results).toHaveLength(5)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		let ps: any = []
 
-test('properties', async () => {
-	let original = new House([], ['south'])
-	let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
+		for (let i = 0; i < 5; i++) {
+			ps.push(
+				threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []])
+				.then((myHouse) => {
+					threads.push(myHouse)
+					return myHouse.slowFib(37)
+				})
+				.then((result) => {
+					results.push(result[1])
+				})
+			)
+		}
+		await Promise.all(ps)
+		// let endTime = Date.now()
+		await Promise.all(threads.map((thread) => {
+			return ThreadedClassManager.destroy(thread)
+		}))
 
-	// Method with parameter and return value:
-	expect(original.returnValue('myValue')).toEqual('myValue')
-	//
-	expect(await threaded.returnValue('myValue')).toEqual('myValue')
+		// console.log('Multi-thread: ', results.length, endTime - startTime)
+		expect(results).toHaveLength(5)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 
-	// Method to set and get value:
-	original.setWindows(['west', 'south'])
-	expect(original.getWindows('')).toHaveLength(2)
-	//
-	await threaded.setWindows(['west', 'south'])
-	expect(await threaded.getWindows('')).toHaveLength(2)
+	test('properties', async () => {
+		let original = new House([], ['south'])
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
 
-	// Public property:
-	original.windows = ['a','b','c','d']
-	expect(original.windows).toEqual(['a','b','c','d'])
-	//
-	// @ts-ignore this technically works, though the typings do not:
-	threaded.windows = ['a','b','c','d']
-	expect(await threaded.windows).toEqual(['a','b','c','d'])
+		// Method with parameter and return value:
+		expect(original.returnValue('myValue')).toEqual('myValue')
+		//
+		expect(await threaded.returnValue('myValue')).toEqual('myValue')
 
-	// Method to get private property:
-	expect(original.getRooms()).toHaveLength(1)
-	//
-	expect(await threaded.getRooms()).toHaveLength(1)
+		// Method to set and get value:
+		original.setWindows(['west', 'south'])
+		expect(original.getWindows('')).toHaveLength(2)
+		//
+		await threaded.setWindows(['west', 'south'])
+		expect(await threaded.getWindows('')).toHaveLength(2)
 
-	// Getter to get private property:
-	expect(original.getterRooms).toHaveLength(1)
-	//
-	expect(await threaded.getterRooms).toHaveLength(1)
+		// Public property:
+		original.windows = ['a','b','c','d']
+		expect(original.windows).toEqual(['a','b','c','d'])
+		//
+		// @ts-ignore this technically works, though the typings do not:
+		threaded.windows = ['a','b','c','d']
+		expect(await threaded.windows).toEqual(['a','b','c','d'])
 
-	// Private property that has both a getter and a setter:
-	original.lamps = 91
-	expect(original.lamps).toEqual(91)
-	//
-	// @ts-ignore this technically works, though the typings do not:
-	threaded.lamps = 91
-	expect(await threaded.lamps).toEqual(91)
+		// Method to get private property:
+		expect(original.getRooms()).toHaveLength(1)
+		//
+		expect(await threaded.getRooms()).toHaveLength(1)
 
-	// Private property that only has getter:
-	expect(original.readonly).toEqual(42)
-	// original.readonly = 3 // not allowed according to types (which is correct)
-	//
-	expect(await threaded.readonly).toEqual(42)
+		// Getter to get private property:
+		expect(original.getterRooms).toHaveLength(1)
+		//
+		expect(await threaded.getterRooms).toHaveLength(1)
 
-	// Private property that only has setter:
-	original.writeonly = 13
-	expect(original.writeonly).toEqual(undefined)
-	//
-	// @ts-ignore this technically works, though the typings do not:
-	threaded.writeonly = 13
-	await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
+		// Private property that has both a getter and a setter:
+		original.lamps = 91
+		expect(original.lamps).toEqual(91)
+		//
+		// @ts-ignore this technically works, though the typings do not:
+		threaded.lamps = 91
+		expect(await threaded.lamps).toEqual(91)
 
-	await ThreadedClassManager.destroy(threaded)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-})
+		// Private property that only has getter:
+		expect(original.readonly).toEqual(42)
+		// original.readonly = 3 // not allowed according to types (which is correct)
+		//
+		expect(await threaded.readonly).toEqual(42)
 
-test('multiple instances in same process', async () => {
+		// Private property that only has setter:
+		original.writeonly = 13
+		expect(original.writeonly).toEqual(undefined)
+		//
+		// @ts-ignore this technically works, though the typings do not:
+		threaded.writeonly = 13
+		await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
 
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 
-	// processUsage: 0.3, make room for 3 instances in each process
-	let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processUsage: 0.3 })
-	expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-	let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processUsage: 0.3 })
-	expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-	let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processUsage: 0.3 })
-	expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+	test('multiple instances in same process', async () => {
 
-	let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processUsage: 0.3 })
-	expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
-	// Check that all instances return correct data:
-	let windows = await Promise.all([
-		threadedHouse0.getWindows('0'),
-		threadedHouse1.getWindows('1'),
-		threadedHouse2.getWindows('2'),
-		threadedHouse3.getWindows('3')
-	])
+		// processUsage: 0.3, make room for 3 instances in each process
+		let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processUsage: 0.3 })
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processUsage: 0.3 })
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processUsage: 0.3 })
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 
-	expect(windows[0]).toEqual(['south0'])
-	expect(windows[1]).toEqual(['south1'])
-	expect(windows[2]).toEqual(['south2'])
-	expect(windows[3]).toEqual(['south3'])
+		let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processUsage: 0.3 })
+		expect(ThreadedClassManager.getProcessCount()).toEqual(2)
 
-	// Clean up
-	await ThreadedClassManager.destroy(threadedHouse0)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(2)
-	await ThreadedClassManager.destroy(threadedHouse1)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(2)
-	await ThreadedClassManager.destroy(threadedHouse2)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-	await ThreadedClassManager.destroy(threadedHouse3)
-	expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		// Check that all instances return correct data:
+		let windows = await Promise.all([
+			threadedHouse0.getWindows('0'),
+			threadedHouse1.getWindows('1'),
+			threadedHouse2.getWindows('2'),
+			threadedHouse3.getWindows('3')
+		])
 
+		expect(windows[0]).toEqual(['south0'])
+		expect(windows[1]).toEqual(['south1'])
+		expect(windows[2]).toEqual(['south2'])
+		expect(windows[3]).toEqual(['south3'])
+
+		// Clean up
+		await ThreadedClassManager.destroy(threadedHouse0)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+		await ThreadedClassManager.destroy(threadedHouse1)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+		await ThreadedClassManager.destroy(threadedHouse2)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		await ThreadedClassManager.destroy(threadedHouse3)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+	})
 })
