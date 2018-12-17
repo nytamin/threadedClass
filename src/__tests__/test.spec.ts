@@ -298,7 +298,7 @@ describe('threadedclass', () => {
 		expect(onClosed).toHaveBeenCalledTimes(1)
 		await expect(threaded.returnValue('asdf')).rejects.toMatch(/closed/)
 
-		await ThreadedClassManager.restart(threaded)
+		ThreadedClassManager.restart(threaded)
 
 		expect(await threaded.returnValue('asdf')).toEqual('asdf')
 
@@ -328,8 +328,8 @@ describe('threadedclass', () => {
 		await expect(threaded0.returnValue('asdf')).rejects.toMatch(/closed/)
 		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/closed/)
 		await expect(threaded2.returnValue('asdf')).rejects.toMatch(/closed/)
-		await ThreadedClassManager.restart(threaded2)
-		await ThreadedClassManager.restart(threaded0)
+		ThreadedClassManager.restart(threaded2)
+		ThreadedClassManager.restart(threaded0)
 
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 
@@ -337,7 +337,7 @@ describe('threadedclass', () => {
 		expect(await threaded2.returnValue('asdf')).toEqual('asdf')
 
 		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/not initialized/)
-		await ThreadedClassManager.restart(threaded1)
+		ThreadedClassManager.restart(threaded1)
 		expect(await threaded1.returnValue('asdf')).toEqual('asdf')
 
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)

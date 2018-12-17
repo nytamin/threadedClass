@@ -245,69 +245,54 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			return
 		})
 	}
-	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
-		try {
+	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): void {
 
-			let foundInstance: ChildInstance | undefined
-			let foundChild0: Child | undefined
-			Object.keys(this._children).find((childId: string) => {
-				const child = this._children[childId]
-				const found = Object.keys(child.instances).find((instanceId: string) => {
-					const instance = child.instances[instanceId]
-					if (instance.proxy === proxy) {
-						foundInstance = instance
-						return true
-					}
-					return false
-				})
-				if (found) {
-					foundChild0 = child
+		let foundInstance: ChildInstance | undefined
+		let foundChild0: Child | undefined
+		Object.keys(this._children).find((childId: string) => {
+			const child = this._children[childId]
+			const found = Object.keys(child.instances).find((instanceId: string) => {
+				const instance = child.instances[instanceId]
+				if (instance.proxy === proxy) {
+					foundInstance = instance
 					return true
 				}
 				return false
 			})
-			if (!foundChild0) throw Error('Child not found')
-			if (!foundInstance) throw Error('Instance not found')
-
-			const foundChild: Child = foundChild0
-
-			if (foundChild.alive && forceRestart) {
-				foundChild.process.kill()
-				foundChild.alive = false
+			if (found) {
+				foundChild0 = child
+				return true
 			}
+			return false
+		})
+		if (!foundChild0) throw Error('Child not found')
+		if (!foundInstance) throw Error('Instance not found')
 
-			if (!foundChild.alive) {
-				// clear old process:
-				// foundChild.process.kill()
-				foundChild.process.removeAllListeners()
-				delete foundChild.process
+		const foundChild: Child = foundChild0
 
-				Object.keys(foundChild.instances).forEach((instanceId) => {
-					const instance = foundChild.instances[instanceId]
-					instance.initialized = false
-				})
-
-				// start new process
-				foundChild.alive = true
-				foundChild.isClosing = false
-				foundChild.process = fork(foundChild.pathToWorker)
-				this._setupChildProcess(foundChild)
-			}
-
-			// Set up all instances in the process:
-			// Object.keys(foundChild.instances).forEach((instanceId) => {
-			// 	const instance = foundChild.instances[instanceId]
-			// 	this.sendInit(instance, instance.config)
-			// })
-
-			// foundInstance.
-			this.sendInit(foundInstance, foundInstance.config)
-
-			return Promise.resolve()
-
-		} catch (e) {
-			return Promise.reject(e)
+		if (foundChild.alive && forceRestart) {
+			foundChild.process.kill()
+			foundChild.alive = false
 		}
+
+		if (!foundChild.alive) {
+			// clear old process:
+			foundChild.process.removeAllListeners()
+			delete foundChild.process
+
+			Object.keys(foundChild.instances).forEach((instanceId) => {
+				const instance = foundChild.instances[instanceId]
+				instance.initialized = false
+			})
+
+			// start new process
+			foundChild.alive = true
+			foundChild.isClosing = false
+			foundChild.process = fork(foundChild.pathToWorker)
+			this._setupChildProcess(foundChild)
+		}
+
+		this.sendInit(foundInstance, foundInstance.config)
 	}
 	public sendInit (
 		instance: ChildInstance,
