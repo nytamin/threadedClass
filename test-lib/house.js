@@ -26,6 +26,9 @@ class House extends events_1.EventEmitter {
         return value;
     }
     getWindows(_a) {
+        if (_a) {
+            return [_a, ...this.windows];
+        }
         return this.windows;
     }
     setWindows(windows) {

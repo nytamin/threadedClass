@@ -6,7 +6,6 @@ import {
 	InitPropType,
 	MessageType,
 	InstanceCallbackFunction,
-	MessageInitConstr,
 	MessageFcnConstr,
 	MessageSetConstr,
 	MessageReplyConstr,
@@ -41,41 +40,6 @@ export function threadedClass<T> (
 	let thisCallPath = callsites()[0].getFileName()
 
 	return new Promise((resolve, reject) => {
-
-		if (!parentCallPath) throw new Error('Unable to resolve parent file path')
-		if (!thisCallPath) throw new Error('Unable to resolve own file path')
-
-		let absPathToModule = (
-			orgModule.match(/^\./) ?
-			path.resolve(parentCallPath, '../', orgModule) :
-			orgModule
-		)
-		let verifiedPathToModule = require.resolve(absPathToModule)
-
-		let pathToWorker = thisCallPath
-				.replace(/threadedClass(\.[tj]s)$/,'worker.js')
-				.replace(/src([\\\/])worker/,'dist$1worker')
-
-		const child: Child = ThreadedClassManagerInternal.getChild(config, pathToWorker)
-
-		const proxy = {} as ThreadedClass<T>
-
-		// @ts-ignore
-		proxy.__proto__ = {}
-
-		let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstance(config, child, proxy, onMessage)
-
-		function sendInit (instance: ChildInstance, config: ThreadedClassConfig, cb?: InstanceCallbackFunction) {
-
-			let msg: MessageInitConstr = {
-				cmd: MessageType.INIT,
-				modulePath: verifiedPathToModule,
-				className: orgClassName,
-				args: constructorArgs,
-				config: config
-			}
-			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
-		}
 		function sendFcn (instance: ChildInstance, fcn: string, args: any[], cb?: InstanceCallbackFunction) {
 			let msg: MessageFcnConstr = {
 				cmd: MessageType.FUNCTION,
@@ -109,7 +73,8 @@ export function threadedClass<T> (
 				let msg: MessageFromChildReply = m
 				const child = instance.child
 				let cb = child.queue[msg.replyTo + '']
-				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
+				// if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
+				if (!cb) return
 				if (msg.error) {
 					cb(instance, msg.error)
 				} else {
@@ -151,58 +116,61 @@ export function threadedClass<T> (
 				return { type: 'other', value: arg }
 			})
 		}
-		sendInit(instanceInChild, config, (instance: ChildInstance, err: Error | null, props: InitProps) => {
-			if (err) {
-				reject(err)
-			} else {
-				props.forEach((p: InitProp) => {
-					if (!instance.child.alive) throw Error('Child process has been closed')
+		try {
 
-					if (proxy.hasOwnProperty(p.key)) {
-						// console.log('skipping property ' + p.key)
-						return
-					}
-					if (p.type === InitPropType.FUNCTION) {
-						// @ts-ignore proxy is a class
-						const fcn = (...args: any[]) => {
-							return new Promise((resolve, reject) => {
-								// go through arguments and serialize them:
-								let fixedArgs = fixArgs(instance.child, ...args)
-								sendFcn(
-									instance,
-									p.key,
-									fixedArgs,
-									(_instance, err, res) => {
-										if (err) reject(err)
-										else resolve(res)
-									}
-								)
-							})
-						}
-						if (p.descriptor.inProto) {
-							// @ts-ignore prototype is not in typings
-							proxy.__proto__[p.key] = fcn
-						} else {
-							// @ts-ignore
-							proxy[p.key] = fcn
-						}
-					} else if (p.type === InitPropType.VALUE) {
+			if (!parentCallPath) throw new Error('Unable to resolve parent file path')
+			if (!thisCallPath) throw new Error('Unable to resolve own file path')
 
-						let m: PropertyDescriptor = {
-							configurable: 	false, // We do not support configurable properties
-							enumerable: 	p.descriptor.enumerable
-							// writable: // We handle everything through getters & setters instead
+			let absPathToModule = (
+				orgModule.match(/^\./) ?
+				path.resolve(parentCallPath, '../', orgModule) :
+				orgModule
+			)
+			let verifiedPathToModule = require.resolve(absPathToModule)
+
+			let pathToWorker = thisCallPath
+					.replace(/threadedClass(\.[tj]s)$/,'worker.js')
+					.replace(/src([\\\/])worker/,'dist$1worker')
+
+			const child: Child = ThreadedClassManagerInternal.getChild(
+				config,
+				pathToWorker
+			)
+
+			const proxy = {} as ThreadedClass<T>
+
+			let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstance(
+				config,
+				child,
+				proxy,
+				verifiedPathToModule,
+				orgClassName,
+				constructorArgs,
+				onMessage
+			)
+
+			ThreadedClassManagerInternal.sendInit(instanceInChild, config, (instance: ChildInstance, err: Error | null, props: InitProps) => {
+				if (err) {
+					reject(err)
+				} else {
+					props.forEach((p: InitProp) => {
+						if (!instance.child.alive) throw Error('Child process has been closed')
+
+						if (proxy.hasOwnProperty(p.key)) {
+							// console.log('skipping property ' + p.key)
+							return
 						}
-						if (
-							p.descriptor.get ||
-							p.descriptor.readable
-						) {
-							m.get = function () {
+						if (p.type === InitPropType.FUNCTION) {
+
+							// @ts-ignore proxy is a class
+							const fcn = (...args: any[]) => {
 								return new Promise((resolve, reject) => {
+									// go through arguments and serialize them:
+									let fixedArgs = fixArgs(instance.child, ...args)
 									sendFcn(
 										instance,
 										p.key,
-										[],
+										fixedArgs,
 										(_instance, err, res) => {
 											if (err) reject(err)
 											else resolve(res)
@@ -210,34 +178,63 @@ export function threadedClass<T> (
 									)
 								})
 							}
-						}
-						if (
-							p.descriptor.set ||
-							p.descriptor.writable
-						) {
-							m.set = function (newVal) {
-								let fixedArgs = fixArgs(instance.child, newVal)
+							// @ts-ignore
+							proxy[p.key] = fcn
+						} else if (p.type === InitPropType.VALUE) {
 
-								// in the strictest of worlds, we sould block the main thread here,
-								// until the remote acknowledges the write.
-								// Instead we're going to pretend that everything is okay. *whistling*
-								sendSet(
-									instance,
-									p.key,
-									fixedArgs[0],
-									(_instance, err, _result) => {
-										if (err) {
-											console.log('Error in setter', err)
-										}
-									}
-								)
+							let m: PropertyDescriptor = {
+								configurable: 	false, // We do not support configurable properties
+								enumerable: 	p.descriptor.enumerable
+								// writable: // We handle everything through getters & setters instead
 							}
+							if (
+								p.descriptor.get ||
+								p.descriptor.readable
+							) {
+								m.get = function () {
+									return new Promise((resolve, reject) => {
+										sendFcn(
+											instance,
+											p.key,
+											[],
+											(_instance, err, res) => {
+												if (err) reject(err)
+												else resolve(res)
+											}
+										)
+									})
+								}
+							}
+							if (
+								p.descriptor.set ||
+								p.descriptor.writable
+							) {
+								m.set = function (newVal) {
+									let fixedArgs = fixArgs(instance.child, newVal)
+
+									// in the strictest of worlds, we should block the main thread here,
+									// until the remote acknowledges the write.
+									// Instead we're going to pretend that everything is okay. *whistling*
+									sendSet(
+										instance,
+										p.key,
+										fixedArgs[0],
+										(_instance, err, _result) => {
+											if (err) {
+												console.log('Error in setter', err)
+											}
+										}
+									)
+								}
+							}
+							Object.defineProperty(proxy, p.key, m)
 						}
-						Object.defineProperty(proxy, p.key, m)
-					}
-				})
-				resolve(proxy)
-			}
-		})
+					})
+					resolve(proxy)
+				}
+			})
+		} catch (e) {
+			reject(e)
+		}
 	})
 }

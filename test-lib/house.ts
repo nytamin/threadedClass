@@ -25,6 +25,9 @@ export class House extends EventEmitter {
 		return value
 	}
 	public getWindows (_a: string) {
+		if (_a) {
+			return [_a, ...this.windows]
+		}
 		return this.windows
 	}
 	public setWindows (windows: Array<string>) {

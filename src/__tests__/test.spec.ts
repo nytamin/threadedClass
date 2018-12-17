@@ -1,4 +1,3 @@
-
 import { StringDecoder, NodeStringDecoder } from 'string_decoder'
 import { CasparCG } from 'casparcg-connection'
 import {
@@ -12,8 +11,17 @@ import { TestClass } from '../../test-lib/testClass'
 const HOUSE_PATH = '../../test-lib/house.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
 
+function wait (time: number) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, time)
+	})
+}
 describe('threadedclass', () => {
 
+	beforeEach(async () => {
+		await ThreadedClassManager.destroyAll()
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 	afterEach(async () => {
 		await ThreadedClassManager.destroyAll()
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
@@ -22,16 +30,37 @@ describe('threadedclass', () => {
 
 		let original = new House(['north', 'west'], ['south'])
 
-		expect(original.getWindows('asdf')).toHaveLength(2)
+		expect(original.getWindows('')).toHaveLength(2)
 		expect(original.getRooms()).toHaveLength(1)
 
 		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
 
-		expect(await threaded.getWindows('asdf')).toHaveLength(2)
+		expect(await threaded.getWindows('')).toHaveLength(2)
 		expect(await threaded.getRooms()).toHaveLength(1)
 
 		await ThreadedClassManager.destroy(threaded)
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(1)
+	})
+	test('import own basic class', async () => {
+		let original = new TestClass()
+
+		expect(original.returnValue('asdf')).toEqual('asdf')
+
+		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
+
+		expect(await threaded.returnValue('asdf')).toEqual('asdf')
+
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(1)
+
 	})
 	test('eventEmitter', async () => {
 
@@ -240,10 +269,10 @@ describe('threadedclass', () => {
 			threadedHouse3.getWindows('3')
 		])
 
-		expect(windows[0]).toEqual(['south0'])
-		expect(windows[1]).toEqual(['south1'])
-		expect(windows[2]).toEqual(['south2'])
-		expect(windows[3]).toEqual(['south3'])
+		expect(windows[0]).toEqual(['0', 'south0'])
+		expect(windows[1]).toEqual(['1', 'south1'])
+		expect(windows[2]).toEqual(['2', 'south2'])
+		expect(windows[3]).toEqual(['3', 'south3'])
 
 		// Clean up
 		await ThreadedClassManager.destroy(threadedHouse0)
@@ -254,6 +283,74 @@ describe('threadedclass', () => {
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 		await ThreadedClassManager.destroy(threadedHouse3)
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+	})
+
+	test('restart instance', async () => {
+		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
+		let onClosed = jest.fn(() => {
+			// oh dear, the process was closed
+		})
+		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
+
+		await threaded.exitProcess(10)
+		await wait(100)
+		expect(onClosed).toHaveBeenCalledTimes(1)
+		await expect(threaded.returnValue('asdf')).rejects.toMatch(/closed/)
+
+		await ThreadedClassManager.restart(threaded)
+
+		expect(await threaded.returnValue('asdf')).toEqual('asdf')
+
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(2)
+
+	})
+	test('restart instance with multiple', async () => {
+		let threaded0 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
+		let threaded1 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
+		let threaded2 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
+		let onClosed0 = jest.fn()
+		let onClosed1 = jest.fn()
+		let onClosed2 = jest.fn()
+		ThreadedClassManager.onEvent(threaded0, 'process_closed', onClosed0)
+		ThreadedClassManager.onEvent(threaded1, 'process_closed', onClosed1)
+		ThreadedClassManager.onEvent(threaded2, 'process_closed', onClosed2)
+
+		await threaded1.exitProcess(10)
+		await wait(100)
+
+		expect(onClosed0).toHaveBeenCalledTimes(1)
+		expect(onClosed1).toHaveBeenCalledTimes(1)
+		expect(onClosed2).toHaveBeenCalledTimes(1)
+		await expect(threaded0.returnValue('asdf')).rejects.toMatch(/closed/)
+		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/closed/)
+		await expect(threaded2.returnValue('asdf')).rejects.toMatch(/closed/)
+		await ThreadedClassManager.restart(threaded2)
+		await ThreadedClassManager.restart(threaded0)
+
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+
+		expect(await threaded0.returnValue('asdf')).toEqual('asdf')
+		expect(await threaded2.returnValue('asdf')).toEqual('asdf')
+
+		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/not initialized/)
+		await ThreadedClassManager.restart(threaded1)
+		expect(await threaded1.returnValue('asdf')).toEqual('asdf')
+
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+
+		await ThreadedClassManager.destroy(threaded0)
+		await ThreadedClassManager.destroy(threaded1)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		await ThreadedClassManager.destroy(threaded2)
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		expect(onClosed0).toHaveBeenCalledTimes(1)
+		expect(onClosed1).toHaveBeenCalledTimes(1)
+		expect(onClosed2).toHaveBeenCalledTimes(2)
 
 	})
 })

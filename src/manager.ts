@@ -6,8 +6,10 @@ import {
 	MessageToChild,
 	InstanceCallbackFunction,
 	MessageType,
-	MessageKillConstr
+	MessageKillConstr,
+	MessageInitConstr
 } from './internalApi'
+import { EventEmitter } from 'events'
 
 export class ThreadedClassManagerClass {
 
@@ -25,17 +27,38 @@ export class ThreadedClassManagerClass {
 	public getProcessCount (): number {
 		return this._internal.getChildrenCount()
 	}
+	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
+		this._internal.on(event, (child: Child) => {
+			let foundChild = Object.keys(child.instances).find((instanceId) => {
+				const instance = child.instances[instanceId]
+				return instance.proxy === proxy
+			})
+			if (foundChild) {
+				cb()
+			}
+		})
+	}
+	/**
+	 * Restart the process of the proxy instance
+	 * @param proxy
+	 * @param forceRestart If true, will kill the process and restart it
+	 */
+	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean) {
+		this._internal.restart(proxy, forceRestart)
+	}
 }
 /**
  * The Child represents a child process, in which the proxy-classes live and run
  */
 export interface Child {
 	readonly id: string
-	readonly process: ChildProcess
 	readonly isNamed: boolean
+	readonly pathToWorker: string
+	process: ChildProcess
 	usage: number
 	instances: {[id: string]: ChildInstance}
 	alive: boolean
+	isClosing: boolean
 
 	cmdId: number
 	queue: {[cmdId: string]: InstanceCallbackFunction}
@@ -51,9 +74,14 @@ export interface ChildInstance {
 	readonly proxy: ThreadedClass<any>
 	readonly usage?: number
 	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
+	readonly pathToModule: string
+	readonly className: string
+	readonly constructorArgs: any[]
+	readonly config: ThreadedClassConfig
+	initialized: boolean
 	child: Child
 }
-export class ThreadedClassManagerClassInternal {
+export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
 	public dontHandleExit: boolean = false
@@ -62,7 +90,10 @@ export class ThreadedClassManagerClassInternal {
 	private _instanceId: number = 0
 	private _children: {[id: string]: Child} = {}
 
-	public getChild (config: ThreadedClassConfig, pathToWorker: string): Child {
+	public getChild (
+		config: ThreadedClassConfig,
+		pathToWorker: string
+	): Child {
 		this._init()
 
 		let child: Child | null = null
@@ -73,34 +104,22 @@ export class ThreadedClassManagerClassInternal {
 		}
 		if (!child) {
 			// Create new child process:
-
 			const newChild: Child = {
 				id: config.processId || ('process_' + this._processId++),
 				isNamed: !!config.processId,
+				pathToWorker: pathToWorker,
+
 				process: fork(pathToWorker),
 				usage: config.processUsage || 1,
 				instances: {},
 				alive: true,
+				isClosing: false,
 				cmdId: 0,
 				queue: {},
 				callbackId: 0,
 				callbacks: {}
 			}
-			newChild.process.on('close', (_code) => {
-				// console.log(`child process exited with code ${code}`)
-				newChild.alive = false
-			})
-			newChild.process.on('message', (message: MessageFromChild) => {
-				const instance = newChild.instances[message.instanceId]
-				if (instance) {
-					try {
-						instance.onMessageCallback(instance, message)
-					} catch (e) {
-						console.log('Error in onMessageCallback', instance, message)
-						throw e
-					}
-				}
-			})
+			this._setupChildProcess(newChild)
 			this._children[newChild.id] = newChild
 			child = newChild
 		}
@@ -117,6 +136,9 @@ export class ThreadedClassManagerClassInternal {
 		config: ThreadedClassConfig,
 		child: Child,
 		proxy: ThreadedClass<any>,
+		pathToModule: string,
+		className: string,
+		constructorArgs: any[],
 		onMessage: (instance: ChildInstance, message: MessageFromChild) => void
 	): ChildInstance {
 
@@ -125,7 +147,12 @@ export class ThreadedClassManagerClassInternal {
 			child: child,
 			proxy: proxy,
 			usage: config.processUsage,
-			onMessageCallback: onMessage
+			onMessageCallback: onMessage,
+			pathToModule: pathToModule,
+			className: className,
+			constructorArgs: constructorArgs,
+			initialized: false,
+			config: config
 		}
 		child.instances[instance.id] = instance
 
@@ -143,16 +170,9 @@ export class ThreadedClassManagerClassInternal {
 
 					return (instance.proxy === proxy)
 				})
-
 				if (instanceId) {
 					let instance = child.instances[instanceId]
-
 					foundProxy = true
-
-					const cleanup = () => {
-						delete instance.child
-						delete child.instances[instanceId]
-					}
 
 					if (Object.keys(child.instances).length === 1) {
 						// if there is only one instance left, we can kill the child
@@ -161,6 +181,10 @@ export class ThreadedClassManagerClassInternal {
 						.catch(reject)
 
 					} else {
+						const cleanup = () => {
+							delete instance.child
+							delete child.instances[instanceId]
+						}
 						this.sendMessage(instance, {
 							cmd: MessageType.KILL
 						} as MessageKillConstr, () => {
@@ -185,17 +209,29 @@ export class ThreadedClassManagerClassInternal {
 			}
 		})
 	}
-
 	public sendMessage (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: InstanceCallbackFunction) {
-		if (!instance.child.alive) throw Error('Child process has been closed')
-		const message: MessageToChild = {...messageConstr, ...{
-			cmdId: instance.child.cmdId++,
-			instanceId: instance.id
-		}}
-		// console.log('sendMessage', instance.child.id, instance.id, message)
-		instance.child.process.send(message)
+		try {
 
-		if (cb) instance.child.queue[message.cmdId + ''] = cb
+			if (!instance.child) throw Error('Instance has been detached from child process')
+			if (!instance.child.alive) throw Error('Child process has been closed')
+			if (instance.child.isClosing) throw Error('Child process is closing')
+			const message: MessageToChild = {...messageConstr, ...{
+				cmdId: instance.child.cmdId++,
+				instanceId: instance.id
+			}}
+
+			if (
+				message.cmd !== MessageType.INIT &&
+				!instance.initialized
+			) throw Error('Child instance is not initialized')
+			// console.log('sendMessage', instance.child.id, instance.id, message)
+			instance.child.process.send(message)
+
+			if (cb) instance.child.queue[message.cmdId + ''] = cb
+		} catch (e) {
+			if (cb) cb(instance, e.toString())
+			else throw e
+		}
 	}
 	public getChildrenCount (): number {
 		return Object.keys(this._children).length
@@ -208,6 +244,86 @@ export class ThreadedClassManagerClassInternal {
 		).then(() => {
 			return
 		})
+	}
+	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
+		try {
+
+			let foundInstance: ChildInstance | undefined
+			let foundChild0: Child | undefined
+			Object.keys(this._children).find((childId: string) => {
+				const child = this._children[childId]
+				const found = Object.keys(child.instances).find((instanceId: string) => {
+					const instance = child.instances[instanceId]
+					if (instance.proxy === proxy) {
+						foundInstance = instance
+						return true
+					}
+					return false
+				})
+				if (found) {
+					foundChild0 = child
+					return true
+				}
+				return false
+			})
+			if (!foundChild0) throw Error('Child not found')
+			if (!foundInstance) throw Error('Instance not found')
+
+			const foundChild: Child = foundChild0
+
+			if (foundChild.alive && forceRestart) {
+				foundChild.process.kill()
+				foundChild.alive = false
+			}
+
+			if (!foundChild.alive) {
+				// clear old process:
+				// foundChild.process.kill()
+				foundChild.process.removeAllListeners()
+				delete foundChild.process
+
+				Object.keys(foundChild.instances).forEach((instanceId) => {
+					const instance = foundChild.instances[instanceId]
+					instance.initialized = false
+				})
+
+				// start new process
+				foundChild.alive = true
+				foundChild.isClosing = false
+				foundChild.process = fork(foundChild.pathToWorker)
+				this._setupChildProcess(foundChild)
+			}
+
+			// Set up all instances in the process:
+			// Object.keys(foundChild.instances).forEach((instanceId) => {
+			// 	const instance = foundChild.instances[instanceId]
+			// 	this.sendInit(instance, instance.config)
+			// })
+
+			// foundInstance.
+			this.sendInit(foundInstance, foundInstance.config)
+
+			return Promise.resolve()
+
+		} catch (e) {
+			return Promise.reject(e)
+		}
+	}
+	public sendInit (
+		instance: ChildInstance,
+		config: ThreadedClassConfig,
+		cb?: InstanceCallbackFunction
+	) {
+
+		let msg: MessageInitConstr = {
+			cmd: MessageType.INIT,
+			modulePath: instance.pathToModule,
+			className: instance.className,
+			args: instance.constructorArgs,
+			config: config
+		}
+		instance.initialized = true
+		ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
 	}
 	/** Called before using internally */
 	private _init () {
@@ -241,6 +357,34 @@ export class ThreadedClassManagerClassInternal {
 		}
 		this.isInitialized = true
 	}
+	private _setupChildProcess (child: Child) {
+		child.process.on('close', (_code) => {
+			// console.log(`child process exited with code ${_code}`)
+			if (child.alive) {
+				child.alive = false
+				this.emit('process_closed', child)
+
+				// TODO: restart?
+			}
+			// delete this._children[child.id]
+		})
+		child.process.on('error', (err) => {
+			console.log('Error from ' + child.id, err)
+		})
+		child.process.on('message', (message: MessageFromChild) => {
+			const instance = child.instances[message.instanceId]
+			if (instance) {
+				try {
+					// console.log('on message', message)
+					instance.onMessageCallback(instance, message)
+				} catch (e) {
+					console.log('Error in onMessageCallback', message, instance)
+					console.log(e)
+					throw e
+				}
+			}
+		})
+	}
 	private _findFreeChild (processUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {
 			const child = this._children[id]
@@ -265,26 +409,31 @@ export class ThreadedClassManagerClassInternal {
 		return new Promise((resolve, reject) => {
 
 			let child = this._children[id]
-			if (child && child.alive) {
-				child.alive = false
-
-				Object.keys(child.instances).forEach((instanceId) => {
-					let instance = child.instances[instanceId]
-
-					delete instance.child
-					delete child.instances[instanceId]
-				})
-
-				child.process.once('close', () => {
+			if (child) {
+				if (!child.alive) {
 					delete this._children[id]
 					resolve()
-				})
-				setTimeout(() => {
-					delete this._children[id]
-					reject('Timeout: Kill child process')
-				},1000)
-				child.process.kill()
+				} else {
+					child.process.once('close', () => {
+						// Clean up:
+						Object.keys(child.instances).forEach(instanceId => {
+							const instance = child.instances[instanceId]
 
+							delete instance.child
+							delete child.instances[instanceId]
+						})
+						delete this._children[id]
+						resolve()
+					})
+					setTimeout(() => {
+						delete this._children[id]
+						reject('Timeout: Kill child process')
+					},1000)
+					if (!child.isClosing) {
+						child.isClosing = true
+						child.process.kill()
+					}
+				}
 			} else {
 				reject(`killChild: Child ${id} not found`)
 			}
