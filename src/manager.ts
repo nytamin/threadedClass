@@ -1,4 +1,5 @@
 import { ChildProcess, fork } from 'child_process'
+import { FakeProcess } from './fakeProcess'
 import { ThreadedClassConfig, ThreadedClass } from './api'
 import {
 	MessageFromChild,
@@ -109,7 +110,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				isNamed: !!config.processId,
 				pathToWorker: pathToWorker,
 
-				process: fork(pathToWorker),
+				process: config.disableMultithreading ? new FakeProcess() : fork(pathToWorker),
 				usage: config.processUsage || 1,
 				instances: {},
 				alive: true,
@@ -225,9 +226,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				!instance.initialized
 			) throw Error('Child instance is not initialized')
 			// console.log('sendMessage', instance.child.id, instance.id, message)
-			instance.child.process.send(message)
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
+			instance.child.process.send(message)
 		} catch (e) {
 			if (cb) cb(instance, e.toString())
 			else throw e
@@ -288,7 +289,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			// start new process
 			foundChild.alive = true
 			foundChild.isClosing = false
-			foundChild.process = fork(foundChild.pathToWorker)
+			foundChild.process = fork(foundChild.pathToWorker) // just hope this wasn't a fake process
 			this._setupChildProcess(foundChild)
 		}
 

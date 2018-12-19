@@ -17,4 +17,6 @@ export interface ThreadedClassConfig {
 	processId?: string
 	/** If the process crashes it's restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
+	/** Optionally you can choose to disable multi threading, this might be useful for keeping one version of typings */
+	disableMultithreading?: boolean
 }
