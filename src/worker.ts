@@ -13,15 +13,10 @@ import {
 } from './internalApi'
 
 class ThreadedWorker extends Worker {
-	private orgConsoleLog = console.log
-	protected killInstance (handle: InstanceHandle) {
-		delete this.instanceHandles[handle.id]
-	}
-
+	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 	protected _orgConsoleLog (...args: any[]) {
-		this.orgConsoleLog(...args)
+		_orgConsoleLog(...args)
 	}
-
 	protected fixArgs (handle: InstanceHandle, args: Array<ArgDefinition>) {
 		// Go through arguments and de-serialize them
 		return args.map((a) => {
@@ -98,13 +93,19 @@ class ThreadedWorker extends Worker {
 		} while (obj)
 		return props
 	}
+	protected killInstance (handle: InstanceHandle) {
+		delete this.instanceHandles[handle.id]
+	}
+
 }
+const _orgConsoleLog = console.log
 
 if (process.send) {
 	const worker = new ThreadedWorker()
-	// Override console.log:
 	console.log = worker.log
-	process.on('message', worker.messageCallback)
+	process.on('message', (m: MessageToChild) => {
+		worker.messageCallback(m)
+	})
 } else {
 	throw Error('process.send undefined!')
 }
