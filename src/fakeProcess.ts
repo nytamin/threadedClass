@@ -15,7 +15,6 @@ import {
 } from './internalApi'
 
 export class FakeWorker extends Worker {
-	protected getAllProperties = getAllProperties
 	private messageCb: (m: MessageFromChild) => void
 
 	constructor (cb: (m: MessageFromChild) => void) {
@@ -96,6 +95,16 @@ export class FakeWorker extends Worker {
 		if (cb) handle.queue[message.cmdId + ''] = cb
 		this.messageCb(message)
 	}
+
+	protected getAllProperties (obj: Object) {
+		let props: Array<string> = []
+
+		do {
+			props = props.concat(Object.getOwnPropertyNames(obj))
+			obj = Object.getPrototypeOf(obj)
+		} while (obj)
+		return props
+	}
 }
 
 export class FakeProcess extends EventEmitter implements ChildProcess {
@@ -140,15 +149,6 @@ export class FakeProcess extends EventEmitter implements ChildProcess {
 	}
 }
 
-export function getAllProperties (obj: Object) {
-	let props: Array<string> = []
-
-	do {
-		props = props.concat(Object.getOwnPropertyNames(obj))
-		obj = Object.getPrototypeOf(obj)
-	} while (obj)
-	return props
-}
 export interface InstanceHandle {
 	id: string
 	cmdId: number

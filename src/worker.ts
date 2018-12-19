@@ -13,9 +13,13 @@ import {
 } from './internalApi'
 
 class ThreadedWorker extends Worker {
-	protected _orgConsoleLog = console.log
+	private orgConsoleLog = console.log
 	protected killInstance (handle: InstanceHandle) {
 		delete this.instanceHandles[handle.id]
+	}
+
+	protected _orgConsoleLog (...args: any[]) {
+		this.orgConsoleLog(...args)
 	}
 
 	protected fixArgs (handle: InstanceHandle, args: Array<ArgDefinition>) {
@@ -87,7 +91,7 @@ class ThreadedWorker extends Worker {
 	}
 	protected getAllProperties (obj: Object) {
 		let props: Array<string> = []
-	
+
 		do {
 			props = props.concat(Object.getOwnPropertyNames(obj))
 			obj = Object.getPrototypeOf(obj)
