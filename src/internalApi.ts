@@ -118,17 +118,6 @@ export interface InstanceHandle {
 	instance: any
 }
 
-export interface WorkerArguments {
-	instanceHandles: {[instanceId: string]: InstanceHandle}
-	fixArgs: (handle: InstanceHandle, args: Array<ArgDefinition>) => any
-	reply: (handle: InstanceHandle, m: MessageToChild, reply: any) => void
-	replyError: (handle: InstanceHandle, m: MessageToChild, error: any) => void
-	log: (handle: InstanceHandle, ...data: any[]) => void
-	getAllProperties: (obj: Object) => Array<string>
-	_orgConsoleLog: (...args: any[]) => void
-	killInstance: (handle: InstanceHandle) => void
-}
-
 export abstract class Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 

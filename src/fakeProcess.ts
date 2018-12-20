@@ -5,7 +5,8 @@ import {
 	MessageFromChild,
 	CallbackFunction,
 	MessageFromChildConstr,
-	Worker
+	Worker,
+	InstanceHandle
 } from './internalApi'
 
 export class FakeWorker extends Worker {
@@ -75,12 +76,4 @@ export class FakeProcess extends EventEmitter implements ChildProcess {
 	ref (): void {
 		throw new Error('Function ref in FakeProcess is not implemented.')
 	}
-}
-
-export interface InstanceHandle {
-	id: string
-	cmdId: number
-	queue: {[cmdId: string]: CallbackFunction}
-
-	instance: any
 }
