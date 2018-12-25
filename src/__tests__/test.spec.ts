@@ -17,6 +17,8 @@ function wait (time: number) {
 	})
 }
 
+const doPerformanceTests = false
+
 const getTests = (disableMultithreading: boolean) => {
 	return () => {
 
@@ -142,50 +144,51 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 		})
-		test('single-thread', async () => {
-			// let startTime = Date.now()
-			let results: Array<number> = []
-			for (let i = 0; i < 5; i++) {
+		if (doPerformanceTests) {
+			test('single-thread', async () => {
+				// let startTime = Date.now()
+				let results: Array<number> = []
+				for (let i = 0; i < 5; i++) {
 
-				let myHouse = new House(['aa', 'bb'], [])
+					let myHouse = new House(['aa', 'bb'], [])
 
-				results.push(myHouse.slowFib(37))
-			}
-			// let endTime = Date.now()
+					results.push(myHouse.slowFib(37))
+				}
+				// let endTime = Date.now()
 
-			// console.log('Single-thread: ', results.length, endTime - startTime)
-			expect(results).toHaveLength(5)
-		})
+				// console.log('Single-thread: ', results.length, endTime - startTime)
+				expect(results).toHaveLength(5)
+			})
+			test('multi-thread', async () => {
+				// let startTime = Date.now()
+				let threads: ThreadedClass<House>[] = []
+				let results: Array<number> = []
 
-		test('multi-thread', async () => {
-			// let startTime = Date.now()
-			let threads: ThreadedClass<House>[] = []
-			let results: Array<number> = []
+				let ps: any = []
 
-			let ps: any = []
+				for (let i = 0; i < 5; i++) {
+					ps.push(
+						threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []], { disableMultithreading })
+						.then((myHouse) => {
+							threads.push(myHouse)
+							return myHouse.slowFib(37)
+						})
+						.then((result) => {
+							results.push(result[1])
+						})
+					)
+				}
+				await Promise.all(ps)
+				// let endTime = Date.now()
+				await Promise.all(threads.map((thread) => {
+					return ThreadedClassManager.destroy(thread)
+				}))
 
-			for (let i = 0; i < 5; i++) {
-				ps.push(
-					threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []], { disableMultithreading })
-					.then((myHouse) => {
-						threads.push(myHouse)
-						return myHouse.slowFib(37)
-					})
-					.then((result) => {
-						results.push(result[1])
-					})
-				)
-			}
-			await Promise.all(ps)
-			// let endTime = Date.now()
-			await Promise.all(threads.map((thread) => {
-				return ThreadedClassManager.destroy(thread)
-			}))
-
-			// console.log('Multi-thread: ', results.length, endTime - startTime)
-			expect(results).toHaveLength(5)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
-		})
+				// console.log('Multi-thread: ', results.length, endTime - startTime)
+				expect(results).toHaveLength(5)
+				expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			})
+		}
 		test('properties', async () => {
 			let original = new House([], ['south'])
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']], { disableMultithreading })
@@ -390,4 +393,4 @@ const getTests = (disableMultithreading: boolean) => {
 }
 
 describe('threadedclass', getTests(false))
-describe('threadedclass single thread', getTests(false))
+describe('threadedclass single thread', getTests(true))
