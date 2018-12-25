@@ -1,9 +1,6 @@
-import { StringDecoder, NodeStringDecoder } from 'string_decoder'
-import { CasparCG } from 'casparcg-connection'
 import {
 	threadedClass,
-	ThreadedClassManager,
-	ThreadedClass
+	ThreadedClassManager
 } from '../index'
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
@@ -93,5 +90,32 @@ describe('restarts', () => {
 		expect(onClosed1).toHaveBeenCalledTimes(1)
 		expect(onClosed2).toHaveBeenCalledTimes(2)
 
+	})
+	test('force restart', async () => {
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		// use processId to control which process the instances are put in
+		let thread0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []])
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(thread0, 'process_closed', onClosed)
+
+		await thread0.setWindows(['north'])
+		expect(await thread0.getWindows('')).toEqual(['north'])
+		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+
+		await ThreadedClassManager.restart(thread0)
+		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(await thread0.getWindows('')).toEqual(['south0'])
+		await thread0.setWindows(['north'])
+		expect(await thread0.getWindows('')).toEqual(['north'])
+
+		// Force restart:
+		await ThreadedClassManager.restart(thread0, true)
+		expect(onClosed).toHaveBeenCalledTimes(1)
+		expect(await thread0.getWindows('')).toEqual(['south0'])
+		await thread0.setWindows(['north'])
+		expect(await thread0.getWindows('')).toEqual(['north'])
+
+		ThreadedClassManager.destroyAll()
 	})
 })

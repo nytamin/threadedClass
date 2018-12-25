@@ -9,7 +9,8 @@ import {
 	MessageType,
 	MessageKillConstr,
 	MessageInitConstr,
-	InstanceCallbackInitFunction
+	InstanceCallbackInitFunction,
+	InitProps
 } from './internalApi'
 import { EventEmitter } from 'events'
 
@@ -45,8 +46,8 @@ export class ThreadedClassManagerClass {
 	 * @param proxy
 	 * @param forceRestart If true, will kill the process and restart it
 	 */
-	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean) {
-		this._internal.restart(proxy, forceRestart)
+	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
+		return this._internal.restart(proxy, forceRestart)
 	}
 }
 /**
@@ -250,8 +251,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			return
 		})
 	}
-	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): void {
-
+	public async restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		let foundInstance: ChildInstance | undefined
 		let foundChild0: Child | undefined
 		Object.keys(this._children).find((childId: string) => {
@@ -276,8 +276,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		const foundChild: Child = foundChild0
 
 		if (foundChild.alive && forceRestart) {
-			foundChild.process.kill()
-			foundChild.alive = false
+			await this.killChild(foundChild, true)
 		}
 
 		if (!foundChild.alive) {
@@ -296,10 +295,24 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			foundChild.process = this._createFork(foundChild.config, foundChild.pathToWorker)
 			this._setupChildProcess(foundChild)
 		}
-
-		this.sendInit(foundInstance, foundInstance.config)
+		let p = new Promise((resolve, reject) => {
+			const onInit = (child: Child) => {
+				if (child === foundChild) {
+					resolve()
+					this.removeListener('initialized', onInit)
+				}
+			}
+			this.on('initialized', onInit)
+			setTimeout(() => {
+				reject('Timeout when trying to restart')
+				this.removeListener('initialized', onInit)
+			}, 1000)
+		})
+		this.sendInit(foundChild, foundInstance, foundInstance.config)
+		await p
 	}
 	public sendInit (
+		child: Child,
 		instance: ChildInstance,
 		config: ThreadedClassConfig,
 		cb?: InstanceCallbackInitFunction
@@ -313,7 +326,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			config: config
 		}
 		instance.initialized = true
-		ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+		ThreadedClassManagerInternal.sendMessage(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
+			if (
+				!cb ||
+				cb(instance, e, initProps)
+			) {
+				this.emit('initialized', child)
+			}
+		})
 	}
 	/** Called before using internally */
 	private _init () {
@@ -402,28 +422,40 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		return null
 	}
-	private killChild (id: string): Promise<void> {
+	private killChild (idOrChild: string | Child, dontCleanUp?: boolean): Promise<void> {
 		return new Promise((resolve, reject) => {
+			let child: Child
+			if (typeof idOrChild === 'string') {
+				const id = idOrChild
+				child = this._children[id]
 
-			let child = this._children[id]
+				if (!child) {
+					reject(`killChild: Child ${id} not found`)
+					return
+				}
+			} else {
+				child = idOrChild as Child
+			}
 			if (child) {
 				if (!child.alive) {
-					delete this._children[id]
+					delete this._children[child.id]
 					resolve()
 				} else {
 					child.process.once('close', () => {
-						// Clean up:
-						Object.keys(child.instances).forEach(instanceId => {
-							const instance = child.instances[instanceId]
+						if (!dontCleanUp) {
+							// Clean up:
+							Object.keys(child.instances).forEach(instanceId => {
+								const instance = child.instances[instanceId]
 
-							delete instance.child
-							delete child.instances[instanceId]
-						})
-						delete this._children[id]
+								delete instance.child
+								delete child.instances[instanceId]
+							})
+							delete this._children[child.id]
+						}
 						resolve()
 					})
 					setTimeout(() => {
-						delete this._children[id]
+						delete this._children[child.id]
 						reject('Timeout: Kill child process')
 					},1000)
 					if (!child.isClosing) {
@@ -431,8 +463,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						child.process.kill()
 					}
 				}
-			} else {
-				reject(`killChild: Child ${id} not found`)
 			}
 		})
 	}

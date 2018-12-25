@@ -102,7 +102,7 @@ export type MessageFromChildConstr 	= MessageFromChildReplyConstr 	| MessageFrom
 export type MessageFromChild 		= MessageFromChildReply 		| MessageFromChildLog 		| MessageFromChildCallback
 
 export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | null, encodedResult?: ArgDefinition) => void
-export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | null, initProps?: InitProps) => void
+export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | null, initProps?: InitProps) => boolean
 export type CallbackFunction = (e: Error | null, res?: ArgDefinition) => void
 
 export interface ArgDefinition {
