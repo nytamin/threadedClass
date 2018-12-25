@@ -288,6 +288,44 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
 		})
+		test('fine-grained control of processes', async () => {
+
+			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+			// use processId to control which process the instances are put in
+			let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processId: 'one', disableMultithreading })
+			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processId: 'one', disableMultithreading })
+			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processId: 'one', disableMultithreading })
+			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+
+			let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processId: 'two', disableMultithreading })
+			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+
+			// Check that all instances return correct data:
+			let windows = await Promise.all([
+				threadedHouse0.getWindows('0'),
+				threadedHouse1.getWindows('1'),
+				threadedHouse2.getWindows('2'),
+				threadedHouse3.getWindows('3')
+			])
+
+			expect(windows[0]).toEqual(['0', 'south0'])
+			expect(windows[1]).toEqual(['1', 'south1'])
+			expect(windows[2]).toEqual(['2', 'south2'])
+			expect(windows[3]).toEqual(['3', 'south3'])
+
+			// Clean up
+			await ThreadedClassManager.destroy(threadedHouse0)
+			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			await ThreadedClassManager.destroy(threadedHouse1)
+			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			await ThreadedClassManager.destroy(threadedHouse2)
+			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			await ThreadedClassManager.destroy(threadedHouse3)
+			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		})
 
 		test('supported data types', async () => {
 			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
