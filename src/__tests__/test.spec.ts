@@ -16,7 +16,9 @@ function wait (time: number) {
 		setTimeout(resolve, time)
 	})
 }
-describe('threadedclass', () => {
+
+let disableMultithreading = false
+const tests = () => {
 
 	beforeEach(async () => {
 		await ThreadedClassManager.destroyAll()
@@ -33,7 +35,7 @@ describe('threadedclass', () => {
 		expect(original.getWindows('')).toHaveLength(2)
 		expect(original.getRooms()).toHaveLength(1)
 
-		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
 
@@ -50,7 +52,7 @@ describe('threadedclass', () => {
 
 		expect(original.returnValue('asdf')).toEqual('asdf')
 
-		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
+		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
 
@@ -64,7 +66,7 @@ describe('threadedclass', () => {
 	})
 	test('eventEmitter', async () => {
 
-		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 
 		let onEvent = jest.fn()
 		await threaded.on('test', onEvent)
@@ -88,7 +90,7 @@ describe('threadedclass', () => {
 
 		expect(result).toEqual('parent,child,parent2,child2')
 
-		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']])
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 
 		let onEvent = jest.fn()
 		await threaded.on('test', onEvent)
@@ -115,7 +117,7 @@ describe('threadedclass', () => {
 		let threaded = await threadedClass<CasparCG>('casparcg-connection', CasparCG, [{
 			host: '192.168.0.1',
 			autoConnect: false
-		}])
+		}], { disableMultithreading })
 		expect(await threaded.host).toEqual('192.168.0.1')
 
 		await ThreadedClassManager.destroy(threaded)
@@ -130,7 +132,7 @@ describe('threadedclass', () => {
 		let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
 		expect(euroSign).toEqual('€')
 
-		let threaded = await threadedClass<NodeStringDecoder>('string_decoder', StringDecoder, ['utf8'])
+		let threaded = await threadedClass<NodeStringDecoder>('string_decoder', StringDecoder, ['utf8'], { disableMultithreading })
 
 		let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
 
@@ -165,7 +167,7 @@ describe('threadedclass', () => {
 
 		for (let i = 0; i < 5; i++) {
 			ps.push(
-				threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []])
+				threadedClass<House>(HOUSE_PATH, House, [['aa', 'bb'], []], { disableMultithreading })
 				.then((myHouse) => {
 					threads.push(myHouse)
 					return myHouse.slowFib(37)
@@ -188,7 +190,7 @@ describe('threadedclass', () => {
 
 	test('properties', async () => {
 		let original = new House([], ['south'])
-		let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']])
+		let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']], { disableMultithreading })
 
 		// Method with parameter and return value:
 		expect(original.returnValue('myValue')).toEqual('myValue')
@@ -251,14 +253,14 @@ describe('threadedclass', () => {
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
 		// processUsage: 0.3, make room for 3 instances in each process
-		let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processUsage: 0.3 })
+		let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processUsage: 0.3, disableMultithreading })
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-		let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processUsage: 0.3 })
+		let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processUsage: 0.3, disableMultithreading })
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-		let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processUsage: 0.3 })
+		let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processUsage: 0.3, disableMultithreading })
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 
-		let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processUsage: 0.3 })
+		let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processUsage: 0.3, disableMultithreading })
 		expect(ThreadedClassManager.getProcessCount()).toEqual(2)
 
 		// Check that all instances return correct data:
@@ -285,9 +287,19 @@ describe('threadedclass', () => {
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
 	})
+}
+const tests2 = () => {
 
+	beforeEach(async () => {
+		await ThreadedClassManager.destroyAll()
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
+	afterEach(async () => {
+		await ThreadedClassManager.destroyAll()
+		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+	})
 	test('restart instance', async () => {
-		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
+		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
 		})
@@ -309,9 +321,9 @@ describe('threadedclass', () => {
 
 	})
 	test('restart instance with multiple', async () => {
-		let threaded0 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
-		let threaded1 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
-		let threaded2 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
+		let threaded0 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1, disableMultithreading })
+		let threaded1 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1, disableMultithreading })
+		let threaded2 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1, disableMultithreading })
 		let onClosed0 = jest.fn()
 		let onClosed1 = jest.fn()
 		let onClosed2 = jest.fn()
@@ -353,4 +365,8 @@ describe('threadedclass', () => {
 		expect(onClosed2).toHaveBeenCalledTimes(2)
 
 	})
-})
+}
+
+describe('threadedclass', tests)
+disableMultithreading = true
+describe('threadedclass single thread', tests)

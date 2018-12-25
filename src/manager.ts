@@ -1,4 +1,5 @@
 import { ChildProcess, fork } from 'child_process'
+import { FakeProcess } from './fakeProcess'
 import { ThreadedClassConfig, ThreadedClass } from './api'
 import {
 	MessageFromChild,
@@ -59,6 +60,7 @@ export interface Child {
 	instances: {[id: string]: ChildInstance}
 	alive: boolean
 	isClosing: boolean
+	config: ThreadedClassConfig
 
 	cmdId: number
 	queue: {[cmdId: string]: InstanceCallbackFunction}
@@ -109,11 +111,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				isNamed: !!config.processId,
 				pathToWorker: pathToWorker,
 
-				process: fork(pathToWorker),
+				process: this._createFork(config, pathToWorker),
 				usage: config.processUsage || 1,
 				instances: {},
 				alive: true,
 				isClosing: false,
+				config,
+
 				cmdId: 0,
 				queue: {},
 				callbackId: 0,
@@ -225,9 +229,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				!instance.initialized
 			) throw Error('Child instance is not initialized')
 			// console.log('sendMessage', instance.child.id, instance.id, message)
-			instance.child.process.send(message)
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
+			instance.child.process.send(message)
 		} catch (e) {
 			if (cb) cb(instance, e.toString())
 			else throw e
@@ -288,7 +292,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			// start new process
 			foundChild.alive = true
 			foundChild.isClosing = false
-			foundChild.process = fork(foundChild.pathToWorker)
+			foundChild.process = this._createFork(foundChild.config, foundChild.pathToWorker)
 			this._setupChildProcess(foundChild)
 		}
 
@@ -341,6 +345,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
 		}
 		this.isInitialized = true
+	}
+	private _createFork (config: ThreadedClassConfig, pathToWorker: string) {
+		if (config.disableMultithreading) {
+			return new FakeProcess()
+		} else {
+			return fork(pathToWorker)
+		}
 	}
 	private _setupChildProcess (child: Child) {
 		child.process.on('close', (_code) => {
