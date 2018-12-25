@@ -406,7 +406,6 @@ const getTests = (disableMultithreading: boolean) => {
 			const f0: any = await threaded.callFunction(calledFirst, 1, 2, 3)
 			expect(calledFirst).toHaveBeenCalledTimes(1)
 
-			// console.log('f0', f0)
 			expect(
 				await f0(3,4) // will cause calledSecond to be called
 			).toEqual(42)
@@ -426,6 +425,51 @@ const getTests = (disableMultithreading: boolean) => {
 
 				* f0 was executed
 			*/
+		})
+
+		test('error handling', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			let error: any = null
+
+			try {
+				await threaded.throwError()
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error thrown/)
+			error = null
+			try {
+				await threaded.throwErrorString()
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error string thrown/)
+
+			error = null
+			try {
+				await threaded.callFunction(() => {
+					throw new Error('Error thrown in callback')
+				})
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error thrown in callback/)
+
+			error = null
+			const secondaryFunction = () => {
+				throw new Error('Error thrown in secondary')
+			}
+			try {
+				let second: any = await threaded.callFunction(() => {
+					return secondaryFunction
+				})
+				await second('second')
+			} catch (e) {
+				error = e
+			}
+			expect(error && error.toString()).toMatch(/Error thrown in secondary/)
+
 		})
 	}
 }

@@ -12,7 +12,6 @@ import {
 	MessageFromChildCallback,
 	MessageFromChild,
 	MessageFromChildReply,
-	MessageFromChildLog,
 	ArgDefinition,
 	decodeArguments,
 	encodeArguments,
@@ -49,7 +48,7 @@ export function threadedClass<T> (
 				fcn: fcn,
 				args: args
 			}
-			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function sendSet (instance: ChildInstance, property: string, value: ArgDefinition, cb?: InstanceCallbackFunction) {
 			let msg: MessageSetConstr = {
@@ -57,16 +56,16 @@ export function threadedClass<T> (
 				property: property,
 				value: value
 			}
-			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function sendReply (instance: ChildInstance, replyTo: number, error?: Error, reply?: any, cb?: InstanceCallbackFunction) {
 			let msg: MessageReplyConstr = {
 				cmd: MessageType.REPLY,
 				replyTo: replyTo,
 				reply: reply,
-				error: error
+				error: error ? error.toString() : error
 			}
-			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function replyError (instance: ChildInstance, msg: MessageFromChildCallback, error: Error) {
 			sendReply(instance, msg.cmdId, error)
@@ -77,12 +76,11 @@ export function threadedClass<T> (
 				callbackId: callbackId,
 				args: args
 			}
-			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
 			return decodeArguments([encodedResult], (a: ArgDefinition) => {
 				return (...args: any[]) => {
-					// console.log('caaaaalback', a)
 					return new Promise((resolve, reject) => {
 						// Function result function is called from parent
 						sendCallback(
@@ -107,7 +105,6 @@ export function threadedClass<T> (
 				let msg: MessageFromChildReply = m
 				const child = instance.child
 				let cb: InstanceCallbackFunction = child.queue[msg.replyTo + '']
-				// if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
 				if (!cb) return
 				if (msg.error) {
 					cb(instance, msg.error)
@@ -115,27 +112,28 @@ export function threadedClass<T> (
 					cb(instance, null, msg.reply)
 				}
 				delete child.queue[msg.replyTo + '']
-			} else if (m.cmd === MessageType.LOG) {
-				let msg: MessageFromChildLog = m
-				console.log.apply(null, ['LOG'].concat(msg.log))
 			} else if (m.cmd === MessageType.CALLBACK) {
 				// Callback function is called by worker
 				let msg: MessageFromChildCallback = m
 				let callback = instance.child.callbacks[msg.callbackId]
 				if (callback) {
-					Promise.resolve(callback(...msg.args))
-					.then((result: any) => {
-						let encodedResult = encodeArguments(instance.child.callbacks, [result])
-						sendReply(
-							instance,
-							msg.cmdId,
-							undefined,
-							encodedResult[0]
-						)
-					})
-					.catch((err: Error) => {
+					try {
+						Promise.resolve(callback(...msg.args))
+						.then((result: any) => {
+							let encodedResult = encodeArguments(instance.child.callbacks, [result])
+							sendReply(
+								instance,
+								msg.cmdId,
+								undefined,
+								encodedResult[0]
+							)
+						})
+						.catch((err: Error) => {
+							replyError(instance, msg, err)
+						})
+					} catch (err) {
 						replyError(instance, msg, err)
-					})
+					}
 				} else throw Error('callback "' + msg.callbackId + '" not found')
 			}
 		}
@@ -182,7 +180,6 @@ export function threadedClass<T> (
 						if (!instance.child.alive) throw Error('Child process has been closed')
 
 						if (proxy.hasOwnProperty(p.key)) {
-							// console.log('skipping property ' + p.key)
 							return
 						}
 						if (p.type === InitPropType.FUNCTION) {

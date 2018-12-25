@@ -59,6 +59,12 @@ describe('test-lib', () => {
 			return 'cb' + name + name2
 		})
 		expect(testClass.callFunction(cb, 'a', 'b')).toEqual('cbab')
+		expect(() => {
+			testClass.throwError()
+		}).toThrowError()
+		expect(() => {
+			testClass.throwErrorString()
+		}).toThrowError()
 
 		testClass.exitProcess(0)
 		expect(mockExit).toHaveBeenCalledTimes(1)

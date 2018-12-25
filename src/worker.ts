@@ -4,7 +4,8 @@ import {
 	CallbackFunction,
 	MessageFromChildConstr,
 	InstanceHandle,
-	Worker
+	Worker,
+	MessageType
 } from './internalApi'
 
 class ThreadedWorker extends Worker {
@@ -13,14 +14,22 @@ class ThreadedWorker extends Worker {
 		_orgConsoleLog(...args)
 	}
 
-	protected processSend (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
+	protected sendMessageToParent (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
 		if (process.send) {
-			const message: MessageFromChild = {...msg, ...{
-				cmdId: handle.cmdId++,
-				instanceId: handle.id
-			}}
-			if (cb) handle.queue[message.cmdId + ''] = cb
-			process.send(message)
+			if (msg.cmd === MessageType.LOG) {
+				const message: MessageFromChild = {...msg, ...{
+					cmdId: 0,
+					instanceId: ''
+				}}
+				process.send(message)
+			} else {
+				const message: MessageFromChild = {...msg, ...{
+					cmdId: handle.cmdId++,
+					instanceId: handle.id
+				}}
+				if (cb) handle.queue[message.cmdId + ''] = cb
+				process.send(message)
+			}
 		} else throw Error('process.send undefined!')
 	}
 	protected killInstance (handle: InstanceHandle) {
@@ -34,6 +43,7 @@ if (process.send) {
 	const worker = new ThreadedWorker()
 	console.log = worker.log
 	process.on('message', (m: MessageToChild) => {
+		// Received message from parent
 		worker.onMessageFromParent(m)
 	})
 } else {

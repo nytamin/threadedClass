@@ -7,6 +7,12 @@ class TestClass {
     callFunction(fcn, ...args) {
         return fcn(...args);
     }
+    throwError() {
+        throw new Error('Error thrown');
+    }
+    throwErrorString() {
+        throw 'Error string thrown'; // tslint:disable-line
+    }
     exitProcess(time) {
         if (!time) {
             process.exit(1);

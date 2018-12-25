@@ -191,7 +191,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 							delete instance.child
 							delete child.instances[instanceId]
 						}
-						this.sendMessage(instance, {
+						this.sendMessageToChild(instance, {
 							cmd: MessageType.KILL
 						} as MessageKillConstr, () => {
 							cleanup()
@@ -215,7 +215,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 	}
-	public sendMessage (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
+	public sendMessageToChild (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
 			if (!instance.child) throw Error('Instance has been detached from child process')
@@ -230,7 +230,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				message.cmd !== MessageType.INIT &&
 				!instance.initialized
 			) throw Error('Child instance is not initialized')
-			// console.log('sendMessage', instance.child.id, instance.id, message)
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
 			instance.child.process.send(message)
@@ -326,7 +325,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			config: config
 		}
 		instance.initialized = true
-		ThreadedClassManagerInternal.sendMessage(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
+		ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
 			if (
 				!cb ||
 				cb(instance, e, initProps)
@@ -376,7 +375,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	private _setupChildProcess (child: Child) {
 		child.process.on('close', (_code) => {
-			// console.log(`child process exited with code ${_code}`)
 			if (child.alive) {
 				child.alive = false
 				this.emit('process_closed', child)
@@ -389,15 +387,20 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			console.log('Error from ' + child.id, err)
 		})
 		child.process.on('message', (message: MessageFromChild) => {
-			const instance = child.instances[message.instanceId]
-			if (instance) {
-				try {
-					// console.log('on message', message)
-					instance.onMessageCallback(instance, message)
-				} catch (e) {
-					console.log('Error in onMessageCallback', message, instance)
-					console.log(e)
-					throw e
+			if (message.cmd === MessageType.LOG) {
+				console.log.apply(null, ['LOG'].concat(message.log))
+			} else {
+				const instance = child.instances[message.instanceId]
+				if (instance) {
+					try {
+						instance.onMessageCallback(instance, message)
+					} catch (e) {
+						console.log('Error in onMessageCallback', message, instance)
+						console.log(e)
+						throw e
+					}
+				} else {
+					console.log(`Instance "${message.instanceId}" not found`)
 				}
 			}
 		})
@@ -417,7 +420,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			const child = this._children[id]
 			child.usage += processUsage
 
-			// console.log('Free child found, usage ' + child.usage)
 			return child
 		}
 		return null

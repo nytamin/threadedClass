@@ -66,7 +66,7 @@ export interface MessageReplyConstr {
 	cmd: MessageType.REPLY
 	replyTo: number
 	reply?: any
-	error?: Error
+	error?: Error | string
 }
 export type MessageReply = MessageReplyConstr & MessageSent
 
@@ -101,9 +101,9 @@ export type MessageFromChildCallback = MessageCallback
 export type MessageFromChildConstr 	= MessageFromChildReplyConstr 	| MessageFromChildLogConstr | MessageFromChildCallbackConstr
 export type MessageFromChild 		= MessageFromChildReply 		| MessageFromChildLog 		| MessageFromChildCallback
 
-export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | null, encodedResult?: ArgDefinition) => void
-export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | null, initProps?: InitProps) => boolean
-export type CallbackFunction = (e: Error | null, res?: ArgDefinition) => void
+export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | string | null, encodedResult?: ArgDefinition) => void
+export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | string | null, initProps?: InitProps) => boolean
+export type CallbackFunction = (e: Error | string | null, res?: ArgDefinition) => void
 
 export interface ArgDefinition {
 	type: ArgumentType
@@ -163,26 +163,26 @@ export abstract class Worker {
 	}
 
 	protected reply (handle: InstanceHandle, m: MessageToChild, reply: any) {
-		this.sendReply(handle, m.cmdId, undefined, reply)
+		this.sendReplyToParent(handle, m.cmdId, undefined, reply)
 	}
 	protected replyError (handle: InstanceHandle, m: MessageToChild, error: any) {
-		this.sendReply(handle, m.cmdId, error)
+		this.sendReplyToParent(handle, m.cmdId, error)
 	}
-	protected sendReply (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
+	protected sendReplyToParent (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
 		let msg: MessageFromChildReplyConstr = {
 			cmd: MessageType.REPLY,
 			replyTo: replyTo,
-			error: error,
+			error: error ? error.toString() : error,
 			reply: reply
 		}
-		this.processSend(handle, msg)
+		this.sendMessageToParent(handle, msg)
 	}
-	protected sendLog (handle: InstanceHandle, log: any[]) {
+	protected sendLog (log: any[]) {
 		let msg: MessageFromChildLogConstr = {
 			cmd: MessageType.LOG,
 			log: log
 		}
-		this.processSend(handle, msg)
+		this.sendMessageToParent(null, msg)
 	}
 	protected sendCallback (handle: InstanceHandle, callbackId: string, args: any[], cb: CallbackFunction) {
 		let msg: MessageFromChildCallbackConstr = {
@@ -190,7 +190,7 @@ export abstract class Worker {
 			callbackId: callbackId,
 			args: args
 		}
-		this.processSend(handle, msg, cb)
+		this.sendMessageToParent(handle, msg, cb)
 	}
 	protected getAllProperties (obj: Object) {
 		let props: Array<string> = []
@@ -201,12 +201,12 @@ export abstract class Worker {
 		} while (obj)
 		return props
 	}
-	log = (handle: InstanceHandle, ...data: any[]) => {
-		this.sendLog(handle, data)
+	log = (...data: any[]) => {
+		this.sendLog(data)
 	}
 
 	protected abstract _orgConsoleLog (...args: any[]): void
-	protected abstract processSend (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction): void
+	protected abstract sendMessageToParent (handle: InstanceHandle | null, msg: MessageFromChildConstr, cb?: CallbackFunction): void
 
 	public onMessageFromParent (m: MessageToChild) {
 		// A message was received from Parent
@@ -260,7 +260,6 @@ export abstract class Worker {
 						'__proto__',
 						'toLocaleString'
 					].indexOf(prop) !== -1) return
-					// console.log(prop, typeof instance[prop])
 
 					let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
 					let inProto: number = 0
@@ -352,23 +351,27 @@ export abstract class Worker {
 				let msg: MessageCallback = m
 				let callback = this.callbacks[msg.callbackId]
 				if (callback) {
-					Promise.resolve(callback(...msg.args))
-					.then((result: any) => {
-						const encodedResult = this.encodeArgumentsToParent([result])
-						this.reply(handle, msg, encodedResult[0])
-					})
-					.catch((err: Error) => {
-						this.replyError(instance, msg, err)
-					})
+					try {
+						Promise.resolve(callback(...msg.args))
+						.then((result: any) => {
+							const encodedResult = this.encodeArgumentsToParent([result])
+							this.reply(handle, msg, encodedResult[0])
+						})
+						.catch((err: Error) => {
+							this.replyError(handle, msg, err)
+						})
+					} catch (err) {
+						this.replyError(handle, msg, err)
+					}
 				} else {
-					this.replyError(instance, msg, 'callback "' + msg.callbackId + '" not found')
+					this.replyError(handle, msg, 'callback "' + msg.callbackId + '" not found')
 				}
 			}
 		} catch (e) {
 			// _orgConsoleLog('error', e)
 
 			if (m.cmdId) this.replyError(handle, m, 'Error: ' + e.toString() + e.stack)
-			else this.log(handle, 'Error: ' + e.toString(), e.stack)
+			else this.log('Error: ' + e.toString(), e.stack)
 		}
 	}
 }

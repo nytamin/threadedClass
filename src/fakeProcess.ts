@@ -6,15 +6,16 @@ import {
 	CallbackFunction,
 	MessageFromChildConstr,
 	Worker,
-	InstanceHandle
+	InstanceHandle,
+	MessageType
 } from './internalApi'
 
 export class FakeWorker extends Worker {
-	private messageCb: (m: MessageFromChild) => void
+	private mockProcessSend: (m: MessageFromChild) => void
 
 	constructor (cb: (m: MessageFromChild) => void) {
 		super()
-		this.messageCb = cb
+		this.mockProcessSend = cb
 	}
 
 	protected killInstance () {
@@ -25,13 +26,23 @@ export class FakeWorker extends Worker {
 		console.log(...args)
 	}
 
-	protected processSend (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
-		const message: MessageFromChild = {...msg, ...{
-			cmdId: handle.cmdId++,
-			instanceId: handle.id
-		}}
-		if (cb) handle.queue[message.cmdId + ''] = cb
-		this.messageCb(message)
+	protected sendMessageToParent (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
+		if (msg.cmd === MessageType.LOG) {
+			const message: MessageFromChild = {...msg, ...{
+				cmdId: 0,
+				instanceId: ''
+			}}
+			// Send message to Parent:
+			this.mockProcessSend(message)
+		} else {
+			const message: MessageFromChild = {...msg, ...{
+				cmdId: handle.cmdId++,
+				instanceId: handle.id
+			}}
+			if (cb) handle.queue[message.cmdId + ''] = cb
+			// Send message to Parent:
+			this.mockProcessSend(message)
+		}
 	}
 
 }
