@@ -142,7 +142,6 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 		})
-
 		test('single-thread', async () => {
 			// let startTime = Date.now()
 			let results: Array<number> = []
@@ -187,7 +186,6 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(results).toHaveLength(5)
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 		})
-
 		test('properties', async () => {
 			let original = new House([], ['south'])
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [[], ['south']], { disableMultithreading })
@@ -287,10 +285,109 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
 		})
-	}
 
+		test('supported data types', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			let values: any[] = [
+				null,
+				undefined,
+				true,false, // boolean
+				0,1,2,3, // number
+				'','test', // string
+				[1], [],[1,2,3],[null], // array
+				{}, { a: 1 }, { a: 0 },
+				(num0, num1) => num0 + num1 + 1,
+				Buffer.from([1,2,3,4,4,5,6,7,8])
+			]
+
+			for (let value of values) {
+				let returned: any = await threaded.returnValue(value)
+
+				if (value && typeof value === 'function') {
+					expect(typeof returned).toEqual('function')
+					expect(await returned(40, 1)).toEqual(await value(40, 1))
+				} else {
+					expect(returned).toEqual(value)
+				}
+			}
+
+			let o: any = {}
+			o.parent = o
+			let unsupportedValues = [
+				o // circular dependency
+			]
+			for (let value of unsupportedValues) {
+				let returnValue: any = null
+				let returnError: any = null
+				try {
+					returnValue = await threaded.returnValue(value)
+				} catch (e) {
+					returnError = e
+				}
+				expect(returnError).toBeTruthy()
+				expect(returnError.toString()).toMatch(/Unsupported/)
+			}
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+
+		})
+		test('functions as arguments', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			let i = 0
+			const calledSecond = jest.fn((a,b) => {
+				expect(a).toEqual(3)
+				expect(b).toEqual(4)
+
+				expect(i++).toEqual(3)
+
+				return 42
+			})
+			const calledFirst = jest.fn(async (a,b,c) => {
+				expect(a).toEqual(1)
+				expect(b).toEqual(2)
+				expect(c).toEqual(3)
+				expect(i++).toEqual(1)
+
+				// return calledSecond
+				return threaded.callFunction((a, b) => {
+					expect(a).toEqual(6)
+					expect(b).toEqual(7)
+					expect(i++).toEqual(2)
+
+					return calledSecond
+				}, 6,7)
+			})
+
+			expect(i++).toEqual(0)
+			const f0: any = await threaded.callFunction(calledFirst, 1, 2, 3)
+			expect(calledFirst).toHaveBeenCalledTimes(1)
+
+			// console.log('f0', f0)
+			expect(
+				await f0(3,4) // will cause calledSecond to be called
+			).toEqual(42)
+
+			expect(calledSecond).toHaveBeenCalledTimes(1)
+
+			/*
+				What happened in detail:
+				* threaded.callFunction was executed on parent
+					* TestFunction.callFunction was executed on worker
+						* calledFirst was executed on parent
+							* TestFunction.callFunction was executed on worker
+								* unnamed arrow function was executed on parent
+									-> returns a reference to calledSecond
+				v ------------------
+				-> returns the reference to calledSecond
+
+				* f0 was executed
+			*/
+		})
+	}
 }
 
 describe('threadedclass', getTests(false))
-// disableMultithreading = true
 describe('threadedclass single thread', getTests(false))
