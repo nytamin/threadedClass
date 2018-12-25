@@ -61,7 +61,7 @@ export class FakeProcess extends EventEmitter implements ChildProcess {
 	}
 
 	send (m: any) {
-		this.worker.messageCallback(m)
+		this.worker.onMessageFromParent(m)
 		return true
 	}
 

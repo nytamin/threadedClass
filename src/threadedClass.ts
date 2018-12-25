@@ -13,7 +13,10 @@ import {
 	MessageFromChild,
 	MessageFromChildReply,
 	MessageFromChildLog,
-	ArgDefinition
+	ArgDefinition,
+	decodeArguments,
+	encodeArguments,
+	MessageCallbackConstr
 } from './internalApi'
 import {
 	ThreadedClass,
@@ -68,11 +71,42 @@ export function threadedClass<T> (
 		function replyError (instance: ChildInstance, msg: MessageFromChildCallback, error: Error) {
 			sendReply(instance, msg.cmdId, error)
 		}
+		function sendCallback (instance: ChildInstance, callbackId: string, args: any[], cb?: InstanceCallbackFunction) {
+			let msg: MessageCallbackConstr = {
+				cmd: MessageType.CALLBACK,
+				callbackId: callbackId,
+				args: args
+			}
+			ThreadedClassManagerInternal.sendMessage(instance, msg, cb)
+		}
+		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
+			return decodeArguments([encodedResult], (a: ArgDefinition) => {
+				return (...args: any[]) => {
+					// console.log('caaaaalback', a)
+					return new Promise((resolve, reject) => {
+						// Function result function is called from parent
+						sendCallback(
+							instance,
+							a.value,
+							args, (_instance, err, encodedResult) => {
+								// Function result is returned from worker
+								if (err) {
+									reject(err)
+								} else {
+									let result = decodeResultFromWorker(_instance, encodedResult)
+									resolve(result)
+								}
+							}
+						)
+					})
+				}
+			})[0]
+		}
 		function onMessage (instance: ChildInstance, m: MessageFromChild) {
 			if (m.cmd === MessageType.REPLY) {
 				let msg: MessageFromChildReply = m
 				const child = instance.child
-				let cb = child.queue[msg.replyTo + '']
+				let cb: InstanceCallbackFunction = child.queue[msg.replyTo + '']
 				// if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
 				if (!cb) return
 				if (msg.error) {
@@ -85,16 +119,18 @@ export function threadedClass<T> (
 				let msg: MessageFromChildLog = m
 				console.log.apply(null, ['LOG'].concat(msg.log))
 			} else if (m.cmd === MessageType.CALLBACK) {
+				// Callback function is called by worker
 				let msg: MessageFromChildCallback = m
 				let callback = instance.child.callbacks[msg.callbackId]
 				if (callback) {
 					Promise.resolve(callback(...msg.args))
 					.then((result: any) => {
+						let encodedResult = encodeArguments(instance.child.callbacks, [result])
 						sendReply(
 							instance,
 							msg.cmdId,
 							undefined,
-							result
+							encodedResult[0]
 						)
 					})
 					.catch((err: Error) => {
@@ -102,19 +138,6 @@ export function threadedClass<T> (
 					})
 				} else throw Error('callback "' + msg.callbackId + '" not found')
 			}
-		}
-		function fixArgs (child: Child, ...args: any[]): ArgDefinition[] {
-			return args.map((arg): ArgDefinition => {
-				if (arg instanceof Buffer) return { type: 'Buffer', value: arg.toString('hex') }
-				if (typeof arg === 'string') return { type: 'string', value: arg }
-				if (typeof arg === 'number') return { type: 'number', value: arg }
-				if (typeof arg === 'function') {
-					const callbackId = child.callbackId++
-					child.callbacks[callbackId + ''] = arg
-					return { type: 'function', value: callbackId + '' }
-				}
-				return { type: 'other', value: arg }
-			})
 		}
 		try {
 
@@ -150,6 +173,7 @@ export function threadedClass<T> (
 			)
 
 			ThreadedClassManagerInternal.sendInit(instanceInChild, config, (instance: ChildInstance, err: Error | null, props: InitProps) => {
+				// This callback is called from the worker process, with a list of supported properties of the c
 				if (err) {
 					reject(err)
 				} else {
@@ -162,18 +186,24 @@ export function threadedClass<T> (
 						}
 						if (p.type === InitPropType.FUNCTION) {
 
-							// @ts-ignore proxy is a class
 							const fcn = (...args: any[]) => {
+								// An instance method is called by parent
 								return new Promise((resolve, reject) => {
-									// go through arguments and serialize them:
-									let fixedArgs = fixArgs(instance.child, ...args)
+									// Go through arguments and serialize them:
+									let encodedArgs = encodeArguments(instance.child.callbacks, args)
 									sendFcn(
 										instance,
 										p.key,
-										fixedArgs,
-										(_instance, err, res) => {
-											if (err) reject(err)
-											else resolve(res)
+										encodedArgs,
+										(_instance, err, encodedResult) => {
+											// Function result is returned from worker
+
+											if (err) {
+												reject(err)
+											} else {
+												let result = decodeResultFromWorker(_instance, encodedResult)
+												resolve(result)
+											}
 										}
 									)
 								})
@@ -197,9 +227,13 @@ export function threadedClass<T> (
 											instance,
 											p.key,
 											[],
-											(_instance, err, res) => {
-												if (err) reject(err)
-												else resolve(res)
+											(_instance, err, encodedResult) => {
+												if (err) {
+													reject(err)
+												} else {
+													let result = decodeResultFromWorker(_instance, encodedResult)
+													resolve(result)
+												}
 											}
 										)
 									})
@@ -210,7 +244,7 @@ export function threadedClass<T> (
 								p.descriptor.writable
 							) {
 								m.set = function (newVal) {
-									let fixedArgs = fixArgs(instance.child, newVal)
+									let fixedArgs = encodeArguments(instance.child.callbacks, [newVal])
 
 									// in the strictest of worlds, we should block the main thread here,
 									// until the remote acknowledges the write.

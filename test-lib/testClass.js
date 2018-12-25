@@ -4,6 +4,9 @@ class TestClass {
     returnValue(value) {
         return value;
     }
+    callFunction(fcn, ...args) {
+        return fcn(...args);
+    }
     exitProcess(time) {
         if (!time) {
             process.exit(1);

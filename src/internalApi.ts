@@ -75,15 +75,18 @@ export interface MessageKillConstr {
 }
 export type MessageKill = MessageKillConstr & MessageSent
 
-export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr
-export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill
-
-export interface MessageFromChildReplyConstr {
-	cmd: MessageType.REPLY
-	replyTo: number
-	error?: Error
-	reply?: any
+export interface MessageCallbackConstr {
+	cmd: MessageType.CALLBACK
+	callbackId: string
+	args: Array<any>
 }
+export type MessageCallback = MessageCallbackConstr & MessageSent
+
+export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr
+export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback
+
+export type MessageFromChildReplyConstr = MessageReplyConstr
+
 export type MessageFromChildReply = MessageFromChildReplyConstr & MessageSent
 
 export interface MessageFromChildLogConstr {
@@ -92,24 +95,30 @@ export interface MessageFromChildLogConstr {
 }
 export type MessageFromChildLog = MessageFromChildLogConstr & MessageSent
 
-export interface MessageFromChildCallbackConstr {
-	cmd: MessageType.CALLBACK
-	callbackId: string
-	args: Array<any>
-}
-export type MessageFromChildCallback = MessageFromChildCallbackConstr & MessageSent
+export type MessageFromChildCallbackConstr = MessageCallbackConstr
+export type MessageFromChildCallback = MessageCallback
 
 export type MessageFromChildConstr 	= MessageFromChildReplyConstr 	| MessageFromChildLogConstr | MessageFromChildCallbackConstr
 export type MessageFromChild 		= MessageFromChildReply 		| MessageFromChildLog 		| MessageFromChildCallback
 
-export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | null, res?: any) => void
-export type CallbackFunction = (e: Error | null, res?: any) => void
+export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | null, encodedResult?: ArgDefinition) => void
+export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | null, initProps?: InitProps) => void
+export type CallbackFunction = (e: Error | null, res?: ArgDefinition) => void
 
 export interface ArgDefinition {
-	type: 'Buffer' | 'string' | 'number' | 'function' | 'other'
+	type: ArgumentType
 	value: any
 }
-
+export enum ArgumentType {
+	STRING = 'string',
+	NUMBER = 'number',
+	UNDEFINED = 'undefined',
+	NULL = 'null',
+	OBJECT = 'object',
+	FUNCTION = 'function',
+	BUFFER = 'buffer',
+	OTHER = 'other'
+}
 export interface InstanceHandle {
 	id: string
 	cmdId: number
@@ -121,31 +130,36 @@ export interface InstanceHandle {
 export abstract class Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
+	private callbacks: {[key: string]: Function} = {}
+
 	protected abstract killInstance (handle: InstanceHandle): void
 
-	protected fixArgs (handle: InstanceHandle, args: Array<ArgDefinition>) {
-		// Go through arguments and de-serialize them
-		return args.map((a) => {
-			if (a.type === 'string') return a.value
-			if (a.type === 'number') return a.value
-			if (a.type === 'Buffer') return Buffer.from(a.value, 'hex')
-			if (a.type === 'function') {
-				return ((...args: any[]) => {
-					return new Promise((resolve, reject) => {
-						this.sendCallback(
-							handle,
-							a.value,
-							args,
-							(err, result) => {
-								if (err) reject(err)
-								else resolve(result)
+	protected decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
+		return decodeArguments(args, (a: ArgDefinition) => {
+			return ((...args: any[]) => {
+				return new Promise((resolve, reject) => {
+					const callbackId = a.value
+					this.sendCallback(
+						handle,
+						callbackId,
+						args,
+						(err, encodedResult) => {
+							if (err) {
+								reject(err)
+							} else if (encodedResult) {
+								const result = this.decodeArgumentsFromParent(handle, [encodedResult])
+								resolve(result[0])
+							} else {
+								resolve(encodedResult)
 							}
-						)
-					})
+						}
+					)
 				})
-			}
-			return a.value
+			})
 		})
+	}
+	protected encodeArgumentsToParent (args: any[]): ArgDefinition[] {
+		return encodeArguments(this.callbacks, args)
 	}
 
 	protected reply (handle: InstanceHandle, m: MessageToChild, reply: any) {
@@ -187,14 +201,15 @@ export abstract class Worker {
 		} while (obj)
 		return props
 	}
-	log (handle: InstanceHandle, ...data: any[]) {
+	log = (handle: InstanceHandle, ...data: any[]) => {
 		this.sendLog(handle, data)
 	}
 
 	protected abstract _orgConsoleLog (...args: any[]): void
 	protected abstract processSend (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction): void
 
-	public messageCallback (m: MessageToChild) {
+	public onMessageFromParent (m: MessageToChild) {
+		// A message was received from Parent
 		let handle = this.instanceHandles[m.instanceId]
 		if (!handle && m.cmd !== MessageType.INIT) {
 			this._orgConsoleLog(`Child process: Unknown instanceId: "${m.instanceId}"`)
@@ -295,10 +310,10 @@ export abstract class Worker {
 				}
 				delete handle.queue[msg.replyTo + '']
 			} else if (m.cmd === MessageType.FUNCTION) {
+				// A function has been called by parent
 				let msg: MessageFcn = m
 				if (instance[msg.fcn]) {
-
-					const fixedArgs = this.fixArgs(handle, msg.args)
+					const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args)
 
 					let p = (
 						typeof instance[msg.fcn] === 'function' ?
@@ -310,7 +325,8 @@ export abstract class Worker {
 					}
 					Promise.resolve(p)
 					.then((result) => {
-						this.reply(handle, msg, result)
+						const encodedResult = this.encodeArgumentsToParent([result])
+						this.reply(handle, msg, encodedResult[0])
 					})
 					.catch((err) => {
 						this.replyError(handle, msg, err)
@@ -322,7 +338,7 @@ export abstract class Worker {
 				let msg: MessageSet = m
 
 				// _orgConsoleLog('msg')
-				const fixedValue = this.fixArgs(handle, [msg.value])[0]
+				const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
 				instance[msg.property] = fixedValue
 
 				this.reply(handle, msg, fixedValue)
@@ -332,6 +348,21 @@ export abstract class Worker {
 				this.killInstance(handle)
 
 				this.reply(handle, msg, null)
+			} else if (m.cmd === MessageType.CALLBACK) {
+				let msg: MessageCallback = m
+				let callback = this.callbacks[msg.callbackId]
+				if (callback) {
+					Promise.resolve(callback(...msg.args))
+					.then((result: any) => {
+						const encodedResult = this.encodeArgumentsToParent([result])
+						this.reply(handle, msg, encodedResult[0])
+					})
+					.catch((err: Error) => {
+						this.replyError(instance, msg, err)
+					})
+				} else {
+					this.replyError(instance, msg, 'callback "' + msg.callbackId + '" not found')
+				}
 			}
 		} catch (e) {
 			// _orgConsoleLog('error', e)
@@ -340,4 +371,41 @@ export abstract class Worker {
 			else this.log(handle, 'Error: ' + e.toString(), e.stack)
 		}
 	}
+}
+let argumentsCallbackId: number = 0
+export function encodeArguments (callbacks: {[key: string]: Function}, args: any[]): ArgDefinition[] {
+	try {
+		return args.map((arg): ArgDefinition => {
+			if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, value: arg.toString('hex') }
+			if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
+			if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
+			if (typeof arg === 'function') {
+				const callbackId = argumentsCallbackId++
+				callbacks[callbackId + ''] = arg
+				return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+			}
+			if (arg === 'undefined') return { type: ArgumentType.UNDEFINED, value: arg }
+			if (arg === null) return { type: ArgumentType.NULL, value: arg }
+			if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
+			return { type: ArgumentType.OTHER, value: arg }
+		})
+	} catch (e) {
+		throw Error(`Unsupported attribute: ${e.toString()}`)
+	}
+}
+export type ArgCallback = (...args: any[]) => Promise<any>
+export function decodeArguments (args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
+	// Go through arguments and de-serialize them
+	return args.map((a) => {
+		if (a.type === ArgumentType.STRING) return a.value
+		if (a.type === ArgumentType.NUMBER) return a.value
+		if (a.type === ArgumentType.BUFFER) return Buffer.from(a.value, 'hex')
+		if (a.type === ArgumentType.UNDEFINED) return a.value
+		if (a.type === ArgumentType.NULL) return a.value
+		if (a.type === ArgumentType.FUNCTION) {
+			return getCallback(a)
+		}
+		if (a.type === ArgumentType.OBJECT) return JSON.parse(a.value)
+		return a.value
+	})
 }

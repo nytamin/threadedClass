@@ -8,7 +8,8 @@ import {
 	InstanceCallbackFunction,
 	MessageType,
 	MessageKillConstr,
-	MessageInitConstr
+	MessageInitConstr,
+	InstanceCallbackInitFunction
 } from './internalApi'
 import { EventEmitter } from 'events'
 
@@ -213,7 +214,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 	}
-	public sendMessage (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: InstanceCallbackFunction) {
+	public sendMessage (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
 			if (!instance.child) throw Error('Instance has been detached from child process')
@@ -301,7 +302,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	public sendInit (
 		instance: ChildInstance,
 		config: ThreadedClassConfig,
-		cb?: InstanceCallbackFunction
+		cb?: InstanceCallbackInitFunction
 	) {
 
 		let msg: MessageInitConstr = {

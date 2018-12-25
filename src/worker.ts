@@ -34,7 +34,7 @@ if (process.send) {
 	const worker = new ThreadedWorker()
 	console.log = worker.log
 	process.on('message', (m: MessageToChild) => {
-		worker.messageCallback(m)
+		worker.onMessageFromParent(m)
 	})
 } else {
 	throw Error('process.send undefined!')
