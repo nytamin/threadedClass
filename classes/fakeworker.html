@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MessageFcnConstr | threadedclass</title>
+	<title>FakeWorker | threadedclass</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -909,17 +909,50 @@ img { max-width: 100%; }
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
-		<li class="current tsd-kind-interface tsd-is-external">
-			<a href="messagefcnconstr.html" class="tsd-kind-icon">Message<wbr>Fcn<wbr>Constr</a>
+		<li class="current tsd-kind-class tsd-is-external">
+			<a href="fakeworker.html" class="tsd-kind-icon">Fake<wbr>Worker</a>
 			<ul>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#args" class="tsd-kind-icon">args</a>
+				<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+					<a href="fakeworker.html#constructor" class="tsd-kind-icon">constructor</a>
 				</li>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#cmd" class="tsd-kind-icon">cmd</a>
+				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#instancehandles" class="tsd-kind-icon">instance<wbr>Handles</a>
 				</li>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#fcn" class="tsd-kind-icon">fcn</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#decodeargumentsfromparent" class="tsd-kind-icon">decode<wbr>Arguments<wbr>From<wbr>Parent</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#encodeargumentstoparent" class="tsd-kind-icon">encode<wbr>Arguments<wbr>ToParent</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#getallproperties" class="tsd-kind-icon">get<wbr>All<wbr>Properties</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#killinstance" class="tsd-kind-icon">kill<wbr>Instance</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+					<a href="fakeworker.html#log" class="tsd-kind-icon">log</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+					<a href="fakeworker.html#onmessagefromparent" class="tsd-kind-icon">on<wbr>Message<wbr>From<wbr>Parent</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#reply" class="tsd-kind-icon">reply</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#replyerror" class="tsd-kind-icon">reply<wbr>Error</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#sendcallback" class="tsd-kind-icon">send<wbr>Callback</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#sendlog" class="tsd-kind-icon">send<wbr>Log</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#sendmessagetoparent" class="tsd-kind-icon">send<wbr>Message<wbr>ToParent</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<a href="fakeworker.html#sendreplytoparent" class="tsd-kind-icon">send<wbr>Reply<wbr>ToParent</a>
 				</li>
 			</ul>
 		</li>
@@ -931,7 +964,12 @@ img { max-width: 100%; }
 			<h3>Hierarchy</h3>
 			<ul class="tsd-hierarchy">
 				<li>
-					<span class="target">MessageFcnConstr</span>
+					<a href="worker.html" class="tsd-signature-type">Worker</a>
+					<ul class="tsd-hierarchy">
+						<li>
+							<span class="target">FakeWorker</span>
+						</li>
+					</ul>
 				</li>
 			</ul>
 		</section>
@@ -940,47 +978,425 @@ img { max-width: 100%; }
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
 					<section class="tsd-index-section tsd-is-external">
+						<h3>Constructors</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-external"><a href="fakeworker.html#constructor" class="tsd-kind-icon">constructor</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section tsd-is-inherited tsd-is-private-protected tsd-is-external">
 						<h3>Properties</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#args" class="tsd-kind-icon">args</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#cmd" class="tsd-kind-icon">cmd</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#fcn" class="tsd-kind-icon">fcn</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#instancehandles" class="tsd-kind-icon">instance<wbr>Handles</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section tsd-is-external">
+						<h3>Methods</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#decodeargumentsfromparent" class="tsd-kind-icon">decode<wbr>Arguments<wbr>From<wbr>Parent</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#encodeargumentstoparent" class="tsd-kind-icon">encode<wbr>Arguments<wbr>ToParent</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#getallproperties" class="tsd-kind-icon">get<wbr>All<wbr>Properties</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external"><a href="fakeworker.html#killinstance" class="tsd-kind-icon">kill<wbr>Instance</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external"><a href="fakeworker.html#log" class="tsd-kind-icon">log</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external"><a href="fakeworker.html#onmessagefromparent" class="tsd-kind-icon">on<wbr>Message<wbr>From<wbr>Parent</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#reply" class="tsd-kind-icon">reply</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#replyerror" class="tsd-kind-icon">reply<wbr>Error</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#sendcallback" class="tsd-kind-icon">send<wbr>Callback</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#sendlog" class="tsd-kind-icon">send<wbr>Log</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external"><a href="fakeworker.html#sendmessagetoparent" class="tsd-kind-icon">send<wbr>Message<wbr>ToParent</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external"><a href="fakeworker.html#sendreplytoparent" class="tsd-kind-icon">send<wbr>Reply<wbr>ToParent</a></li>
 						</ul>
 					</section>
 				</div>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<h2>Constructors</h2>
+			<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+				<a name="constructor" class="tsd-anchor"></a>
+				<h3>constructor</h3>
+				<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">new <wbr>Fake<wbr>Worker<span class="tsd-signature-symbol">(</span>cb<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="fakeworker.html" class="tsd-signature-type">FakeWorker</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/fakeProcess.ts#L14">fakeProcess.ts:14</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>cb: <span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>m<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-parameters-title">Parameters</h4>
+												<ul class="tsd-parameters">
+													<li>
+														<h5>m: <a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a></h5>
+													</li>
+												</ul>
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="fakeworker.html" class="tsd-signature-type">FakeWorker</a></h4>
+					</li>
+				</ul>
+			</section>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-inherited tsd-is-private-protected tsd-is-external">
 			<h2>Properties</h2>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="args" class="tsd-anchor"></a>
-				<h3>args</h3>
-				<div class="tsd-signature tsd-kind-icon">args<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">&gt;</span></div>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="instancehandles" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> instance<wbr>Handles</h3>
+				<div class="tsd-signature tsd-kind-icon">instance<wbr>Handles<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
+					<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#instancehandles">instanceHandles</a></p>
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L54">internalApi.ts:54</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L131">internalApi.ts:131</a></li>
 					</ul>
 				</aside>
+				<div class="tsd-type-declaration">
+					<h4>Type declaration</h4>
+					<ul class="tsd-parameters">
+						<li class="tsd-parameter-index-signature">
+							<h5><span class="tsd-signature-symbol">[</span>instanceId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+						</li>
+					</ul>
+				</div>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="cmd" class="tsd-anchor"></a>
-				<h3>cmd</h3>
-				<div class="tsd-signature tsd-kind-icon">cmd<span class="tsd-signature-symbol">:</span> <a href="../enums/messagetype.html#function" class="tsd-signature-type">FUNCTION</a></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L52">internalApi.ts:52</a></li>
-					</ul>
-				</aside>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<h2>Methods</h2>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="decodeargumentsfromparent" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> decode<wbr>Arguments<wbr>From<wbr>Parent</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">decode<wbr>Arguments<wbr>From<wbr>Parent<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#decodeargumentsfromparent">decodeArgumentsFromParent</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L137">internalApi.ts:137</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>args: <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h4>
+					</li>
+				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="fcn" class="tsd-anchor"></a>
-				<h3>fcn</h3>
-				<div class="tsd-signature tsd-kind-icon">fcn<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L53">internalApi.ts:53</a></li>
-					</ul>
-				</aside>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="encodeargumentstoparent" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> encode<wbr>Arguments<wbr>ToParent</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">encode<wbr>Arguments<wbr>ToParent<span class="tsd-signature-symbol">(</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">[]</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#encodeargumentstoparent">encodeArgumentsToParent</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L159">internalApi.ts:159</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="../interfaces/argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">[]</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="getallproperties" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> get<wbr>All<wbr>Properties</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">get<wbr>All<wbr>Properties<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#getallproperties">getAllProperties</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L193">internalApi.ts:193</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>obj: <span class="tsd-signature-type">Object</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+				<a name="killinstance" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> kill<wbr>Instance</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">kill<wbr>Instance<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Overrides <a href="worker.html">Worker</a>.<a href="worker.html#killinstance">killInstance</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/fakeProcess.ts#L21">fakeProcess.ts:21</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+				<a name="log" class="tsd-anchor"></a>
+				<h3>log</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#log">log</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L202">internalApi.ts:202</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>data: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+				<a name="onmessagefromparent" class="tsd-anchor"></a>
+				<h3>on<wbr>Message<wbr>From<wbr>Parent</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">on<wbr>Message<wbr>From<wbr>Parent<span class="tsd-signature-symbol">(</span>m<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#onmessagefromparent">onMessageFromParent</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L208">internalApi.ts:208</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>m: <a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="reply" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> reply</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">reply<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, m<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a>, reply<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#reply">reply</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L163">internalApi.ts:163</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>m: <a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a></h5>
+							</li>
+							<li>
+								<h5>reply: <span class="tsd-signature-type">any</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="replyerror" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> reply<wbr>Error</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">reply<wbr>Error<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, m<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a>, error<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#replyerror">replyError</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L166">internalApi.ts:166</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>m: <a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a></h5>
+							</li>
+							<li>
+								<h5>error: <span class="tsd-signature-type">any</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="sendcallback" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> send<wbr>Callback</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Callback<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, callbackId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, cb<span class="tsd-signature-symbol">: </span><a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#sendcallback">sendCallback</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L185">internalApi.ts:185</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>callbackId: <span class="tsd-signature-type">string</span></h5>
+							</li>
+							<li>
+								<h5>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+							</li>
+							<li>
+								<h5>cb: <a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="sendlog" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> send<wbr>Log</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Log<span class="tsd-signature-symbol">(</span>log<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#sendlog">sendLog</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L178">internalApi.ts:178</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>log: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+				<a name="sendmessagetoparent" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> send<wbr>Message<wbr>ToParent</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Message<wbr>ToParent<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, msg<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagefromchildconstr" class="tsd-signature-type">MessageFromChildConstr</a>, cb<span class="tsd-signature-symbol">?: </span><a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Overrides <a href="worker.html">Worker</a>.<a href="worker.html#sendmessagetoparent">sendMessageToParent</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/fakeProcess.ts#L25">fakeProcess.ts:25</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>msg: <a href="../globals.html#messagefromchildconstr" class="tsd-signature-type">MessageFromChildConstr</a></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> cb: <a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+				<a name="sendreplytoparent" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> send<wbr>Reply<wbr>ToParent</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Reply<wbr>ToParent<span class="tsd-signature-symbol">(</span>handle<span class="tsd-signature-symbol">: </span><a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a>, replyTo<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, error<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Error</span>, reply<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="worker.html">Worker</a>.<a href="worker.html#sendreplytoparent">sendReplyToParent</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L169">internalApi.ts:169</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>handle: <a href="../interfaces/instancehandle.html" class="tsd-signature-type">InstanceHandle</a></h5>
+							</li>
+							<li>
+								<h5>replyTo: <span class="tsd-signature-type">number</span></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> error: <span class="tsd-signature-type">Error</span></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> reply: <span class="tsd-signature-type">any</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
 			</section>
 		</section>
 		<footer class="with-border-bottom">

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MessageFcnConstr | threadedclass</title>
+	<title>ThreadedClassManagerClass | threadedclass</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -909,17 +909,26 @@ img { max-width: 100%; }
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
-		<li class="current tsd-kind-interface tsd-is-external">
-			<a href="messagefcnconstr.html" class="tsd-kind-icon">Message<wbr>Fcn<wbr>Constr</a>
+		<li class="current tsd-kind-class tsd-is-external">
+			<a href="threadedclassmanagerclass.html" class="tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<wbr>Class</a>
 			<ul>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#args" class="tsd-kind-icon">args</a>
+				<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#constructor" class="tsd-kind-icon">constructor</a>
 				</li>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#cmd" class="tsd-kind-icon">cmd</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#destroy" class="tsd-kind-icon">destroy</a>
 				</li>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefcnconstr.html#fcn" class="tsd-kind-icon">fcn</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#destroyall" class="tsd-kind-icon">destroy<wbr>All</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#getthreadcount" class="tsd-kind-icon">get<wbr>Thread<wbr>Count</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#onevent" class="tsd-kind-icon">on<wbr>Event</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclass.html#restart" class="tsd-kind-icon">restart</a>
 				</li>
 			</ul>
 		</li>
@@ -931,7 +940,7 @@ img { max-width: 100%; }
 			<h3>Hierarchy</h3>
 			<ul class="tsd-hierarchy">
 				<li>
-					<span class="target">MessageFcnConstr</span>
+					<span class="target">ThreadedClassManagerClass</span>
 				</li>
 			</ul>
 		</section>
@@ -940,47 +949,176 @@ img { max-width: 100%; }
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
 					<section class="tsd-index-section tsd-is-external">
-						<h3>Properties</h3>
+						<h3>Constructors</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#args" class="tsd-kind-icon">args</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#cmd" class="tsd-kind-icon">cmd</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefcnconstr.html#fcn" class="tsd-kind-icon">fcn</a></li>
+							<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#constructor" class="tsd-kind-icon">constructor</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section tsd-is-external">
+						<h3>Methods</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#destroy" class="tsd-kind-icon">destroy</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#destroyall" class="tsd-kind-icon">destroy<wbr>All</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#getthreadcount" class="tsd-kind-icon">get<wbr>Thread<wbr>Count</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#onevent" class="tsd-kind-icon">on<wbr>Event</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#restart" class="tsd-kind-icon">restart</a></li>
 						</ul>
 					</section>
 				</div>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
-			<h2>Properties</h2>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="args" class="tsd-anchor"></a>
-				<h3>args</h3>
-				<div class="tsd-signature tsd-kind-icon">args<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="argdefinition.html" class="tsd-signature-type">ArgDefinition</a><span class="tsd-signature-symbol">&gt;</span></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L54">internalApi.ts:54</a></li>
-					</ul>
-				</aside>
+			<h2>Constructors</h2>
+			<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+				<a name="constructor" class="tsd-anchor"></a>
+				<h3>constructor</h3>
+				<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">new <wbr>Threaded<wbr>Class<wbr>Manager<wbr>Class<span class="tsd-signature-symbol">(</span>internal<span class="tsd-signature-symbol">: </span><a href="threadedclassmanagerclassinternal.html" class="tsd-signature-type">ThreadedClassManagerClassInternal</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="threadedclassmanagerclass.html" class="tsd-signature-type">ThreadedClassManagerClass</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L19">manager.ts:19</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>internal: <a href="threadedclassmanagerclassinternal.html" class="tsd-signature-type">ThreadedClassManagerClassInternal</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="threadedclassmanagerclass.html" class="tsd-signature-type">ThreadedClassManagerClass</a></h4>
+					</li>
+				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="cmd" class="tsd-anchor"></a>
-				<h3>cmd</h3>
-				<div class="tsd-signature tsd-kind-icon">cmd<span class="tsd-signature-symbol">:</span> <a href="../enums/messagetype.html#function" class="tsd-signature-type">FUNCTION</a></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L52">internalApi.ts:52</a></li>
-					</ul>
-				</aside>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<h2>Methods</h2>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="destroy" class="tsd-anchor"></a>
+				<h3>destroy</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">destroy<span class="tsd-signature-symbol">(</span>proxy<span class="tsd-signature-symbol">: </span><a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L24">manager.ts:24</a></li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Destroy a proxy class</p>
+							</div>
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>proxy: <a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
+				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="fcn" class="tsd-anchor"></a>
-				<h3>fcn</h3>
-				<div class="tsd-signature tsd-kind-icon">fcn<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/internalApi.ts#L53">internalApi.ts:53</a></li>
-					</ul>
-				</aside>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="destroyall" class="tsd-anchor"></a>
+				<h3>destroy<wbr>All</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">destroy<wbr>All<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L27">manager.ts:27</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="getthreadcount" class="tsd-anchor"></a>
+				<h3>get<wbr>Thread<wbr>Count</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">get<wbr>Thread<wbr>Count<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L30">manager.ts:30</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="onevent" class="tsd-anchor"></a>
+				<h3>on<wbr>Event</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">on<wbr>Event<span class="tsd-signature-symbol">(</span>proxy<span class="tsd-signature-symbol">: </span><a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, cb<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L33">manager.ts:33</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>proxy: <a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+							<li>
+								<h5>event: <span class="tsd-signature-type">string</span></h5>
+							</li>
+							<li>
+								<h5>cb: <span class="tsd-signature-type">Function</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="restart" class="tsd-anchor"></a>
+				<h3>restart</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">restart<span class="tsd-signature-symbol">(</span>proxy<span class="tsd-signature-symbol">: </span><a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, forceRestart<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/6b900fd/src/manager.ts#L49">manager.ts:49</a></li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Restart the thread of the proxy instance</p>
+							</div>
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>proxy: <a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> forceRestart: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>If true, will kill the thread and restart it</p>
+								</div>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
+				</ul>
 			</section>
 		</section>
 		<footer class="with-border-bottom">
