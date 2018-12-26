@@ -10,9 +10,6 @@ import {
 
 class ThreadedWorker extends Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
-	protected _orgConsoleLog (...args: any[]) {
-		_orgConsoleLog(...args)
-	}
 
 	protected sendMessageToParent (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
 		if (process.send) {
@@ -37,7 +34,7 @@ class ThreadedWorker extends Worker {
 	}
 
 }
-const _orgConsoleLog = console.log
+// const _orgConsoleLog = console.log
 
 if (process.send) {
 	const worker = new ThreadedWorker()

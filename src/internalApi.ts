@@ -205,14 +205,13 @@ export abstract class Worker {
 		this.sendLog(data)
 	}
 
-	protected abstract _orgConsoleLog (...args: any[]): void
 	protected abstract sendMessageToParent (handle: InstanceHandle | null, msg: MessageFromChildConstr, cb?: CallbackFunction): void
 
 	public onMessageFromParent (m: MessageToChild) {
 		// A message was received from Parent
 		let handle = this.instanceHandles[m.instanceId]
 		if (!handle && m.cmd !== MessageType.INIT) {
-			this._orgConsoleLog(`Child process: Unknown instanceId: "${m.instanceId}"`)
+			console.log(`Child process: Unknown instanceId: "${m.instanceId}"`)
 			return // fail silently?
 		}
 		if (!handle) {
@@ -336,7 +335,6 @@ export abstract class Worker {
 			} else if (m.cmd === MessageType.SET) {
 				let msg: MessageSet = m
 
-				// _orgConsoleLog('msg')
 				const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
 				instance[msg.property] = fixedValue
 
@@ -368,7 +366,6 @@ export abstract class Worker {
 				}
 			}
 		} catch (e) {
-			// _orgConsoleLog('error', e)
 
 			if (m.cmdId) this.replyError(handle, m, 'Error: ' + e.toString() + e.stack)
 			else this.log('Error: ' + e.toString(), e.stack)

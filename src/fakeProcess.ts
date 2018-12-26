@@ -22,10 +22,6 @@ export class FakeWorker extends Worker {
 		// throw new Error('Trying to kill a non threaded process!')
 	}
 
-	protected _orgConsoleLog (...args: any[]) {
-		console.log(...args)
-	}
-
 	protected sendMessageToParent (handle: InstanceHandle, msg: MessageFromChildConstr, cb?: CallbackFunction) {
 		if (msg.cmd === MessageType.LOG) {
 			const message: MessageFromChild = {...msg, ...{

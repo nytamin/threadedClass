@@ -388,7 +388,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 		child.process.on('message', (message: MessageFromChild) => {
 			if (message.cmd === MessageType.LOG) {
-				console.log.apply(null, ['LOG'].concat(message.log))
+				console.log(...message.log)
 			} else {
 				const instance = child.instances[message.instanceId]
 				if (instance) {
