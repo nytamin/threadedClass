@@ -47,9 +47,9 @@ describe('restarts', () => {
 
 	})
 	test('restart instance with multiple', async () => {
-		let threaded0 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
-		let threaded1 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
-		let threaded2 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { processUsage: 0.1 })
+		let threaded0 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
+		let threaded1 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
+		let threaded2 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
 		let onClosed0 = jest.fn()
 		let onClosed1 = jest.fn()
 		let onClosed2 = jest.fn()
@@ -94,7 +94,7 @@ describe('restarts', () => {
 	test('force restart', async () => {
 		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
-		// use processId to control which process the instances are put in
+		// use threadId to control which process the instances are put in
 		let thread0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []])
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(thread0, 'process_closed', onClosed)

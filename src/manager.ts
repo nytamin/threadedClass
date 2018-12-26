@@ -90,7 +90,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	/** Set to true if you want to handle the exiting of child process yourselt */
 	public dontHandleExit: boolean = false
 	private isInitialized: boolean = false
-	private _processId: number = 0
+	private _threadId: number = 0
 	private _instanceId: number = 0
 	private _children: {[id: string]: Child} = {}
 
@@ -101,16 +101,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		this._init()
 
 		let child: Child | null = null
-		if (config.processId) {
-			child = this._children[config.processId] || null
+		if (config.threadId) {
+			child = this._children[config.threadId] || null
 		} else if (config.threadUsage) {
 			child = this._findFreeChild(config.threadUsage)
 		}
 		if (!child) {
 			// Create new child process:
 			const newChild: Child = {
-				id: config.processId || ('process_' + this._processId++),
-				isNamed: !!config.processId,
+				id: config.threadId || ('process_' + this._threadId++),
+				isNamed: !!config.threadId,
 				pathToWorker: pathToWorker,
 
 				process: this._createFork(config, pathToWorker),
