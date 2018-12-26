@@ -23,5 +23,8 @@ class TestClass {
             }, time);
         }
     }
+    logSomething(...args) {
+        console.log(...args);
+    }
 }
 exports.TestClass = TestClass;

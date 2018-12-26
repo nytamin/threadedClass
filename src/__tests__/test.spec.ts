@@ -66,6 +66,16 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(onClosed).toHaveBeenCalledTimes(1)
 
 		})
+		test('import wrong path', async () => {
+			let error: any = null
+			try {
+				let threaded = await threadedClass<House>('./nonexistent/path', House, [[], []], { disableMultithreading })
+			} catch (e) {
+				error = e.toString()
+			}
+			expect(error).toMatch(/Cannot find module/)
+
+		})
 		test('eventEmitter', async () => {
 
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
@@ -457,6 +467,16 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(error.toString()).toMatch(/Error thrown in callback/)
 
 			error = null
+			try {
+				await threaded.callFunction(() => {
+					return Promise.reject('Reject in callback')
+				})
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Reject in callback/)
+
+			error = null
 			const secondaryFunction = () => {
 				throw new Error('Error thrown in secondary')
 			}
@@ -470,6 +490,34 @@ const getTests = (disableMultithreading: boolean) => {
 			}
 			expect(error && error.toString()).toMatch(/Error thrown in secondary/)
 
+			error = null
+			const secondaryFunctionReject = () => {
+				return Promise.reject('Reject in secondary')
+			}
+			try {
+				let second: any = await threaded.callFunction(() => {
+					return secondaryFunctionReject
+				})
+				await second('second')
+			} catch (e) {
+				error = e
+			}
+			expect(error && error.toString()).toMatch(/Reject in secondary/)
+
+		})
+		test('logging', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			let mockLog = jest.fn()
+			let orgConsoleLog = console.log
+			console.log = mockLog
+
+			await threaded.logSomething('aa', 'bb')
+
+			console.log = orgConsoleLog
+
+			expect(mockLog).toHaveBeenCalledTimes(1)
+			expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
 		})
 	}
 }

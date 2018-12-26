@@ -118,4 +118,16 @@ describe('restarts', () => {
 
 		ThreadedClassManager.destroyAll()
 	})
+
+	test('unknown instance', async () => {
+		let otherInstance = {}
+		await expect(
+			ThreadedClassManager.destroy(otherInstance)
+		).rejects.toMatch(/Proxy not found/)
+
+		await expect(
+			ThreadedClassManager.restart(otherInstance)
+			.catch(e => Promise.reject(e.toString()))
+		).rejects.toMatch(/Child not found/)
+	})
 })

@@ -20,4 +20,7 @@ export class TestClass {
 			}, time)
 		}
 	}
+	public logSomething (...args: any[]) {
+		console.log(...args)
+	}
 }
