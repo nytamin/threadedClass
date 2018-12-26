@@ -384,7 +384,7 @@ export function encodeArguments (callbacks: {[key: string]: Function}, args: any
 				callbacks[callbackId + ''] = arg
 				return { type: ArgumentType.FUNCTION, value: callbackId + '' }
 			}
-			if (arg === 'undefined') return { type: ArgumentType.UNDEFINED, value: arg }
+			if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 			if (arg === null) return { type: ArgumentType.NULL, value: arg }
 			if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
 			return { type: ArgumentType.OTHER, value: arg }
