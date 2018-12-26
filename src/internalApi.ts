@@ -146,11 +146,9 @@ export abstract class Worker {
 						(err, encodedResult) => {
 							if (err) {
 								reject(err)
-							} else if (encodedResult) {
-								const result = this.decodeArgumentsFromParent(handle, [encodedResult])
-								resolve(result[0])
 							} else {
-								resolve(encodedResult)
+								const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult]
+								resolve(result[0])
 							}
 						}
 					)
