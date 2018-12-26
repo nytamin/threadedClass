@@ -11,12 +11,12 @@ type PromisifyProperty<T> = T extends Function ? (...args: any[]) => Promise<Ret
 export type ThreadedClass<T> = Promisify<T>
 
 export interface ThreadedClassConfig {
-	/** A number between 0 - 1, how big a part pf a process the class takes up. For example; if set to 0.1, a process will be re-used for up to 10 class instances */
+	/** A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. */
 	threadUsage?: number
-	/** Put the instance in a specific process. Instances with the same threadIds will be put in the same process. */
+	/** Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread. */
 	threadId?: string
 	/** TO BE IMPLEMENTED: If the process crashes it's restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
-	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged */
+	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
 }
