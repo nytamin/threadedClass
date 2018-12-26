@@ -263,15 +263,15 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
 
-			// processUsage: 0.3, make room for 3 instances in each process
-			let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { processUsage: 0.3, disableMultithreading })
+			// threadUsage: 0.3, make room for 3 instances in each process
+			let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { threadUsage: 0.3, disableMultithreading })
 			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-			let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { processUsage: 0.3, disableMultithreading })
+			let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { threadUsage: 0.3, disableMultithreading })
 			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
-			let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { processUsage: 0.3, disableMultithreading })
+			let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { threadUsage: 0.3, disableMultithreading })
 			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 
-			let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { processUsage: 0.3, disableMultithreading })
+			let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { threadUsage: 0.3, disableMultithreading })
 			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
 
 			// Check that all instances return correct data:

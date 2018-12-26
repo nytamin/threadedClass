@@ -103,8 +103,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		let child: Child | null = null
 		if (config.processId) {
 			child = this._children[config.processId] || null
-		} else if (config.processUsage) {
-			child = this._findFreeChild(config.processUsage)
+		} else if (config.threadUsage) {
+			child = this._findFreeChild(config.threadUsage)
 		}
 		if (!child) {
 			// Create new child process:
@@ -114,7 +114,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				pathToWorker: pathToWorker,
 
 				process: this._createFork(config, pathToWorker),
-				usage: config.processUsage || 1,
+				usage: config.threadUsage || 1,
 				instances: {},
 				alive: true,
 				isClosing: false,
@@ -152,7 +152,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			id: 'instance_' + this._instanceId++,
 			child: child,
 			proxy: proxy,
-			usage: config.processUsage,
+			usage: config.threadUsage,
 			onMessageCallback: onMessage,
 			pathToModule: pathToModule,
 			className: className,
@@ -405,12 +405,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 	}
-	private _findFreeChild (processUsage: number): Child | null {
+	private _findFreeChild (threadUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {
 			const child = this._children[id]
 			if (
 				!child.isNamed &&
-				child.usage + processUsage <= 1
+				child.usage + threadUsage <= 1
 			) {
 				return true
 			}
@@ -418,7 +418,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 		if (id) {
 			const child = this._children[id]
-			child.usage += processUsage
+			child.usage += threadUsage
 
 			return child
 		}
