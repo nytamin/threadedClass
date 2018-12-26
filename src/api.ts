@@ -15,7 +15,7 @@ export interface ThreadedClassConfig {
 	threadUsage?: number
 	/** Put the instance in a specific process. Instances with the same threadIds will be put in the same process. */
 	threadId?: string
-	/** If the process crashes it's restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
+	/** TO BE IMPLEMENTED: If the process crashes it's restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged */
 	disableMultithreading?: boolean
