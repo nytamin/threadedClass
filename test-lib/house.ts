@@ -25,6 +25,9 @@ export class House extends EventEmitter {
 		return value
 	}
 	public getWindows (_a: string) {
+		if (_a) {
+			return [_a, ...this.windows]
+		}
 		return this.windows
 	}
 	public setWindows (windows: Array<string>) {
@@ -46,6 +49,7 @@ export class House extends EventEmitter {
 		return this._readonly
 	}
 	public set writeonly (value: number) {
+		this._writeonly = this._writeonly
 		this._writeonly = value
 	}
 	public slowFib (num: number) {
@@ -56,9 +60,9 @@ export class House extends EventEmitter {
 	}
 	public callCallback (d: string, cb: (d2: string) => Promise<string>) {
 		return new Promise((resolve, reject) => {
-			cb(d + 'child')
+			cb(d + ',child')
 			.then((result) => {
-				resolve(result + 'child2')
+				resolve(result + ',child2')
 			})
 			.catch((err) => {
 				reject(err)
