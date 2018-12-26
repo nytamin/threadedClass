@@ -36,7 +36,7 @@ describe('restarts', () => {
 		expect(onClosed).toHaveBeenCalledTimes(1)
 		await expect(threaded.returnValue('asdf')).rejects.toMatch(/closed/)
 
-		ThreadedClassManager.restart(threaded)
+		await ThreadedClassManager.restart(threaded)
 
 		expect(await threaded.returnValue('asdf')).toEqual('asdf')
 
@@ -66,8 +66,8 @@ describe('restarts', () => {
 		await expect(threaded0.returnValue('asdf')).rejects.toMatch(/closed/)
 		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/closed/)
 		await expect(threaded2.returnValue('asdf')).rejects.toMatch(/closed/)
-		ThreadedClassManager.restart(threaded2)
-		ThreadedClassManager.restart(threaded0)
+		await ThreadedClassManager.restart(threaded2)
+		await ThreadedClassManager.restart(threaded0)
 
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
 
@@ -75,7 +75,7 @@ describe('restarts', () => {
 		expect(await threaded2.returnValue('asdf')).toEqual('asdf')
 
 		await expect(threaded1.returnValue('asdf')).rejects.toMatch(/not initialized/)
-		ThreadedClassManager.restart(threaded1)
+		await ThreadedClassManager.restart(threaded1)
 		expect(await threaded1.returnValue('asdf')).toEqual('asdf')
 
 		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
@@ -116,7 +116,7 @@ describe('restarts', () => {
 		await thread0.setWindows(['north'])
 		expect(await thread0.getWindows('')).toEqual(['north'])
 
-		ThreadedClassManager.destroyAll()
+		await ThreadedClassManager.destroyAll()
 	})
 
 	test('unknown instance', async () => {

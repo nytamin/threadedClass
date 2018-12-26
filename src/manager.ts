@@ -436,7 +436,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					return
 				}
 			} else {
-				child = idOrChild as Child
+				child = idOrChild
 			}
 			if (child) {
 				if (!child.alive) {
