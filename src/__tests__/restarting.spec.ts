@@ -18,18 +18,18 @@ describe('restarts', () => {
 
 	beforeEach(async () => {
 		await ThreadedClassManager.destroyAll()
-		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 	})
 	afterEach(async () => {
 		await ThreadedClassManager.destroyAll()
-		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 	})
 	test('restart instance', async () => {
 		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
 		})
-		ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
 		await threaded.exitProcess(10)
 		await wait(100)
@@ -41,7 +41,7 @@ describe('restarts', () => {
 		expect(await threaded.returnValue('asdf')).toEqual('asdf')
 
 		await ThreadedClassManager.destroy(threaded)
-		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		expect(onClosed).toHaveBeenCalledTimes(2)
 
@@ -53,9 +53,9 @@ describe('restarts', () => {
 		let onClosed0 = jest.fn()
 		let onClosed1 = jest.fn()
 		let onClosed2 = jest.fn()
-		ThreadedClassManager.onEvent(threaded0, 'process_closed', onClosed0)
-		ThreadedClassManager.onEvent(threaded1, 'process_closed', onClosed1)
-		ThreadedClassManager.onEvent(threaded2, 'process_closed', onClosed2)
+		ThreadedClassManager.onEvent(threaded0, 'thread_closed', onClosed0)
+		ThreadedClassManager.onEvent(threaded1, 'thread_closed', onClosed1)
+		ThreadedClassManager.onEvent(threaded2, 'thread_closed', onClosed2)
 
 		await threaded1.exitProcess(10)
 		await wait(100)
@@ -69,7 +69,7 @@ describe('restarts', () => {
 		await ThreadedClassManager.restart(threaded2)
 		await ThreadedClassManager.restart(threaded0)
 
-		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 		expect(await threaded0.returnValue('asdf')).toEqual('asdf')
 		expect(await threaded2.returnValue('asdf')).toEqual('asdf')
@@ -78,13 +78,13 @@ describe('restarts', () => {
 		await ThreadedClassManager.restart(threaded1)
 		expect(await threaded1.returnValue('asdf')).toEqual('asdf')
 
-		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 		await ThreadedClassManager.destroy(threaded0)
 		await ThreadedClassManager.destroy(threaded1)
-		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 		await ThreadedClassManager.destroy(threaded2)
-		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		expect(onClosed0).toHaveBeenCalledTimes(1)
 		expect(onClosed1).toHaveBeenCalledTimes(1)
@@ -92,16 +92,16 @@ describe('restarts', () => {
 
 	})
 	test('force restart', async () => {
-		expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		// use threadId to control which process the instances are put in
 		let thread0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []])
 		let onClosed = jest.fn()
-		ThreadedClassManager.onEvent(thread0, 'process_closed', onClosed)
+		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
 
 		await thread0.setWindows(['north'])
 		expect(await thread0.getWindows('')).toEqual(['north'])
-		expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 		await ThreadedClassManager.restart(thread0)
 		expect(onClosed).toHaveBeenCalledTimes(0)

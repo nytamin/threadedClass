@@ -27,7 +27,7 @@ export class ThreadedClassManagerClass {
 	public destroyAll (): Promise<void> {
 		return this._internal.killAllChildren()
 	}
-	public getProcessCount (): number {
+	public getThreadCount (): number {
 		return this._internal.getChildrenCount()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
@@ -42,9 +42,9 @@ export class ThreadedClassManagerClass {
 		})
 	}
 	/**
-	 * Restart the process of the proxy instance
+	 * Restart the thread of the proxy instance
 	 * @param proxy
-	 * @param forceRestart If true, will kill the process and restart it
+	 * @param forceRestart If true, will kill the thread and restart it
 	 */
 	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		return this._internal.restart(proxy, forceRestart)
@@ -377,7 +377,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.process.on('close', (_code) => {
 			if (child.alive) {
 				child.alive = false
-				this.emit('process_closed', child)
+				this.emit('thread_closed', child)
 
 				// TODO: restart?
 			}

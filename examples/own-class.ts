@@ -17,7 +17,7 @@ async function runExample () {
 	// Print number of rooms from the threaded instance (using await because all methods are now promises)
 	console.log(await threadedHouse.getRooms()) // ['entrance','kitchen', 'bedroom']
 
-	// (Optional) Clean up & close all processes:
+	// (Optional) Clean up & close all threads:
 	ThreadedClassManager.destroyAll()
 }
 

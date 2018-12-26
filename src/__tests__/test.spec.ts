@@ -24,11 +24,11 @@ const getTests = (disableMultithreading: boolean) => {
 
 		beforeEach(async () => {
 			await ThreadedClassManager.destroyAll()
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 		afterEach(async () => {
 			await ThreadedClassManager.destroyAll()
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 		test('import own class', async () => {
 
@@ -39,13 +39,13 @@ const getTests = (disableMultithreading: boolean) => {
 
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 			let onClosed = jest.fn()
-			ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
+			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
 			expect(await threaded.getWindows('')).toHaveLength(2)
 			expect(await threaded.getRooms()).toHaveLength(1)
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 			expect(onClosed).toHaveBeenCalledTimes(1)
 		})
@@ -56,12 +56,12 @@ const getTests = (disableMultithreading: boolean) => {
 
 			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 			let onClosed = jest.fn()
-			ThreadedClassManager.onEvent(threaded, 'process_closed', onClosed)
+			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
 			expect(await threaded.returnValue('asdf')).toEqual('asdf')
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 			expect(onClosed).toHaveBeenCalledTimes(1)
 
@@ -89,7 +89,7 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(onEvent).toHaveBeenCalledTimes(1)
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 
 		test('method with callback', async () => {
@@ -115,7 +115,7 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(result).toEqual('parent,child,parent2,child2')
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 
 		test('import library class', async () => {
@@ -133,7 +133,7 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(await threaded.host).toEqual('192.168.0.1')
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 
 		test('import native class', async () => {
@@ -152,7 +152,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			await ThreadedClassManager.destroy(threaded)
 
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 		if (doPerformanceTests) {
 			test('single-thread', async () => {
@@ -196,7 +196,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 				// console.log('Multi-thread: ', results.length, endTime - startTime)
 				expect(results).toHaveLength(5)
-				expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			})
 		}
 		test('properties', async () => {
@@ -256,23 +256,23 @@ const getTests = (disableMultithreading: boolean) => {
 			await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 
-		test('multiple instances in same process', async () => {
+		test('multiple instances in same thread', async () => {
 
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-			// threadUsage: 0.3, make room for 3 instances in each process
+			// threadUsage: 0.3, make room for 3 instances in each thread
 			let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { threadUsage: 0.3, disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { threadUsage: 0.3, disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { threadUsage: 0.3, disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 			let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { threadUsage: 0.3, disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 
 			// Check that all instances return correct data:
 			let windows = await Promise.all([
@@ -289,29 +289,29 @@ const getTests = (disableMultithreading: boolean) => {
 
 			// Clean up
 			await ThreadedClassManager.destroy(threadedHouse0)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 			await ThreadedClassManager.destroy(threadedHouse1)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 			await ThreadedClassManager.destroy(threadedHouse2)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			await ThreadedClassManager.destroy(threadedHouse3)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		})
-		test('fine-grained control of processes', async () => {
+		test('fine-grained control of threads', async () => {
 
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-			// use threadId to control which process the instances are put in
+			// use threadId to control which thread the instances are put in
 			let threadedHouse0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []], { threadId: 'one', disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			let threadedHouse1 = await threadedClass<House>(HOUSE_PATH, House, [['south1'], []], { threadId: 'one', disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			let threadedHouse2 = await threadedClass<House>(HOUSE_PATH, House, [['south2'], []], { threadId: 'one', disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 			let threadedHouse3 = await threadedClass<House>(HOUSE_PATH, House, [['south3'], []], { threadId: 'two', disableMultithreading })
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 
 			// Check that all instances return correct data:
 			let windows = await Promise.all([
@@ -328,13 +328,13 @@ const getTests = (disableMultithreading: boolean) => {
 
 			// Clean up
 			await ThreadedClassManager.destroy(threadedHouse0)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 			await ThreadedClassManager.destroy(threadedHouse1)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(2)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(2)
 			await ThreadedClassManager.destroy(threadedHouse2)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(1)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 			await ThreadedClassManager.destroy(threadedHouse3)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 
 		test('supported data types', async () => {
@@ -381,7 +381,7 @@ const getTests = (disableMultithreading: boolean) => {
 			}
 
 			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getProcessCount()).toEqual(0)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		})
 		test('functions as arguments', async () => {
