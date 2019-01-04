@@ -308,28 +308,21 @@ export abstract class Worker {
 			} else if (m.cmd === MessageType.FUNCTION) {
 				// A function has been called by parent
 				let msg: MessageFcn = m
-				if (instance[msg.fcn]) {
-					const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args)
+				const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args)
 
-					let p = (
-						typeof instance[msg.fcn] === 'function' ?
-						instance[msg.fcn](...fixedArgs) :
-						instance[msg.fcn]
-					)
-					if (typeof instance[msg.fcn] !== 'function' && fixedArgs.length === 1) {
-						instance[msg.fcn] = fixedArgs[0]
-					}
-					Promise.resolve(p)
-					.then((result) => {
-						const encodedResult = this.encodeArgumentsToParent([result])
-						this.reply(handle, msg, encodedResult[0])
-					})
-					.catch((err) => {
-						this.replyError(handle, msg, err)
-					})
-				} else {
-					this.replyError(handle, msg, 'Function "' + msg.fcn + '" not found')
-				}
+				let p = (
+					typeof instance[msg.fcn] === 'function' ?
+					instance[msg.fcn](...fixedArgs) :
+					instance[msg.fcn]
+				) // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
+				Promise.resolve(p)
+				.then((result) => {
+					const encodedResult = this.encodeArgumentsToParent([result])
+					this.reply(handle, msg, encodedResult[0])
+				})
+				.catch((err) => {
+					this.replyError(handle, msg, err)
+				})
 			} else if (m.cmd === MessageType.SET) {
 				let msg: MessageSet = m
 

@@ -253,7 +253,7 @@ const getTests = (disableMultithreading: boolean) => {
 			//
 			// @ts-ignore this technically works, though the typings do not:
 			threaded.writeonly = 13
-			await expect(threaded.writeonly).rejects.toMatch(/not found/i) // Function "writeonly" not found
+			expect(await threaded.writeonly).toEqual(undefined)
 
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
