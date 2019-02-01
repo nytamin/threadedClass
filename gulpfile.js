@@ -85,7 +85,7 @@ gulp.task('copy-browser-examples', function () {
 	return gulp.src('./examples/browser/**/*.*').pipe(gulp.dest('./docs/examples'))
 })
 gulp.task('copy-browser-js', function () {
-	return gulp.src('./dist/js/**/*.*').pipe(gulp.dest('./docs/examples/lib/'))
+	return gulp.src('./dist/js/**/*.*').pipe(gulp.dest('./docs/examples/lib'))
 })
 gulp.task('copy-to-docs', gulp.parallel([
 	'copy-browser-examples',
