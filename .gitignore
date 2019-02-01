@@ -11,3 +11,4 @@ wallaby.conf.js
 
 .DS_Store
 .npmrc
+docs/
