@@ -28,12 +28,12 @@ gulp.task('browserify-main', function () {
 gulp.task('browserify-worker', function () {
 
 	var b = browserify({
-		entries: './dist/threadedClass-worker.js',
+		entries: './dist/threadedclass-worker.js',
 		debug: true
 	});
 	return b.bundle()
 		.pipe(source('app.js'))
-		.pipe(rename("threadedClass-worker.js"))
+		.pipe(rename("threadedclass-worker.js"))
 		.pipe(buffer())
 		.pipe(sourcemaps.init({loadMaps: true}))
 		.on('error', log.error)
@@ -60,12 +60,12 @@ gulp.task('minify-main', function () {
 gulp.task('minify-worker', function () {
 
 	var b = browserify({
-		entries: './dist/threadedClass-worker.js',
+		entries: './dist/threadedclass-worker.js',
 		debug: true
 	});
 	return b.bundle()
 		.pipe(source('app.js'))
-		.pipe(rename("threadedClass-worker.min.js"))
+		.pipe(rename("threadedclass-worker.min.js"))
 		.pipe(buffer())
 		.pipe(sourcemaps.init({loadMaps: true}))
 		.pipe(uglify())
