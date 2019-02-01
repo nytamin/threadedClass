@@ -931,6 +931,9 @@ img { max-width: 100%; }
 			<a href="classes/threadedclassmanagerclassinternal.html" class="tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<wbr>Class<wbr>Internal</a>
 		</li>
 		<li class=" tsd-kind-class tsd-is-external">
+			<a href="classes/webworkerprocess.html" class="tsd-kind-icon">Web<wbr>Worker<wbr>Process</a>
+		</li>
+		<li class=" tsd-kind-class tsd-is-external">
 			<a href="classes/worker.html" class="tsd-kind-icon">Worker</a>
 		</li>
 		<li class=" tsd-kind-interface tsd-is-external">
@@ -1050,6 +1053,9 @@ img { max-width: 100%; }
 		<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
 			<a href="globals.html#threadedclass" class="tsd-kind-icon">Threaded<wbr>Class</a>
 		</li>
+		<li class=" tsd-kind-type-alias tsd-is-external tsd-is-not-exported">
+			<a href="globals.html#webworker" class="tsd-kind-icon">Web<wbr>Worker</a>
+		</li>
 		<li class=" tsd-kind-variable tsd-is-external">
 			<a href="globals.html#threadedclassmanager" class="tsd-kind-icon">Threaded<wbr>Class<wbr>Manager</a>
 		</li>
@@ -1060,10 +1066,22 @@ img { max-width: 100%; }
 			<a href="globals.html#argumentscallbackid" class="tsd-kind-icon">arguments<wbr>Callback<wbr>Id</a>
 		</li>
 		<li class=" tsd-kind-function tsd-is-external">
+			<a href="globals.html#browsersupportswebworkers" class="tsd-kind-icon">browser<wbr>Supports<wbr>Web<wbr>Workers</a>
+		</li>
+		<li class=" tsd-kind-function tsd-is-external">
 			<a href="globals.html#decodearguments" class="tsd-kind-icon">decode<wbr>Arguments</a>
 		</li>
 		<li class=" tsd-kind-function tsd-is-external">
 			<a href="globals.html#encodearguments" class="tsd-kind-icon">encode<wbr>Arguments</a>
+		</li>
+		<li class=" tsd-kind-function tsd-is-external">
+			<a href="globals.html#forkwebworker" class="tsd-kind-icon">fork<wbr>Web<wbr>Worker</a>
+		</li>
+		<li class=" tsd-kind-function tsd-is-external">
+			<a href="globals.html#isbrowser" class="tsd-kind-icon">is<wbr>Browser</a>
+		</li>
+		<li class=" tsd-kind-function tsd-is-external">
+			<a href="globals.html#isnodejs" class="tsd-kind-icon">is<wbr>NodeJS</a>
 		</li>
 		<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
 			<a href="globals.html#threadedclass" class="tsd-kind-icon">threaded<wbr>Class</a>
@@ -1098,7 +1116,7 @@ img { max-width: 100%; }
 }</code></pre>
 			<p>The instance returned by <code>makeThreaded()</code> has methods equivalent to the original, but all properties will be asynchronous (Promises).</p>
 			<h2 id="api">API</h2>
-			<h3 id="typescript-example">Typescript example</h3>
+			<h3 id="nodejs-typescript-example">NodeJS: Typescript example</h3>
 			<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { threadedClass} <span class="hljs-keyword">from</span>  <span class="hljs-string">'threadedclass'</span>
 <span class="hljs-keyword">import</span> { Professor } <span class="hljs-keyword">from</span> <span class="hljs-string">'./professor'</span>
 
@@ -1114,7 +1132,7 @@ threadedClass&lt;Professor&gt;(
 .then(<span class="hljs-function">(<span class="hljs-params">story</span>) =&gt;</span> {
     <span class="hljs-built_in">console</span>.log(story)
 })</code></pre>
-			<h3 id="javascript-example">Javascript example</h3>
+			<h3 id="nodejs-javascript-example">NodeJS: Javascript example</h3>
 			<pre><code class="language-javascript"><span class="hljs-keyword">var</span> threadedClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'threadedclass'</span>).threadedClass
 <span class="hljs-keyword">var</span> Professor = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./professor'</span>)
 
@@ -1125,6 +1143,22 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 .then(<span class="hljs-function">(<span class="hljs-params">story</span>) =&gt;</span> {
     <span class="hljs-built_in">console</span>.log(story)
 })</code></pre>
+			<h3 id="browser-javascript-example">Browser: Javascript example</h3>
+			<pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text/javascript"</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"lib/threadedClass.js"</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text/javascript"</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"professor.js"</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text/javascript"</span>&gt;</span><span class="javascript">
+    <span class="hljs-keyword">var</span> threadedClass = ThreadedClass.threadedClass
+
+    threadedClass(<span class="hljs-string">'../professor.js'</span>, Professor, [<span class="hljs-string">'maths'</span>, <span class="hljs-string">'greek'</span>], { <span class="hljs-comment">// path to module is relative to threadedClass.js</span>
+        pathToWorker: <span class="hljs-string">'lib/threadedclass-worker.js'</span> <span class="hljs-comment">// in browser, a path to the worker-scrip must also be provided</span>
+    })
+    .then(<span class="hljs-function">(<span class="hljs-params">instance</span>) =&gt;</span> {
+    <span class="hljs-keyword">return</span> mrSmith.talkAboutAncientGreece() <span class="hljs-comment">// All methods returns a Promise</span>
+    })
+    .then(<span class="hljs-function">(<span class="hljs-params">story</span>) =&gt;</span> {
+        <span class="hljs-built_in">console</span>.log(story)
+    })
+</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span></code></pre>
 			<h3 id="options">Options</h3>
 			<p>An optional options object can be passed to threadedClass() with the following properties:</p>
 			<ul>
@@ -1166,7 +1200,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 			</ul>
 			<h2 id="todo">Todo</h2>
 			<ul>
-				<li>Add browser support, using <code>web-workers</code> instead of <code>child_process</code></li>
+				<li>Support for NodeJS Worker-threads (added as experimental in version 11)</li>
 			</ul>
 		</div>
 		<div style="position:relative;"><a name="typedoc-main-index" class="tsd-anchor"></a></div>
@@ -1189,6 +1223,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 							<li class="tsd-kind-class tsd-is-external"><a href="classes/fakeworker.html" class="tsd-kind-icon">Fake<wbr>Worker</a></li>
 							<li class="tsd-kind-class tsd-is-external"><a href="classes/threadedclassmanagerclass.html" class="tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<wbr>Class</a></li>
 							<li class="tsd-kind-class tsd-is-external"><a href="classes/threadedclassmanagerclassinternal.html" class="tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<wbr>Class<wbr>Internal</a></li>
+							<li class="tsd-kind-class tsd-is-external"><a href="classes/webworkerprocess.html" class="tsd-kind-icon">Web<wbr>Worker<wbr>Process</a></li>
 							<li class="tsd-kind-class tsd-is-external"><a href="classes/worker.html" class="tsd-kind-icon">Worker</a></li>
 						</ul>
 					</section>
@@ -1239,6 +1274,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 							<li class="tsd-kind-type-alias tsd-has-type-parameter tsd-is-external tsd-is-not-exported"><a href="globals.html#promisifyproperty" class="tsd-kind-icon">Promisify<wbr>Property</a></li>
 							<li class="tsd-kind-type-alias tsd-has-type-parameter tsd-is-external"><a href="globals.html#returntype" class="tsd-kind-icon">Return<wbr>Type</a></li>
 							<li class="tsd-kind-type-alias tsd-has-type-parameter tsd-is-external"><a href="globals.html#threadedclass" class="tsd-kind-icon">Threaded<wbr>Class</a></li>
+							<li class="tsd-kind-type-alias tsd-is-external tsd-is-not-exported"><a href="globals.html#webworker" class="tsd-kind-icon">Web<wbr>Worker</a></li>
 						</ul>
 					</section>
 					<section class="tsd-index-section tsd-is-external">
@@ -1252,8 +1288,12 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 					<section class="tsd-index-section tsd-is-external">
 						<h3>Functions</h3>
 						<ul class="tsd-index-list">
+							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#browsersupportswebworkers" class="tsd-kind-icon">browser<wbr>Supports<wbr>Web<wbr>Workers</a></li>
 							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#decodearguments" class="tsd-kind-icon">decode<wbr>Arguments</a></li>
 							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#encodearguments" class="tsd-kind-icon">encode<wbr>Arguments</a></li>
+							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#forkwebworker" class="tsd-kind-icon">fork<wbr>Web<wbr>Worker</a></li>
+							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#isbrowser" class="tsd-kind-icon">is<wbr>Browser</a></li>
+							<li class="tsd-kind-function tsd-is-external"><a href="globals.html#isnodejs" class="tsd-kind-icon">is<wbr>NodeJS</a></li>
 							<li class="tsd-kind-function tsd-has-type-parameter tsd-is-external"><a href="globals.html#threadedclass" class="tsd-kind-icon">threaded<wbr>Class</a></li>
 						</ul>
 					</section>
@@ -1268,7 +1308,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Arg<wbr>Callback<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L387">internalApi.ts:387</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L439">internalApi.ts:439</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1299,7 +1339,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Callback<wbr>Function<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L106">internalApi.ts:106</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L107">internalApi.ts:107</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1333,7 +1373,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Init<wbr>Props<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="interfaces/initprop.html" class="tsd-signature-type">InitProp</a><span class="tsd-signature-symbol">&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L4">internalApi.ts:4</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L5">internalApi.ts:5</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1343,7 +1383,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Instance<wbr>Callback<wbr>Function<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L104">internalApi.ts:104</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L105">internalApi.ts:105</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1380,7 +1420,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Instance<wbr>Callback<wbr>Init<wbr>Function<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L105">internalApi.ts:105</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L106">internalApi.ts:106</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1417,7 +1457,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Callback<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagecallbackconstr.html" class="tsd-signature-type">MessageCallbackConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L83">internalApi.ts:83</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L84">internalApi.ts:84</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1427,7 +1467,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Fcn<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagefcnconstr.html" class="tsd-signature-type">MessageFcnConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L56">internalApi.ts:56</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L57">internalApi.ts:57</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1437,7 +1477,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<span class="tsd-signature-symbol">:</span> <a href="globals.html#messagefromchildreply" class="tsd-signature-type">MessageFromChildReply</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagefromchildlog" class="tsd-signature-type">MessageFromChildLog</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagefromchildcallback" class="tsd-signature-type">MessageFromChildCallback</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L102">internalApi.ts:102</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L103">internalApi.ts:103</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1447,7 +1487,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Callback<span class="tsd-signature-symbol">:</span> <a href="globals.html#messagecallback" class="tsd-signature-type">MessageCallback</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L99">internalApi.ts:99</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L100">internalApi.ts:100</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1457,7 +1497,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Callback<wbr>Constr<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagecallbackconstr.html" class="tsd-signature-type">MessageCallbackConstr</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L98">internalApi.ts:98</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L99">internalApi.ts:99</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1467,7 +1507,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Constr<span class="tsd-signature-symbol">:</span> <a href="globals.html#messagefromchildreplyconstr" class="tsd-signature-type">MessageFromChildReplyConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagefromchildlogconstr.html" class="tsd-signature-type">MessageFromChildLogConstr</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagefromchildcallbackconstr" class="tsd-signature-type">MessageFromChildCallbackConstr</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L101">internalApi.ts:101</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L102">internalApi.ts:102</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1477,7 +1517,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Log<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagefromchildlogconstr.html" class="tsd-signature-type">MessageFromChildLogConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L96">internalApi.ts:96</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L97">internalApi.ts:97</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1487,7 +1527,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Reply<span class="tsd-signature-symbol">:</span> <a href="globals.html#messagefromchildreplyconstr" class="tsd-signature-type">MessageFromChildReplyConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L90">internalApi.ts:90</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L91">internalApi.ts:91</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1497,7 +1537,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Reply<wbr>Constr<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagereplyconstr.html" class="tsd-signature-type">MessageReplyConstr</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L88">internalApi.ts:88</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L89">internalApi.ts:89</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1507,7 +1547,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Init<span class="tsd-signature-symbol">:</span> <a href="interfaces/messageinitconstr.html" class="tsd-signature-type">MessageInitConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L49">internalApi.ts:49</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L50">internalApi.ts:50</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1517,7 +1557,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Kill<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagekillconstr.html" class="tsd-signature-type">MessageKillConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L76">internalApi.ts:76</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L77">internalApi.ts:77</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1527,7 +1567,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Reply<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagereplyconstr.html" class="tsd-signature-type">MessageReplyConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L71">internalApi.ts:71</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L72">internalApi.ts:72</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1537,7 +1577,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>Set<span class="tsd-signature-symbol">:</span> <a href="interfaces/messagesetconstr.html" class="tsd-signature-type">MessageSetConstr</a><span class="tsd-signature-symbol"> &amp; </span><a href="interfaces/messagesent.html" class="tsd-signature-type">MessageSent</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L63">internalApi.ts:63</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L64">internalApi.ts:64</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1547,7 +1587,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>ToChild<span class="tsd-signature-symbol">:</span> <a href="globals.html#messageinit" class="tsd-signature-type">MessageInit</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagefcn" class="tsd-signature-type">MessageFcn</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagereply" class="tsd-signature-type">MessageReply</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messageset" class="tsd-signature-type">MessageSet</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagekill" class="tsd-signature-type">MessageKill</a><span class="tsd-signature-symbol"> | </span><a href="globals.html#messagecallback" class="tsd-signature-type">MessageCallback</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L86">internalApi.ts:86</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L87">internalApi.ts:87</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1557,7 +1597,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Message<wbr>ToChild<wbr>Constr<span class="tsd-signature-symbol">:</span> <a href="interfaces/messageinitconstr.html" class="tsd-signature-type">MessageInitConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagefcnconstr.html" class="tsd-signature-type">MessageFcnConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagereplyconstr.html" class="tsd-signature-type">MessageReplyConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagesetconstr.html" class="tsd-signature-type">MessageSetConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagekillconstr.html" class="tsd-signature-type">MessageKillConstr</a><span class="tsd-signature-symbol"> | </span><a href="interfaces/messagecallbackconstr.html" class="tsd-signature-type">MessageCallbackConstr</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L85">internalApi.ts:85</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L86">internalApi.ts:86</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1567,7 +1607,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Promisify<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/api.ts#L5">api.ts:5</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/api.ts#L5">api.ts:5</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1582,7 +1622,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Promisify<wbr>Property<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">PromisifyProperty&lt;T&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/api.ts#L9">api.ts:9</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/api.ts#L9">api.ts:9</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1592,7 +1632,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Return<wbr>Type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ReturnType&lt;T&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/api.ts#L3">api.ts:3</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/api.ts#L3">api.ts:3</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1602,7 +1642,17 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Threaded<wbr>Class<span class="tsd-signature-symbol">:</span> <a href="globals.html#promisify" class="tsd-signature-type">Promisify</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/api.ts#L11">api.ts:11</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/api.ts#L11">api.ts:11</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-is-external tsd-is-not-exported">
+				<a name="webworker" class="tsd-anchor"></a>
+				<h3>Web<wbr>Worker</h3>
+				<div class="tsd-signature tsd-kind-icon">Web<wbr>Worker<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/webWorkers.ts#L11">webWorkers.ts:11</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1615,7 +1665,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<span class="tsd-signature-symbol">:</span> <a href="classes/threadedclassmanagerclass.html" class="tsd-signature-type">ThreadedClassManagerClass</a><span class="tsd-signature-symbol"> =&nbsp;new ThreadedClassManagerClass(ThreadedClassManagerInternal)</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/manager.ts#L474">manager.ts:474</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/manager.ts#L483">manager.ts:483</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1625,7 +1675,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">Threaded<wbr>Class<wbr>Manager<wbr>Internal<span class="tsd-signature-symbol">:</span> <a href="classes/threadedclassmanagerclassinternal.html" class="tsd-signature-type">ThreadedClassManagerClassInternal</a><span class="tsd-signature-symbol"> =&nbsp;new ThreadedClassManagerClassInternal()</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/manager.ts#L473">manager.ts:473</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/manager.ts#L482">manager.ts:482</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1635,13 +1685,30 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 				<div class="tsd-signature tsd-kind-icon">arguments<wbr>Callback<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L366">internalApi.ts:366</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L418">internalApi.ts:418</a></li>
 					</ul>
 				</aside>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
 			<h2>Functions</h2>
+			<section class="tsd-panel tsd-member tsd-kind-function tsd-is-external">
+				<a name="browsersupportswebworkers" class="tsd-anchor"></a>
+				<h3>browser<wbr>Supports<wbr>Web<wbr>Workers</h3>
+				<ul class="tsd-signatures tsd-kind-function tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">browser<wbr>Supports<wbr>Web<wbr>Workers<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/lib.ts#L7">lib.ts:7</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-member tsd-kind-function tsd-is-external">
 				<a name="decodearguments" class="tsd-anchor"></a>
 				<h3>decode<wbr>Arguments</h3>
@@ -1652,7 +1719,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L388">internalApi.ts:388</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L440">internalApi.ts:440</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1696,7 +1763,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/internalApi.ts#L367">internalApi.ts:367</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/internalApi.ts#L419">internalApi.ts:419</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1717,6 +1784,68 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 					</li>
 				</ul>
 			</section>
+			<section class="tsd-panel tsd-member tsd-kind-function tsd-is-external">
+				<a name="forkwebworker" class="tsd-anchor"></a>
+				<h3>fork<wbr>Web<wbr>Worker</h3>
+				<ul class="tsd-signatures tsd-kind-function tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">fork<wbr>Web<wbr>Worker<span class="tsd-signature-symbol">(</span>pathToWorker<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="classes/webworkerprocess.html" class="tsd-signature-type">WebWorkerProcess</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/webWorkers.ts#L7">webWorkers.ts:7</a></li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Functions for emulating child-process in web-workers</p>
+							</div>
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>pathToWorker: <span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="classes/webworkerprocess.html" class="tsd-signature-type">WebWorkerProcess</a></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-function tsd-is-external">
+				<a name="isbrowser" class="tsd-anchor"></a>
+				<h3>is<wbr>Browser</h3>
+				<ul class="tsd-signatures tsd-kind-function tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">is<wbr>Browser<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/lib.ts#L1">lib.ts:1</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-function tsd-is-external">
+				<a name="isnodejs" class="tsd-anchor"></a>
+				<h3>is<wbr>NodeJS</h3>
+				<ul class="tsd-signatures tsd-kind-function tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">is<wbr>NodeJS<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/lib.ts#L4">lib.ts:4</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-member tsd-kind-function tsd-has-type-parameter tsd-is-external">
 				<a name="threadedclass" class="tsd-anchor"></a>
 				<h3>threaded<wbr>Class</h3>
@@ -1727,7 +1856,7 @@ threadedClass(<span class="hljs-string">'./professor.js'</span>, Professor, [<sp
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/fc5bfa3/src/threadedClass.ts#L32">threadedClass.ts:32</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/4f38d71/src/threadedClass.ts#L33">threadedClass.ts:33</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
