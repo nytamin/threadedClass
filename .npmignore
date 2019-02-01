@@ -8,6 +8,8 @@ tslint.json
 .github
 build/temp
 build/docs
+docs
+dist/js
 test-lib
 
 coverage
