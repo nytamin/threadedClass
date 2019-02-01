@@ -22,6 +22,7 @@ import {
 	ThreadedClassConfig
 } from './api'
 import { ThreadedClassManagerInternal, ChildInstance, Child } from './manager'
+import { isBrowser, browserSupportsWebWorkers } from './lib'
 
 /**
  * Returns an asynchronous version of the provided class
@@ -38,6 +39,16 @@ export function threadedClass<T> (
 	// @ts-ignore expression is allways false
 	// if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
 	let orgClassName: string = orgClass.name
+
+	if (isBrowser()) {
+		if (!config.pathToWorker) {
+			throw Error('config.pathToWorker is required in brower')
+		}
+		if (!browserSupportsWebWorkers()) {
+			console.log('Web-workers not supported, disabling multi-threading')
+			config.disableMultithreading = true
+		}
+	}
 	let parentCallPath = callsites()[1].getFileName()
 	let thisCallPath = callsites()[0].getFileName()
 
@@ -138,20 +149,27 @@ export function threadedClass<T> (
 			}
 		}
 		try {
+			let pathToModule: string = ''
+			let pathToWorker: string = ''
+			if (isBrowser()) {
+				pathToWorker = config.pathToWorker as string
+				pathToModule = orgModule
+			} else {
 
-			if (!parentCallPath) throw new Error('Unable to resolve parent file path')
-			if (!thisCallPath) throw new Error('Unable to resolve own file path')
+				if (!parentCallPath) throw new Error('Unable to resolve parent file path')
+				if (!thisCallPath) throw new Error('Unable to resolve own file path')
 
-			let absPathToModule = (
-				orgModule.match(/^\./) ?
-				path.resolve(parentCallPath, '../', orgModule) :
-				orgModule
-			)
-			let verifiedPathToModule = require.resolve(absPathToModule)
+				let absPathToModule = (
+					orgModule.match(/^\./) ?
+					path.resolve(parentCallPath, '../', orgModule) :
+					orgModule
+				)
+				pathToModule = require.resolve(absPathToModule)
 
-			let pathToWorker = thisCallPath
-					.replace(/threadedClass(\.[tj]s)$/,'worker.js')
-					.replace(/src([\\\/])worker/,'dist$1worker')
+				pathToWorker = thisCallPath
+					.replace(/threadedClass(\.[tj]s)$/,'threadedclass-worker.js')
+					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
+			}
 
 			const child: Child = ThreadedClassManagerInternal.getChild(
 				config,
@@ -164,7 +182,7 @@ export function threadedClass<T> (
 				config,
 				child,
 				proxy,
-				verifiedPathToModule,
+				pathToModule,
 				orgClassName,
 				constructorArgs,
 				onMessage

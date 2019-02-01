@@ -19,4 +19,6 @@ export interface ThreadedClassConfig {
 	autoRestart?: boolean
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
+	/** Set path to worker, used in browser */
+	pathToWorker?: string
 }
