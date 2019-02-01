@@ -167,8 +167,8 @@ export function threadedClass<T> (
 				pathToModule = require.resolve(absPathToModule)
 
 				pathToWorker = thisCallPath
-					.replace(/threadedClass(\.[tj]s)$/,'threadedClass-worker.js')
-					.replace(/src([\\\/])threadedClass-worker/,'dist$1threadedClass-worker')
+					.replace(/threadedClass(\.[tj]s)$/,'threadedclass-worker.js')
+					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
 			}
 
 			const child: Child = ThreadedClassManagerInternal.getChild(
