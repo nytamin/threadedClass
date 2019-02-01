@@ -29,7 +29,7 @@ async function getStory() {
 The instance returned by `makeThreaded()` has methods equivalent to the original, but all properties will be asynchronous (Promises).
 
 ## API
-### Typescript example
+### NodeJS: Typescript example
 ```typescript
 import { threadedClass} from  'threadedclass'
 import { Professor } from './professor'
@@ -47,7 +47,7 @@ threadedClass<Professor>(
 	console.log(story)
 })
 ```
-### Javascript example
+### NodeJS: Javascript example
 ```javascript
 var threadedClass = require('threadedclass').threadedClass
 var Professor = require('./professor')
@@ -59,6 +59,24 @@ threadedClass('./professor.js', Professor, ['maths', 'greek'])
 .then((story) => {
 	console.log(story)
 })
+```
+### Browser: Javascript example
+```html
+<script type="text/javascript" src="lib/threadedClass.js"></script>
+<script type="text/javascript" src="professor.js"></script>
+<script type="text/javascript">
+	var threadedClass = ThreadedClass.threadedClass
+
+	threadedClass('../professor.js', Professor, ['maths', 'greek'], { // path to module is relative to threadedClass.js
+		pathToWorker: 'lib/threadedclass-worker.js' // in browser, a path to the worker-scrip must also be provided
+	})
+	.then((instance) => {
+	return mrSmith.talkAboutAncientGreece() // All methods returns a Promise
+	})
+	.then((story) => {
+		console.log(story)
+	})
+</script>
 ```
 ### Options
 An optional options object can be passed to threadedClass() with the following properties:
@@ -98,4 +116,4 @@ When calling a method of your threaded instance (`threaded.myMethod()`), there a
 * There is a noticable delay when spawning a new thread, and since each thread is its own Node-process it uses up a few Megabytes of memory. If you intend to spawn many instances of a class, consider using the _threadUsage_ option (for example `threadUsage: 0.1` will put 10 instances in a thread before spawning a new).
 
 ## Todo
-* Add browser support, using `web-workers` instead of `child_process`
+* Support for NodeJS Worker-threads (added as experimental in version 11)
