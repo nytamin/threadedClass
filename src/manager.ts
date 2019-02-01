@@ -13,6 +13,8 @@ import {
 	InitProps
 } from './internalApi'
 import { EventEmitter } from 'events'
+import { isNodeJS, isBrowser } from './lib'
+import { forkWebWorker, WebWorkerProcess } from './webWorkers'
 
 export class ThreadedClassManagerClass {
 
@@ -341,36 +343,43 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			!this.dontHandleExit
 		) {
 
-			// Close the child processes upon exit:
-			process.stdin.resume() // so the program will not close instantly
+			if (isNodeJS()) { // in NodeJS
 
-			const exitHandler = (options: any, err: Error) => {
-				this.killAllChildren()
-				.catch(console.log)
-				if (err) console.log(err.stack)
-				if (options.exit) process.exit()
+				// Close the child processes upon exit:
+				process.stdin.resume() // so the program will not close instantly
+
+				const exitHandler = (options: any, err: Error) => {
+					this.killAllChildren()
+					.catch(console.log)
+					if (err) console.log(err.stack)
+					if (options.exit) process.exit()
+				}
+
+				// do something when app is closing
+				process.on('exit', exitHandler.bind(null, { cleanup: true }))
+
+				// catches ctrl+c event
+				process.on('SIGINT', exitHandler.bind(null, { exit: true }))
+
+				// catches "kill pid" (for example: nodemon restart)
+				process.on('SIGUSR1', exitHandler.bind(null, { exit: true }))
+				process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
+
+				// catches uncaught exceptions
+				process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
 			}
-
-			// do something when app is closing
-			process.on('exit', exitHandler.bind(null, { cleanup: true }))
-
-			// catches ctrl+c event
-			process.on('SIGINT', exitHandler.bind(null, { exit: true }))
-
-			// catches "kill pid" (for example: nodemon restart)
-			process.on('SIGUSR1', exitHandler.bind(null, { exit: true }))
-			process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
-
-			// catches uncaught exceptions
-			process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
 		}
 		this.isInitialized = true
 	}
-	private _createFork (config: ThreadedClassConfig, pathToWorker: string) {
+	private _createFork (config: ThreadedClassConfig, pathToWorker: string): ChildProcess | FakeProcess | WebWorkerProcess {
 		if (config.disableMultithreading) {
 			return new FakeProcess()
 		} else {
-			return fork(pathToWorker)
+			if (isBrowser()) {
+				return forkWebWorker(pathToWorker)
+			} else {
+				return fork(pathToWorker)
+			}
 		}
 	}
 	private _setupChildProcess (child: Child) {

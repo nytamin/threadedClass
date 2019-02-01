@@ -1,5 +1,6 @@
 import { ThreadedClassConfig } from './api'
 import { ChildInstance } from './manager'
+import { isBrowser } from './lib'
 
 export type InitProps = Array<InitProp>
 export enum InitPropType {
@@ -226,75 +227,126 @@ export abstract class Worker {
 
 			if (m.cmd === MessageType.INIT) {
 				const msg: MessageInit = m
-				const module = require(msg.modulePath)
 
-				const handle: InstanceHandle = {
-					id: msg.instanceId,
-					cmdId: 0,
-					queue: {},
-					instance: ((...args: Array<any>) => {
-						return new module[msg.className](...args)
-					}).apply(null, msg.args)
+				let pModuleClass: Promise<any>
+				if (isBrowser()) {
+					pModuleClass = new Promise((resolve, reject) => {
+						// @ts-ignore
+						let oReq = new XMLHttpRequest()
+						oReq.open('GET', msg.modulePath, true)
+						// oReq.responseType = 'blob'
+						oReq.onload = () => {
+							if (oReq.response) {
+								resolve(oReq.response)
+							} else {
+								reject(Error('Bad reply from ' + msg.modulePath))
+							}
+						}
+						oReq.send()
+					})
+					.then((bodyString: string) => {
+
+						// This is a terrible hack, I'm ashamed of myself.
+						// Better solutions are very much appreciated.
+
+						// tslint:disable-next-line:no-var-keyword
+						var f: any = null
+						let fcn: string = `
+							f = function() {
+								${bodyString}
+								;
+								return ${msg.className}
+							}
+						`
+						// tslint:disable-next-line:no-eval
+						let moduleClass = eval(fcn)()
+						f = f
+						if (!moduleClass) {
+							throw Error(`${msg.className} not found in ${msg.modulePath}`)
+						}
+						return moduleClass
+					})
+				} else {
+					pModuleClass = Promise.resolve(require(msg.modulePath))
+					.then((module) => {
+						return module[msg.className]
+					})
 				}
-				this.instanceHandles[handle.id] = handle
 
-				const instance = handle.instance
+				pModuleClass.then((moduleClass) => {
 
-				const allProps = this.getAllProperties(instance)
-				const props: InitProps = []
-				allProps.forEach((prop: string) => {
-					if ([
-						'constructor',
-						'__defineGetter__',
-						'__defineSetter__',
-						'hasOwnProperty',
-						'__lookupGetter__',
-						'__lookupSetter__',
-						'isPrototypeOf',
-						'propertyIsEnumerable',
-						'toString',
-						'valueOf',
-						'__proto__',
-						'toLocaleString'
-					].indexOf(prop) !== -1) return
-
-					let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
-					let inProto: number = 0
-					let proto = instance.__proto__
-					while (!descriptor) {
-						if (!proto) break
-						descriptor = Object.getOwnPropertyDescriptor(proto, prop)
-						inProto++
-						proto = proto.__proto__
+					const handle: InstanceHandle = {
+						id: msg.instanceId,
+						cmdId: 0,
+						queue: {},
+						instance: ((...args: Array<any>) => {
+							return new moduleClass(...args)
+						}).apply(null, msg.args)
 					}
+					this.instanceHandles[handle.id] = handle
 
-					if (!descriptor) descriptor = {}
+					const instance = handle.instance
 
-					let descr: InitPropDescriptor = {
-						// configurable:	!!descriptor.configurable,
-						inProto: 		inProto,
-						enumerable:		!!descriptor.enumerable,
-						writable:		!!descriptor.writable,
-						get:			!!descriptor.get,
-						set:			!!descriptor.set,
-						readable:		!!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
-					}
+					const allProps = this.getAllProperties(instance)
+					const props: InitProps = []
+					allProps.forEach((prop: string) => {
+						if ([
+							'constructor',
+							'__defineGetter__',
+							'__defineSetter__',
+							'hasOwnProperty',
+							'__lookupGetter__',
+							'__lookupSetter__',
+							'isPrototypeOf',
+							'propertyIsEnumerable',
+							'toString',
+							'valueOf',
+							'__proto__',
+							'toLocaleString'
+						].indexOf(prop) !== -1) return
 
-					if (typeof instance[prop] === 'function') {
-						props.push({
-							key: prop,
-							type: InitPropType.FUNCTION,
-							descriptor: descr
-						})
-					} else {
-						props.push({
-							key: prop,
-							type: InitPropType.VALUE,
-							descriptor: descr
-						})
-					}
+						let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
+						let inProto: number = 0
+						let proto = instance.__proto__
+						while (!descriptor) {
+							if (!proto) break
+							descriptor = Object.getOwnPropertyDescriptor(proto, prop)
+							inProto++
+							proto = proto.__proto__
+						}
+
+						if (!descriptor) descriptor = {}
+
+						let descr: InitPropDescriptor = {
+							// configurable:	!!descriptor.configurable,
+							inProto: 		inProto,
+							enumerable:		!!descriptor.enumerable,
+							writable:		!!descriptor.writable,
+							get:			!!descriptor.get,
+							set:			!!descriptor.set,
+							readable:		!!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
+						}
+
+						if (typeof instance[prop] === 'function') {
+							props.push({
+								key: prop,
+								type: InitPropType.FUNCTION,
+								descriptor: descr
+							})
+						} else {
+							props.push({
+								key: prop,
+								type: InitPropType.VALUE,
+								descriptor: descr
+							})
+						}
+					})
+					this.reply(handle, msg, props)
 				})
-				this.reply(handle, msg, props)
+				.catch((e: any) => {
+					console.log('INIT error', e)
+				})
+
 			} else if (m.cmd === MessageType.REPLY) {
 				const msg: MessageReply = m
 				let cb = handle.queue[msg.replyTo + '']
