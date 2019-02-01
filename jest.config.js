@@ -16,14 +16,17 @@ module.exports = {
 	],
 	testPathIgnorePatterns: [
 		'integrationTests'
-	],	
+	],
+	coveragePathIgnorePatterns: [
+        "src/webWorkers.ts"
+    ],
 	testEnvironment: 'node',
 	coverageThreshold: {
 		global: {
-			statements: 90,
-			branches: 82,
+			statements: 88,
+			branches: 78,
 			functions: 93,
-			lines: 92,
+			lines: 90,
 		}
 	},
 	coverageDirectory: "./coverage/",
