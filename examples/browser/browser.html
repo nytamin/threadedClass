@@ -1,7 +1,7 @@
 <html>
 <head>
 
-	<script type="text/javascript" src="../../dist/js/threadedClass.js"></script>
+	<script type="text/javascript" src="lib/threadedClass.js"></script>
 	<!-- <script type="text/javascript" src="threadedClass.js"></script> -->
 	<script type="text/javascript" src="myClass.js"></script>
 	<script type="text/javascript">
@@ -44,7 +44,7 @@
 				threaded ?
 				// Create a threaded variant of the class:
 				threadedClass('/examples/browser/myClass.js', MyClass, [], {
-					pathToWorker: '../../dist/js/threadedclass-worker.js'
+					pathToWorker: 'lib/threadedclass-worker.js'
 				}) :
 				new MyClass()
 			)

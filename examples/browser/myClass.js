@@ -1,4 +1,3 @@
-console.log('__MyClass__')
 class MyClass {
     doSomethingSlow () {
         this._fib(37)

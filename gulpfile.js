@@ -9,31 +9,7 @@ var rename = require('gulp-rename')
 var sourcemaps = require('gulp-sourcemaps');
 var log = require('gulplog');
 
-
-/*
-gulp.task('tsify', function () {
-	// set up the browserify instance on a task basis
-	var tsify = require('tsify');
-
-	return browserify()
-		.add('./src/index.ts')
-		.plugin(tsify, { noImplicitAny: true })
-		.on('error', function (error) { console.error(error.toString()); })
-		.bundle()
-		// .pipe(buffer())
-		// .pipe(sourcemaps.write('./'))
-		.pipe(source('app.js'))
-		.pipe(rename("threadedclass.js"))
-		// .pipe(buffer())
-		// .pipe(sourcemaps.init({loadMaps: true}))
-		// .on('error', log.error)
-		// .pipe(sourcemaps.write('./'))
-		.pipe(gulp.dest('./dist/js/'))
-
-		// .pipe(process.stdout);
-})
-*/
-gulp.task('browserify', function () {
+gulp.task('browserify-main', function () {
 
 	var b = browserify({
 		entries: './dist/index.js',
@@ -45,8 +21,6 @@ gulp.task('browserify', function () {
 		.pipe(rename("threadedClass.js"))
 		.pipe(buffer())
 		.pipe(sourcemaps.init({loadMaps: true}))
-		// Add transformation tasks to the pipeline here.
-		// .pipe(uglify())
 		.on('error', log.error)
 		.pipe(sourcemaps.write('./'))
 		.pipe(gulp.dest('./dist/js/'))
@@ -55,7 +29,6 @@ gulp.task('browserify-worker', function () {
 
 	var b = browserify({
 		entries: './dist/threadedClass-worker.js',
-		// standalone: 'ThreadedClassWorker',
 		debug: true
 	});
 	return b.bundle()
@@ -63,28 +36,58 @@ gulp.task('browserify-worker', function () {
 		.pipe(rename("threadedClass-worker.js"))
 		.pipe(buffer())
 		.pipe(sourcemaps.init({loadMaps: true}))
-		// Add transformation tasks to the pipeline here.
-		// .pipe(uglify())
 		.on('error', log.error)
 		.pipe(sourcemaps.write('./'))
 		.pipe(gulp.dest('./dist/js/'))
 });
+gulp.task('minify-main', function () {
 
-gulp.task('minify', function () {
-	// set up the browserify instance on a task basis
 	var b = browserify({
 		entries: './dist/index.js',
 		standalone: 'ThreadedClass',
-		debug: false
+		debug: true
 	});
 	return b.bundle()
 		.pipe(source('app.js'))
-		.pipe(rename("threadedclass.min.js"))
+		.pipe(rename("threadedClass.min.js"))
 		.pipe(buffer())
 		.pipe(sourcemaps.init({loadMaps: true}))
-		// Add transformation tasks to the pipeline here.
 		.pipe(uglify())
 		.on('error', log.error)
 		.pipe(sourcemaps.write('./'))
 		.pipe(gulp.dest('./dist/js/'))
 });
+gulp.task('minify-worker', function () {
+
+	var b = browserify({
+		entries: './dist/threadedClass-worker.js',
+		debug: true
+	});
+	return b.bundle()
+		.pipe(source('app.js'))
+		.pipe(rename("threadedClass-worker.min.js"))
+		.pipe(buffer())
+		.pipe(sourcemaps.init({loadMaps: true}))
+		.pipe(uglify())
+		.on('error', log.error)
+		.pipe(sourcemaps.write('./'))
+		.pipe(gulp.dest('./dist/js/'))
+});
+
+gulp.task('browserify', gulp.parallel([
+	'browserify-main',
+	'browserify-worker',
+	'minify-main',
+	'minify-worker'
+]))
+
+gulp.task('copy-browser-examples', function () {
+	return gulp.src('./examples/browser/**/*.*').pipe(gulp.dest('./docs/examples'))
+})
+gulp.task('copy-browser-js', function () {
+	return gulp.src('./dist/js/**/*.*').pipe(gulp.dest('./docs/examples/lib/'))
+})
+gulp.task('copy-to-docs', gulp.parallel([
+	'copy-browser-examples',
+	'copy-browser-js'
+]))
