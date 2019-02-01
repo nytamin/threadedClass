@@ -29,6 +29,7 @@ async function getStory() {
 The instance returned by `makeThreaded()` has methods equivalent to the original, but all properties will be asynchronous (Promises).
 
 ## API
+[API reference](https://nytamin.github.io/threadedClass)
 ### NodeJS: Typescript example
 ```typescript
 import { threadedClass} from  'threadedclass'
@@ -61,6 +62,7 @@ threadedClass('./professor.js', Professor, ['maths', 'greek'])
 })
 ```
 ### Browser: Javascript example
+[Example](https://nytamin.github.io/threadedClass/examples/browser.html)
 ```html
 <script type="text/javascript" src="lib/threadedClass.js"></script>
 <script type="text/javascript" src="professor.js"></script>
