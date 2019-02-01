@@ -1,0 +1,76 @@
+<html>
+<head>
+
+	<script type="text/javascript" src="lib/threadedClass.js"></script>
+	<!-- <script type="text/javascript" src="threadedClass.js"></script> -->
+	<script type="text/javascript" src="myClass.js"></script>
+	<script type="text/javascript">
+		var threadedClass = ThreadedClass.threadedClass
+
+		var startTime = 0
+		function log (str) {
+			if (str) {
+				var obj = document.getElementById("console")
+				obj.innerText += (Date.now() - startTime) + 'ms ' + str.toString() + '\n'
+			}
+		}
+		function wait(value) {
+			return new Promise((resolve) => setTimeout(() => {resolve(value)}, 1))
+		}
+		function runThreads (threaded) {
+			startTime = Date.now()
+			log('====================================================')
+			if (threaded) {
+				log('Starting in threaded mode...')
+			} else {
+				log('Starting in non-threaded-mode...')
+			}
+
+			var parallell = 10
+
+			var promises = []
+
+			for (var i = 0; i < parallell; i++) {
+				promises.push(doTask(i, threaded))
+			}
+			Promise.all(promises)
+			.then(() => {
+				log('All tasks are done!')
+			})
+		}
+		function doTask (i, threaded) {
+			log(`Creating class ${i}...`)
+			return Promise.resolve(
+				threaded ?
+				// Create a threaded variant of the class:
+				threadedClass('../myClass.js', MyClass, [], {
+					pathToWorker: 'lib/threadedclass-worker.js'
+				}) :
+				new MyClass()
+			)
+			.then(wait)
+			.then((myClass) => {
+				log(`Starting task ${i}...`)
+				return myClass.doSomethingSlow()
+			})
+			.then(wait)
+			.then(() => {
+				log(`Task ${i} done`)
+			})
+
+		
+		}
+	</script>
+</head>
+<body>
+	<div>
+		<button onclick="runThreads(false)">Click to run in single thread</button>
+		<button onclick="runThreads(true)">Click to run in multi thread</button>
+	</div>
+	<div id="console" style="border: 1px solid grey; font-family: 'Courier New', Courier, monospace; white-space: pre;"></div>
+
+	<script type="text/javascript">
+		// runThreads(true)
+	</script>
+</body>
+</html>
