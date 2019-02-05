@@ -29,6 +29,7 @@ export interface InitProp {
 
 export enum MessageType {
 	INIT = 'init',
+	PING = 'ping',
 	FUNCTION = 'fcn',
 	REPLY = 'reply',
 	LOG = 'log',
@@ -48,6 +49,11 @@ export interface MessageInitConstr {
 	config: ThreadedClassConfig
 }
 export type MessageInit = MessageInitConstr & MessageSent
+
+export interface MessagePingConstr {
+	cmd: MessageType.PING
+}
+export type MessagePing = MessagePingConstr & MessageSent
 
 export interface MessageFcnConstr {
 	cmd: MessageType.FUNCTION
@@ -83,8 +89,8 @@ export interface MessageCallbackConstr {
 }
 export type MessageCallback = MessageCallbackConstr & MessageSent
 
-export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr
-export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback
+export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr | MessagePingConstr
+export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback		| MessagePing
 
 export type MessageFromChildReplyConstr = MessageReplyConstr
 
@@ -347,6 +353,8 @@ export abstract class Worker {
 					console.log('INIT error', e)
 				})
 
+			} else if (m.cmd === MessageType.PING) {
+				this.reply(handle, m, null)
 			} else if (m.cmd === MessageType.REPLY) {
 				const msg: MessageReply = m
 				let cb = handle.queue[msg.replyTo + '']

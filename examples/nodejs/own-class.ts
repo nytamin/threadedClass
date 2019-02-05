@@ -1,7 +1,7 @@
 import { threadedClass, ThreadedClassManager } from 'threadedclass'
 
 import { House } from '../../test-lib/house'
-const HOUSE_PATH = './test-lib/house.js' // This is the path to the js-file (not a ts-file!) that contains the class
+const HOUSE_PATH = '../../test-lib/house.js' // This is the path to the js-file (not a ts-file!) that contains the class
 
 async function runExample () {
 

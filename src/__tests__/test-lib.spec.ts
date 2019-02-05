@@ -55,6 +55,7 @@ describe('test-lib', () => {
 					return Promise.reject('nope')
 				})
 			).rejects.toMatch(/nope/)
+
 		}
 
 	})
@@ -96,6 +97,8 @@ describe('test-lib', () => {
 
 			expect(mockLog).toHaveBeenCalledTimes(1)
 			expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
+
+			expect(await testClass.waitReply(10, 'test11')).toEqual('test11')
 		}
 	})
 	function wait (time: number) {

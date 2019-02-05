@@ -23,4 +23,16 @@ export class TestClass {
 	public logSomething (...args: any[]) {
 		console.log(...args)
 	}
+	public freeze () {
+		while (true) {
+			// do nothing, but freeze
+		}
+	}
+	public waitReply (waitTime: number, reply: any) {
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				resolve(reply)
+			}, waitTime)
+		})
+	}
 }

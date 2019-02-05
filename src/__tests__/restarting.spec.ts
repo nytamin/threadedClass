@@ -94,7 +94,6 @@ describe('restarts', () => {
 	test('force restart', async () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		// use threadId to control which process the instances are put in
 		let thread0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []])
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
@@ -115,6 +114,95 @@ describe('restarts', () => {
 		expect(await thread0.getWindows('')).toEqual(['south0'])
 		await thread0.setWindows(['north'])
 		expect(await thread0.getWindows('')).toEqual(['north'])
+
+		await ThreadedClassManager.destroyAll()
+	})
+
+	test('child process crash', async () => {
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		let thread0 = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [])
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
+
+		expect(await thread0.waitReply(200, 'test')).toEqual('test')
+
+		const p0 = thread0.waitReply(200, 'test2')
+		.catch(err => { throw err.toString() })
+		const p1 = thread0.exitProcess(0) // will cause the child process to crash
+		.catch(err => { throw err.toString() })
+
+		await expect(p0).rejects.toMatch(/closed/i)
+		await expect(p1).rejects.toMatch(/closed/i)
+
+		await expect(
+			thread0.waitReply(200, 'test3')
+			.catch(err => { throw err.toString() })
+		).rejects.toMatch(/closed/)
+
+		await ThreadedClassManager.destroyAll()
+	})
+	test('automatic restart', async () => {
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		let thread0 = await threadedClass<House>(HOUSE_PATH, House, [['south0'], []],{
+			autoRestart: true,
+			threadUsage: 0.5
+		})
+		let thread1 = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [],{
+			autoRestart: true,
+			threadUsage: 0.5
+		})
+		let onClosed = jest.fn()
+		let onRestarted = jest.fn()
+		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(thread0, 'restarted', onRestarted)
+
+		let restarted0 = new Promise((resolved) => {
+			ThreadedClassManager.onEvent(thread0, 'restarted', resolved)
+		})
+		let restarted1 = new Promise((resolved) => {
+			ThreadedClassManager.onEvent(thread1, 'restarted', resolved)
+		})
+
+		await thread0.setWindows(['north'])
+		expect(await thread0.getWindows('')).toEqual(['north'])
+		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
+
+		const p0 = thread1.waitReply(200, 'test2')
+		.catch(err => { throw err.toString() })
+		const p1 = thread1.exitProcess(0) // will cause the child to crash
+		.catch(err => { throw err.toString() })
+
+		await expect(p0).rejects.toMatch(/closed/i)
+		await expect(p1).rejects.toMatch(/closed/i)
+
+		// The process should now automatically restart
+		await restarted0
+		await restarted1
+
+		restarted0 = new Promise((resolved) => {
+			ThreadedClassManager.onEvent(thread0, 'restarted', resolved)
+		})
+		restarted1 = new Promise((resolved) => {
+			ThreadedClassManager.onEvent(thread1, 'restarted', resolved)
+		})
+
+		expect(await thread0.getWindows('')).toEqual(['south0']) // because the instance has been restarted, it is reset
+
+		const p2 = thread1.waitReply(200, 'test2')
+		.catch(err => { throw err.toString() })
+		const p3 = thread1.freeze() // will cause the child to freeze
+		.catch(err => { throw err.toString() })
+
+		await expect(p2).rejects.toMatch(/timeout/i)
+		await expect(p3).rejects.toMatch(/timeout/i)
+
+		// The process should now automatically restart
+		await restarted0
+		await restarted1
+
+		expect(await thread0.getWindows('')).toEqual(['south0']) // because the instance has been restarted, it is reset
 
 		await ThreadedClassManager.destroyAll()
 	})

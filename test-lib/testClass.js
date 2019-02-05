@@ -26,5 +26,17 @@ class TestClass {
     logSomething(...args) {
         console.log(...args);
     }
+    freeze () {
+		while (true) {
+			// do nothing, but freeze
+		}
+    }
+    waitReply (waitTime, reply) {
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				resolve(reply)
+			}, waitTime)
+		})
+	}
 }
 exports.TestClass = TestClass;
