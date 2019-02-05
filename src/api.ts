@@ -15,10 +15,13 @@ export interface ThreadedClassConfig {
 	threadUsage?: number
 	/** Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread. */
 	threadId?: string
-	/** TO BE IMPLEMENTED: If the process crashes it's restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
+	/** If the process crashes or freezes it's automatically restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
 	/** Set path to worker, used in browser */
 	pathToWorker?: string
+	/** (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms) */
+	freezeLimit?: number
+
 }

@@ -10,7 +10,9 @@ import {
 	MessageKillConstr,
 	MessageInitConstr,
 	InstanceCallbackInitFunction,
-	InitProps
+	InitProps,
+	MessagePingConstr,
+	DEFAULT_CHILD_FREEZE_TIME
 } from './internalApi'
 import { EventEmitter } from 'events'
 import { isNodeJS, isBrowser } from './lib'
@@ -62,6 +64,10 @@ export interface Child {
 	process: ChildProcess
 	usage: number
 	instances: {[id: string]: ChildInstance}
+	methods: {[id: string]: {
+		resolve: (result: any) => void,
+		reject: (error: any) => void
+	}}
 	alive: boolean
 	isClosing: boolean
 	config: ThreadedClassConfig
@@ -79,6 +85,8 @@ export interface ChildInstance {
 	readonly id: string
 	readonly proxy: ThreadedClass<any>
 	readonly usage?: number
+	/** When to consider the process is frozen */
+	readonly freezeLimit?: number
 	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
 	readonly pathToModule: string
 	readonly className: string
@@ -94,7 +102,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private isInitialized: boolean = false
 	private _threadId: number = 0
 	private _instanceId: number = 0
+	private _methodId: number = 0
 	private _children: {[id: string]: Child} = {}
+	private _pinging: boolean = true // for testing only
 
 	public getChild (
 		config: ThreadedClassConfig,
@@ -118,6 +128,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				process: this._createFork(config, pathToWorker),
 				usage: config.threadUsage || 1,
 				instances: {},
+				methods: {},
 				alive: true,
 				isClosing: false,
 				config,
@@ -155,6 +166,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			child: child,
 			proxy: proxy,
 			usage: config.threadUsage,
+			freezeLimit: config.freezeLimit,
 			onMessageCallback: onMessage,
 			pathToModule: pathToModule,
 			className: className,
@@ -254,7 +266,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public async restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		let foundInstance: ChildInstance | undefined
-		let foundChild0: Child | undefined
+		let foundChild: Child | undefined
 		Object.keys(this._children).find((childId: string) => {
 			const child = this._children[childId]
 			const found = Object.keys(child.instances).find((instanceId: string) => {
@@ -266,39 +278,40 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				return false
 			})
 			if (found) {
-				foundChild0 = child
+				foundChild = child
 				return true
 			}
 			return false
 		})
-		if (!foundChild0) throw Error('Child not found')
+		if (!foundChild) throw Error('Child not found')
 		if (!foundInstance) throw Error('Instance not found')
 
-		const foundChild: Child = foundChild0
-
-		if (foundChild.alive && forceRestart) {
-			await this.killChild(foundChild, true)
+		await this.restartChild(foundChild, [foundInstance], forceRestart)
+	}
+	public async restartChild (child: Child, onlyInstances?: ChildInstance[], forceRestart?: boolean): Promise<void> {
+		if (child.alive && forceRestart) {
+			await this.killChild(child, true)
 		}
 
-		if (!foundChild.alive) {
+		if (!child.alive) {
 			// clear old process:
-			foundChild.process.removeAllListeners()
-			delete foundChild.process
+			child.process.removeAllListeners()
+			delete child.process
 
-			Object.keys(foundChild.instances).forEach((instanceId) => {
-				const instance = foundChild.instances[instanceId]
+			Object.keys(child.instances).forEach((instanceId) => {
+				const instance = child.instances[instanceId]
 				instance.initialized = false
 			})
 
 			// start new process
-			foundChild.alive = true
-			foundChild.isClosing = false
-			foundChild.process = this._createFork(foundChild.config, foundChild.pathToWorker)
-			this._setupChildProcess(foundChild)
+			child.alive = true
+			child.isClosing = false
+			child.process = this._createFork(child.config, child.pathToWorker)
+			this._setupChildProcess(child)
 		}
 		let p = new Promise((resolve, reject) => {
 			const onInit = (child: Child) => {
-				if (child === foundChild) {
+				if (child === child) {
 					resolve()
 					this.removeListener('initialized', onInit)
 				}
@@ -309,7 +322,33 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				this.removeListener('initialized', onInit)
 			}, 1000)
 		})
-		this.sendInit(foundChild, foundInstance, foundInstance.config)
+		const promises: Array<Promise<void>> = []
+
+		let instances: ChildInstance[] = (
+			onlyInstances ||
+			Object.keys(child.instances).map((instanceId) => {
+				return child.instances[instanceId]
+			})
+		)
+		instances.forEach((instance) => {
+
+			promises.push(
+				new Promise((resolve, reject) => {
+					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
+						// no need to do anything, the proxy is already initialized from earlier
+						if (err) {
+							reject(err)
+						} else {
+							resolve()
+						}
+						return true
+					})
+				})
+			)
+		})
+
+		await Promise.all(promises)
+
 		await p
 	}
 	public sendInit (
@@ -335,6 +374,60 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				this.emit('initialized', child)
 			}
 		})
+	}
+	public startMonitoringChild (instance: ChildInstance) {
+		const pingTime: number = instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME
+		const monitorChild = () => {
+
+			if (instance.child && instance.child.alive && this._pinging) {
+
+				this._pingChild(instance)
+				.then(() => {
+					// ping successful
+
+					// ping again later:
+					setTimeout(() => {
+						monitorChild()
+					}, pingTime)
+				})
+				.catch(() => {
+					// Ping failed
+					if (
+						instance.child &&
+						instance.child.alive &&
+						!instance.child.isClosing
+					) {
+						// console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
+						this._childHasCrashed(instance.child, 'Child process ping timeout')
+					}
+				})
+
+			}
+		}
+		setTimeout(() => {
+			monitorChild()
+		}, pingTime)
+	}
+	public doMethod<T> (child: Child, cb: (resolve: (result: T | PromiseLike<T>) => void, reject: (error: any) => void) => void): Promise<T> {
+		// Return a promise that will execute the callback cb
+		// but also put the promise in child.methods, so that the promise can be aborted
+		// in the case of a child crash
+
+		const methodId: string = 'm' + this._methodId++
+		const p = new Promise<T>((resolve, reject) => {
+			child.methods[methodId] = { resolve, reject }
+			cb(resolve, reject)
+		})
+		.then((result) => {
+			delete child.methods[methodId]
+			return result
+		})
+		.catch((error) => {
+			delete child.methods[methodId]
+			throw error
+		})
+
+		return p
 	}
 	/** Called before using internally */
 	private _init () {
@@ -371,6 +464,55 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		this.isInitialized = true
 	}
+	private _pingChild (instance: ChildInstance): Promise<void> {
+		return new Promise((resolve, reject) => {
+			let msg: MessagePingConstr = {
+				cmd: MessageType.PING
+			}
+			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (_instance: ChildInstance, err: Error | null) => {
+				if (!err) {
+					resolve()
+				} else {
+					console.log('error', err)
+					reject()
+				}
+			})
+			setTimeout(() => {
+				reject() // timeout
+			}, instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME)
+		})
+	}
+	private _childHasCrashed (child: Child, reason: string) {
+		// Called whenever a fatal error with a child has been discovered
+
+		this.rejectChildMethods(child, reason)
+
+		if (!child.isClosing) {
+			let shouldRestart = false
+			const restartInstances: ChildInstance[] = []
+			Object.keys(child.instances).forEach((instanceId) => {
+				const instance = child.instances[instanceId]
+
+				if (instance.config.autoRestart) {
+					shouldRestart = true
+					restartInstances.push(instance)
+				}
+			})
+			if (shouldRestart) {
+				this.restartChild(child, restartInstances, true)
+				.then(() => {
+					this.emit('restarted', child)
+				})
+				.catch((err) => console.log('Error when running restartChild()', err))
+			} else {
+				// No instance wants to be restarted, make sure the child is killed then:
+				if (child.alive) {
+					this.killChild(child, true)
+					.catch((err) => console.log('Error when running killChild()', err))
+				}
+			}
+		}
+	}
 	private _createFork (config: ThreadedClassConfig, pathToWorker: string): ChildProcess | FakeProcess | WebWorkerProcess {
 		if (config.disableMultithreading) {
 			return new FakeProcess()
@@ -388,9 +530,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				child.alive = false
 				this.emit('thread_closed', child)
 
-				// TODO: restart?
+				this._childHasCrashed(child, 'Child process closed')
 			}
-			// delete this._children[child.id]
 		})
 		child.process.on('error', (err) => {
 			console.log('Error from ' + child.id, err)
@@ -476,6 +617,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				}
 			}
 		})
+	}
+	private rejectChildMethods (child: Child, reason: string) {
+		Object.keys(child.methods).forEach((methodId) => {
+			const method = child.methods[methodId]
+
+			method.reject(Error('Method aborted due to: ' + reason))
+		})
+		child.methods = {}
 	}
 }
 // Singleton:

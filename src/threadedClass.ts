@@ -52,7 +52,7 @@ export function threadedClass<T> (
 	let parentCallPath = callsites()[1].getFileName()
 	let thisCallPath = callsites()[0].getFileName()
 
-	return new Promise((resolve, reject) => {
+	return new Promise<ThreadedClass<T>>((resolve, reject) => {
 		function sendFcn (instance: ChildInstance, fcn: string, args: any[], cb?: InstanceCallbackFunction) {
 			let msg: MessageFcnConstr = {
 				cmd: MessageType.FUNCTION,
@@ -204,7 +204,11 @@ export function threadedClass<T> (
 
 							const fcn = (...args: any[]) => {
 								// An instance method is called by parent
-								return new Promise((resolve, reject) => {
+
+								if (!instance.child) return Promise.reject(new Error('Instance has been detached from child process'))
+
+								return ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
+									if (!instance.child) throw new Error('Instance has been detached from child process')
 									// Go through arguments and serialize them:
 									let encodedArgs = encodeArguments(instance.child.callbacks, args)
 									sendFcn(
@@ -280,6 +284,7 @@ export function threadedClass<T> (
 							Object.defineProperty(proxy, p.key, m)
 						}
 					})
+					ThreadedClassManagerInternal.startMonitoringChild(instanceInChild)
 					resolve(proxy)
 					return true
 				}

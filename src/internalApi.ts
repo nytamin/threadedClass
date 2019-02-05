@@ -2,6 +2,8 @@ import { ThreadedClassConfig } from './api'
 import { ChildInstance } from './manager'
 import { isBrowser } from './lib'
 
+export const DEFAULT_CHILD_FREEZE_TIME = 1000 // how long to wait before considering a child to be unresponsive
+
 export type InitProps = Array<InitProp>
 export enum InitPropType {
 	FUNCTION = 'function',
@@ -29,6 +31,7 @@ export interface InitProp {
 
 export enum MessageType {
 	INIT = 'init',
+	PING = 'ping',
 	FUNCTION = 'fcn',
 	REPLY = 'reply',
 	LOG = 'log',
@@ -48,6 +51,11 @@ export interface MessageInitConstr {
 	config: ThreadedClassConfig
 }
 export type MessageInit = MessageInitConstr & MessageSent
+
+export interface MessagePingConstr {
+	cmd: MessageType.PING
+}
+export type MessagePing = MessagePingConstr & MessageSent
 
 export interface MessageFcnConstr {
 	cmd: MessageType.FUNCTION
@@ -83,8 +91,8 @@ export interface MessageCallbackConstr {
 }
 export type MessageCallback = MessageCallbackConstr & MessageSent
 
-export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr
-export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback
+export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr | MessagePingConstr
+export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback		| MessagePing
 
 export type MessageFromChildReplyConstr = MessageReplyConstr
 
@@ -132,6 +140,9 @@ export abstract class Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
 	private callbacks: {[key: string]: Function} = {}
+
+	private _pingCount: number = 0
+	private _config?: ThreadedClassConfig
 
 	protected abstract killInstance (handle: InstanceHandle): void
 
@@ -227,6 +238,8 @@ export abstract class Worker {
 
 			if (m.cmd === MessageType.INIT) {
 				const msg: MessageInit = m
+
+				this._config = m.config
 
 				let pModuleClass: Promise<any>
 				if (isBrowser()) {
@@ -347,6 +360,11 @@ export abstract class Worker {
 					console.log('INIT error', e)
 				})
 
+				this.startOrphanMonitoring()
+
+			} else if (m.cmd === MessageType.PING) {
+				this._pingCount++
+				this.reply(handle, m, null)
 			} else if (m.cmd === MessageType.REPLY) {
 				const msg: MessageReply = m
 				let cb = handle.queue[msg.replyTo + '']
@@ -412,6 +430,38 @@ export abstract class Worker {
 
 			if (m.cmdId) this.replyError(handle, m, 'Error: ' + e.toString() + e.stack)
 			else this.log('Error: ' + e.toString(), e.stack)
+		}
+	}
+	private startOrphanMonitoring () {
+		// expect our parent process to PING us now every and then
+		// otherwise we consider ourselves to be orphaned
+		// then we should exit the process
+
+		if (this._config) {
+			const pingTime: number = Math.max(
+				500,
+				this._config.freezeLimit || DEFAULT_CHILD_FREEZE_TIME
+			)
+			let missed: number = 0
+			let previousPingCount: number = 0
+
+			setInterval(() => {
+				if (this._pingCount === previousPingCount) {
+					// no ping has been received since last time
+					missed++
+				} else {
+					missed = 0
+				}
+				previousPingCount = this._pingCount
+
+				if (missed > 2) {
+					// We've missed too many pings
+					console.log(`Child missed ${missed} pings, exiting process!`)
+					setTimeout(() => {
+						process.exit(27)
+					}, 100)
+				}
+			}, pingTime)
 		}
 	}
 }
