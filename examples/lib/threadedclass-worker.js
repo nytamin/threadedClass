@@ -1,8 +1,9 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-(function (Buffer){
+(function (process,Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("./lib");
+exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
 var InitPropType;
 (function (InitPropType) {
     InitPropType["FUNCTION"] = "function";
@@ -11,6 +12,7 @@ var InitPropType;
 var MessageType;
 (function (MessageType) {
     MessageType["INIT"] = "init";
+    MessageType["PING"] = "ping";
     MessageType["FUNCTION"] = "fcn";
     MessageType["REPLY"] = "reply";
     MessageType["LOG"] = "log";
@@ -33,6 +35,7 @@ class Worker {
     constructor() {
         this.instanceHandles = {};
         this.callbacks = {};
+        this._pingCount = 0;
         this.log = (...data) => {
             this.sendLog(data);
         };
@@ -116,6 +119,7 @@ class Worker {
             const instance = handle.instance;
             if (m.cmd === MessageType.INIT) {
                 const msg = m;
+                this._config = m.config;
                 let pModuleClass;
                 if (lib_1.isBrowser()) {
                     pModuleClass = new Promise((resolve, reject) => {
@@ -230,6 +234,11 @@ class Worker {
                     .catch((e) => {
                     console.log('INIT error', e);
                 });
+                this.startOrphanMonitoring();
+            }
+            else if (m.cmd === MessageType.PING) {
+                this._pingCount++;
+                this.reply(handle, m, null);
             }
             else if (m.cmd === MessageType.REPLY) {
                 const msg = m;
@@ -302,6 +311,33 @@ class Worker {
                 this.log('Error: ' + e.toString(), e.stack);
         }
     }
+    startOrphanMonitoring() {
+        // expect our parent process to PING us now every and then
+        // otherwise we consider ourselves to be orphaned
+        // then we should exit the process
+        if (this._config) {
+            const pingTime = Math.max(500, this._config.freezeLimit || exports.DEFAULT_CHILD_FREEZE_TIME);
+            let missed = 0;
+            let previousPingCount = 0;
+            setInterval(() => {
+                if (this._pingCount === previousPingCount) {
+                    // no ping has been received since last time
+                    missed++;
+                }
+                else {
+                    missed = 0;
+                }
+                previousPingCount = this._pingCount;
+                if (missed > 2) {
+                    // We've missed too many pings
+                    console.log(`Child missed ${missed} pings, exiting process!`);
+                    setTimeout(() => {
+                        process.exit(27);
+                    }, 100);
+                }
+            }, pingTime);
+        }
+    }
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
@@ -356,9 +392,9 @@ function decodeArguments(args, getCallback) {
 }
 exports.decodeArguments = decodeArguments;
 
-}).call(this,require("buffer").Buffer)
+}).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":2,"buffer":5}],2:[function(require,module,exports){
+},{"./lib":2,"_process":7,"buffer":5}],2:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });

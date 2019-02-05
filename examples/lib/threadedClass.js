@@ -73,10 +73,11 @@ exports.ThreadedClassManager = manager_1.ThreadedClassManager;
 tslib_1.__exportStar(require("./threadedClass"), exports);
 
 },{"./manager":5,"./threadedClass":6,"tslib":16}],3:[function(require,module,exports){
-(function (Buffer){
+(function (process,Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("./lib");
+exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
 var InitPropType;
 (function (InitPropType) {
     InitPropType["FUNCTION"] = "function";
@@ -85,6 +86,7 @@ var InitPropType;
 var MessageType;
 (function (MessageType) {
     MessageType["INIT"] = "init";
+    MessageType["PING"] = "ping";
     MessageType["FUNCTION"] = "fcn";
     MessageType["REPLY"] = "reply";
     MessageType["LOG"] = "log";
@@ -107,6 +109,7 @@ class Worker {
     constructor() {
         this.instanceHandles = {};
         this.callbacks = {};
+        this._pingCount = 0;
         this.log = (...data) => {
             this.sendLog(data);
         };
@@ -190,6 +193,7 @@ class Worker {
             const instance = handle.instance;
             if (m.cmd === MessageType.INIT) {
                 const msg = m;
+                this._config = m.config;
                 let pModuleClass;
                 if (lib_1.isBrowser()) {
                     pModuleClass = new Promise((resolve, reject) => {
@@ -304,6 +308,11 @@ class Worker {
                     .catch((e) => {
                     console.log('INIT error', e);
                 });
+                this.startOrphanMonitoring();
+            }
+            else if (m.cmd === MessageType.PING) {
+                this._pingCount++;
+                this.reply(handle, m, null);
             }
             else if (m.cmd === MessageType.REPLY) {
                 const msg = m;
@@ -376,6 +385,33 @@ class Worker {
                 this.log('Error: ' + e.toString(), e.stack);
         }
     }
+    startOrphanMonitoring() {
+        // expect our parent process to PING us now every and then
+        // otherwise we consider ourselves to be orphaned
+        // then we should exit the process
+        if (this._config) {
+            const pingTime = Math.max(500, this._config.freezeLimit || exports.DEFAULT_CHILD_FREEZE_TIME);
+            let missed = 0;
+            let previousPingCount = 0;
+            setInterval(() => {
+                if (this._pingCount === previousPingCount) {
+                    // no ping has been received since last time
+                    missed++;
+                }
+                else {
+                    missed = 0;
+                }
+                previousPingCount = this._pingCount;
+                if (missed > 2) {
+                    // We've missed too many pings
+                    console.log(`Child missed ${missed} pings, exiting process!`);
+                    setTimeout(() => {
+                        process.exit(27);
+                    }, 100);
+                }
+            }, pingTime);
+        }
+    }
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
@@ -430,9 +466,9 @@ function decodeArguments(args, getCallback) {
 }
 exports.decodeArguments = decodeArguments;
 
-}).call(this,require("buffer").Buffer)
+}).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":4,"buffer":10}],4:[function(require,module,exports){
+},{"./lib":4,"_process":15,"buffer":10}],4:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -506,7 +542,9 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         this.isInitialized = false;
         this._threadId = 0;
         this._instanceId = 0;
+        this._methodId = 0;
         this._children = {};
+        this._pinging = true; // for testing only
     }
     getChild(config, pathToWorker) {
         this._init();
@@ -526,6 +564,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 process: this._createFork(config, pathToWorker),
                 usage: config.threadUsage || 1,
                 instances: {},
+                methods: {},
                 alive: true,
                 isClosing: false,
                 config,
@@ -552,6 +591,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             child: child,
             proxy: proxy,
             usage: config.threadUsage,
+            freezeLimit: config.freezeLimit,
             onMessageCallback: onMessage,
             pathToModule: pathToModule,
             className: className,
@@ -647,7 +687,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     restart(proxy, forceRestart) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             let foundInstance;
-            let foundChild0;
+            let foundChild;
             Object.keys(this._children).find((childId) => {
                 const child = this._children[childId];
                 const found = Object.keys(child.instances).find((instanceId) => {
@@ -659,36 +699,40 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     return false;
                 });
                 if (found) {
-                    foundChild0 = child;
+                    foundChild = child;
                     return true;
                 }
                 return false;
             });
-            if (!foundChild0)
+            if (!foundChild)
                 throw Error('Child not found');
             if (!foundInstance)
                 throw Error('Instance not found');
-            const foundChild = foundChild0;
-            if (foundChild.alive && forceRestart) {
-                yield this.killChild(foundChild, true);
+            yield this.restartChild(foundChild, [foundInstance], forceRestart);
+        });
+    }
+    restartChild(child, onlyInstances, forceRestart) {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            if (child.alive && forceRestart) {
+                yield this.killChild(child, true);
             }
-            if (!foundChild.alive) {
+            if (!child.alive) {
                 // clear old process:
-                foundChild.process.removeAllListeners();
-                delete foundChild.process;
-                Object.keys(foundChild.instances).forEach((instanceId) => {
-                    const instance = foundChild.instances[instanceId];
+                child.process.removeAllListeners();
+                delete child.process;
+                Object.keys(child.instances).forEach((instanceId) => {
+                    const instance = child.instances[instanceId];
                     instance.initialized = false;
                 });
                 // start new process
-                foundChild.alive = true;
-                foundChild.isClosing = false;
-                foundChild.process = this._createFork(foundChild.config, foundChild.pathToWorker);
-                this._setupChildProcess(foundChild);
+                child.alive = true;
+                child.isClosing = false;
+                child.process = this._createFork(child.config, child.pathToWorker);
+                this._setupChildProcess(child);
             }
             let p = new Promise((resolve, reject) => {
                 const onInit = (child) => {
-                    if (child === foundChild) {
+                    if (child === child) {
                         resolve();
                         this.removeListener('initialized', onInit);
                     }
@@ -699,7 +743,26 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     this.removeListener('initialized', onInit);
                 }, 1000);
             });
-            this.sendInit(foundChild, foundInstance, foundInstance.config);
+            const promises = [];
+            let instances = (onlyInstances ||
+                Object.keys(child.instances).map((instanceId) => {
+                    return child.instances[instanceId];
+                }));
+            instances.forEach((instance) => {
+                promises.push(new Promise((resolve, reject) => {
+                    this.sendInit(child, instance, instance.config, (_instance, err) => {
+                        // no need to do anything, the proxy is already initialized from earlier
+                        if (err) {
+                            reject(err);
+                        }
+                        else {
+                            resolve();
+                        }
+                        return true;
+                    });
+                }));
+            });
+            yield Promise.all(promises);
             yield p;
         });
     }
@@ -718,6 +781,52 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 this.emit('initialized', child);
             }
         });
+    }
+    startMonitoringChild(instance) {
+        const pingTime = instance.freezeLimit || internalApi_1.DEFAULT_CHILD_FREEZE_TIME;
+        const monitorChild = () => {
+            if (instance.child && instance.child.alive && this._pinging) {
+                this._pingChild(instance)
+                    .then(() => {
+                    // ping successful
+                    // ping again later:
+                    setTimeout(() => {
+                        monitorChild();
+                    }, pingTime);
+                })
+                    .catch(() => {
+                    // Ping failed
+                    if (instance.child &&
+                        instance.child.alive &&
+                        !instance.child.isClosing) {
+                        // console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
+                        this._childHasCrashed(instance.child, 'Child process ping timeout');
+                    }
+                });
+            }
+        };
+        setTimeout(() => {
+            monitorChild();
+        }, pingTime);
+    }
+    doMethod(child, cb) {
+        // Return a promise that will execute the callback cb
+        // but also put the promise in child.methods, so that the promise can be aborted
+        // in the case of a child crash
+        const methodId = 'm' + this._methodId++;
+        const p = new Promise((resolve, reject) => {
+            child.methods[methodId] = { resolve, reject };
+            cb(resolve, reject);
+        })
+            .then((result) => {
+            delete child.methods[methodId];
+            return result;
+        })
+            .catch((error) => {
+            delete child.methods[methodId];
+            throw error;
+        });
+        return p;
     }
     /** Called before using internally */
     _init() {
@@ -747,6 +856,54 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         }
         this.isInitialized = true;
     }
+    _pingChild(instance) {
+        return new Promise((resolve, reject) => {
+            let msg = {
+                cmd: internalApi_1.MessageType.PING
+            };
+            exports.ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (_instance, err) => {
+                if (!err) {
+                    resolve();
+                }
+                else {
+                    console.log('error', err);
+                    reject();
+                }
+            });
+            setTimeout(() => {
+                reject(); // timeout
+            }, instance.freezeLimit || internalApi_1.DEFAULT_CHILD_FREEZE_TIME);
+        });
+    }
+    _childHasCrashed(child, reason) {
+        // Called whenever a fatal error with a child has been discovered
+        this.rejectChildMethods(child, reason);
+        if (!child.isClosing) {
+            let shouldRestart = false;
+            const restartInstances = [];
+            Object.keys(child.instances).forEach((instanceId) => {
+                const instance = child.instances[instanceId];
+                if (instance.config.autoRestart) {
+                    shouldRestart = true;
+                    restartInstances.push(instance);
+                }
+            });
+            if (shouldRestart) {
+                this.restartChild(child, restartInstances, true)
+                    .then(() => {
+                    this.emit('restarted', child);
+                })
+                    .catch((err) => console.log('Error when running restartChild()', err));
+            }
+            else {
+                // No instance wants to be restarted, make sure the child is killed then:
+                if (child.alive) {
+                    this.killChild(child, true)
+                        .catch((err) => console.log('Error when running killChild()', err));
+                }
+            }
+        }
+    }
     _createFork(config, pathToWorker) {
         if (config.disableMultithreading) {
             return new fakeProcess_1.FakeProcess();
@@ -765,9 +922,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             if (child.alive) {
                 child.alive = false;
                 this.emit('thread_closed', child);
-                // TODO: restart?
+                this._childHasCrashed(child, 'Child process closed');
             }
-            // delete this._children[child.id]
         });
         child.process.on('error', (err) => {
             console.log('Error from ' + child.id, err);
@@ -853,6 +1009,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 }
             }
         });
+    }
+    rejectChildMethods(child, reason) {
+        Object.keys(child.methods).forEach((methodId) => {
+            const method = child.methods[methodId];
+            method.reject(Error('Method aborted due to: ' + reason));
+        });
+        child.methods = {};
     }
 }
 exports.ThreadedClassManagerClassInternal = ThreadedClassManagerClassInternal;
@@ -1024,7 +1187,11 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                         if (p.type === internalApi_1.InitPropType.FUNCTION) {
                             const fcn = (...args) => {
                                 // An instance method is called by parent
-                                return new Promise((resolve, reject) => {
+                                if (!instance.child)
+                                    return Promise.reject(new Error('Instance has been detached from child process'));
+                                return manager_1.ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
+                                    if (!instance.child)
+                                        throw new Error('Instance has been detached from child process');
                                     // Go through arguments and serialize them:
                                     let encodedArgs = internalApi_1.encodeArguments(instance.child.callbacks, args);
                                     sendFcn(instance, p.key, encodedArgs, (_instance, err, encodedResult) => {
@@ -1081,6 +1248,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                             Object.defineProperty(proxy, p.key, m);
                         }
                     });
+                    manager_1.ThreadedClassManagerInternal.startMonitoringChild(instanceInChild);
                     resolve(proxy);
                     return true;
                 }
