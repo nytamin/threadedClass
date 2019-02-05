@@ -11,13 +11,13 @@ import {
 	MessageInitConstr,
 	InstanceCallbackInitFunction,
 	InitProps,
-	MessagePingConstr
+	MessagePingConstr,
+	DEFAULT_CHILD_FREEZE_TIME
 } from './internalApi'
 import { EventEmitter } from 'events'
 import { isNodeJS, isBrowser } from './lib'
 import { forkWebWorker, WebWorkerProcess } from './webWorkers'
 
-const DEFAULT_CHILD_FREEZE_TIME = 1000 // how long to wait before considering a child to be unresponsive
 export class ThreadedClassManagerClass {
 
 	private _internal: ThreadedClassManagerClassInternal
@@ -104,6 +104,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _instanceId: number = 0
 	private _methodId: number = 0
 	private _children: {[id: string]: Child} = {}
+	private _pinging: boolean = true // for testing only
 
 	public getChild (
 		config: ThreadedClassConfig,
@@ -378,7 +379,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		const pingTime: number = instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME
 		const monitorChild = () => {
 
-			if (instance.child && instance.child.alive) {
+			if (instance.child && instance.child.alive && this._pinging) {
 
 				this._pingChild(instance)
 				.then(() => {
