@@ -52,6 +52,7 @@ class ThreadedWorker extends Worker {
 if (process.send) {
 	const worker = new ThreadedWorker()
 	console.log = worker.log
+	console.error = worker.logError
 	process.on('message', (m: MessageToChild) => {
 		// Received message from parent
 		worker.onMessageFromParent(m)

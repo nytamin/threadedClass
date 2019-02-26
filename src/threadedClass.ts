@@ -74,7 +74,7 @@ export function threadedClass<T> (
 				cmd: MessageType.REPLY,
 				replyTo: replyTo,
 				reply: reply,
-				error: error ? error.toString() : error
+				error: error ? (error.stack || error).toString() : error
 			}
 			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}

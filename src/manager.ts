@@ -246,9 +246,19 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			) throw Error('Child instance is not initialized')
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
-			instance.child.process.send(message)
+			instance.child.process.send(message, (error) => {
+				if (error) {
+					if (instance.child.queue[message.cmdId + '']) {
+						instance.child.queue[message.cmdId + ''](
+							instance,
+							new Error('Error sending message to child process: ' + error)
+						)
+						delete instance.child.queue[message.cmdId + '']
+					}
+				}
+			})
 		} catch (e) {
-			if (cb) cb(instance, e.toString())
+			if (cb) cb(instance, (e.stack || e).toString())
 			else throw e
 		}
 	}

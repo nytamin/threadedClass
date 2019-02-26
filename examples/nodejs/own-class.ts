@@ -1,4 +1,4 @@
-import { threadedClass, ThreadedClassManager } from 'threadedclass'
+import { threadedClass, ThreadedClassManager } from '../../src/index'
 
 import { House } from '../../test-lib/house'
 const HOUSE_PATH = '../../test-lib/house.js' // This is the path to the js-file (not a ts-file!) that contains the class
@@ -18,7 +18,8 @@ async function runExample () {
 	console.log(await threadedHouse.getRooms()) // ['entrance','kitchen', 'bedroom']
 
 	// (Optional) Clean up & close all threads:
-	ThreadedClassManager.destroyAll()
+	await ThreadedClassManager.destroyAll()
+	console.log('Done, number of preocesses left: ' + ThreadedClassManager.getThreadCount()) // outputs 0 (zero)
 }
 
 runExample()

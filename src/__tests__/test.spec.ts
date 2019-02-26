@@ -11,11 +11,11 @@ import { TestClass } from '../../test-lib/testClass'
 const HOUSE_PATH = '../../test-lib/house.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
 
-function wait (time: number) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, time)
-	})
-}
+// function wait (time: number) {
+// 	return new Promise((resolve) => {
+// 		setTimeout(resolve, time)
+// 	})
+// }
 
 const doPerformanceTests = false
 
@@ -69,7 +69,7 @@ const getTests = (disableMultithreading: boolean) => {
 		test('import wrong path', async () => {
 			let error: any = null
 			try {
-				let threaded = await threadedClass<House>('./nonexistent/path', House, [[], []], { disableMultithreading })
+				await threadedClass<House>('./nonexistent/path', House, [[], []], { disableMultithreading })
 			} catch (e) {
 				error = e.toString()
 			}
@@ -107,7 +107,7 @@ const getTests = (disableMultithreading: boolean) => {
 			let onEvent = jest.fn()
 			await threaded.on('test', onEvent)
 
-			result = await threaded.callCallback('parent', (str) => {
+			result = await threaded.callCallback('parent', (str: any) => {
 				return str + ',parent2'
 			})
 
@@ -184,7 +184,7 @@ const getTests = (disableMultithreading: boolean) => {
 							return myHouse.slowFib(37)
 						})
 						.then((result) => {
-							results.push(result[1])
+							results.push(result)
 						})
 					)
 				}
@@ -348,7 +348,7 @@ const getTests = (disableMultithreading: boolean) => {
 				'','test', // string
 				[1], [],[1,2,3],[null], // array
 				{}, { a: 1 }, { a: 0 },
-				(num0, num1) => num0 + num1 + 1,
+				(num0: number, num1: number): number => num0 + num1 + 1,
 				Buffer.from([1,2,3,4,4,5,6,7,8])
 			]
 
@@ -369,15 +369,14 @@ const getTests = (disableMultithreading: boolean) => {
 				o // circular dependency
 			]
 			for (let value of unsupportedValues) {
-				let returnValue: any = null
 				let returnError: any = null
 				try {
-					returnValue = await threaded.returnValue(value)
+					await threaded.returnValue(value)
 				} catch (e) {
 					returnError = e
 				}
 				expect(returnError).toBeTruthy()
-				expect(returnError.toString()).toMatch(/Unsupported/)
+				expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
 			}
 
 			await ThreadedClassManager.destroy(threaded)
@@ -403,7 +402,7 @@ const getTests = (disableMultithreading: boolean) => {
 				expect(i++).toEqual(1)
 
 				// return calledSecond
-				return threaded.callFunction((a, b) => {
+				return threaded.callFunction((a: number, b: number) => {
 					expect(a).toEqual(6)
 					expect(b).toEqual(7)
 					expect(i++).toEqual(2)

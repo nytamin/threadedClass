@@ -40,7 +40,7 @@ export class WebWorkerProcess extends EventEmitter implements ChildProcess {
 				console.error('ww error', error)
 			}
 		} catch (error) {
-			let str = error.toString() + ''
+			let str = (error.stack || error).toString() + ''
 			if (
 				str.match(/cannot be accessed from origin/) &&
 				str.match(/file:\/\//)
