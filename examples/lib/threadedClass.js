@@ -113,6 +113,9 @@ class Worker {
         this.log = (...data) => {
             this.sendLog(data);
         };
+        this.logError = (...data) => {
+            this.sendLog(['Error', ...data]);
+        };
     }
     decodeArgumentsFromParent(handle, args) {
         return decodeArguments(args, (a) => {
@@ -145,7 +148,7 @@ class Worker {
         let msg = {
             cmd: MessageType.REPLY,
             replyTo: replyTo,
-            error: error ? error.toString() : error,
+            error: error ? (error.stack || error).toString() : error,
             reply: reply
         };
         this.sendMessageToParent(handle, msg);
@@ -417,29 +420,38 @@ exports.Worker = Worker;
 let argumentsCallbackId = 0;
 function encodeArguments(callbacks, args) {
     try {
-        return args.map((arg) => {
-            if (arg instanceof Buffer)
-                return { type: ArgumentType.BUFFER, value: arg.toString('hex') };
-            if (typeof arg === 'string')
-                return { type: ArgumentType.STRING, value: arg };
-            if (typeof arg === 'number')
-                return { type: ArgumentType.NUMBER, value: arg };
-            if (typeof arg === 'function') {
-                const callbackId = argumentsCallbackId++;
-                callbacks[callbackId + ''] = arg;
-                return { type: ArgumentType.FUNCTION, value: callbackId + '' };
+        return args.map((arg, i) => {
+            try {
+                if (arg instanceof Buffer)
+                    return { type: ArgumentType.BUFFER, value: arg.toString('hex') };
+                if (typeof arg === 'string')
+                    return { type: ArgumentType.STRING, value: arg };
+                if (typeof arg === 'number')
+                    return { type: ArgumentType.NUMBER, value: arg };
+                if (typeof arg === 'function') {
+                    const callbackId = argumentsCallbackId++;
+                    callbacks[callbackId + ''] = arg;
+                    return { type: ArgumentType.FUNCTION, value: callbackId + '' };
+                }
+                if (arg === undefined)
+                    return { type: ArgumentType.UNDEFINED, value: arg };
+                if (arg === null)
+                    return { type: ArgumentType.NULL, value: arg };
+                if (typeof arg === 'object')
+                    return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) };
+                return { type: ArgumentType.OTHER, value: arg };
             }
-            if (arg === undefined)
-                return { type: ArgumentType.UNDEFINED, value: arg };
-            if (arg === null)
-                return { type: ArgumentType.NULL, value: arg };
-            if (typeof arg === 'object')
-                return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) };
-            return { type: ArgumentType.OTHER, value: arg };
+            catch (e) {
+                if (e.stack)
+                    e.stack += '\nIn encodeArguments, argument ' + i;
+                throw e;
+            }
         });
     }
     catch (e) {
-        throw Error(`Unsupported attribute: ${e.toString()}`);
+        if (e.stack)
+            e.stack += '\nThreadedClass, unsupported attribute';
+        throw e;
     }
 }
 exports.encodeArguments = encodeArguments;
@@ -473,7 +485,7 @@ exports.decodeArguments = decodeArguments;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function isBrowser() {
-    return !(process && process.stdin);
+    return !(process && process.hasOwnProperty('stdin'));
 }
 exports.isBrowser = isBrowser;
 function isNodeJS() {
@@ -665,11 +677,18 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 throw Error('Child instance is not initialized');
             if (cb)
                 instance.child.queue[message.cmdId + ''] = cb;
-            instance.child.process.send(message);
+            instance.child.process.send(message, (error) => {
+                if (error) {
+                    if (instance.child.queue[message.cmdId + '']) {
+                        instance.child.queue[message.cmdId + ''](instance, new Error('Error sending message to child process: ' + error));
+                        delete instance.child.queue[message.cmdId + ''];
+                    }
+                }
+            });
         }
         catch (e) {
             if (cb)
-                cb(instance, e.toString());
+                cb(instance, (e.stack || e).toString());
             else
                 throw e;
         }
@@ -1076,7 +1095,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                 cmd: internalApi_1.MessageType.REPLY,
                 replyTo: replyTo,
                 reply: reply,
-                error: error ? error.toString() : error
+                error: error ? (error.stack || error).toString() : error
             };
             manager_1.ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb);
         }
@@ -1294,7 +1313,7 @@ class WebWorkerProcess extends events_1.EventEmitter {
             };
         }
         catch (error) {
-            let str = error.toString() + '';
+            let str = (error.stack || error).toString() + '';
             if (str.match(/cannot be accessed from origin/) &&
                 str.match(/file:\/\//)) {
                 throw Error('Unable to create Web-Worker. Not allowed to run from local file system.\n' + str);
