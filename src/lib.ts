@@ -1,5 +1,5 @@
 export function isBrowser (): boolean {
-	return !(process && process.stdin)
+	return !(process && process.hasOwnProperty('stdin'))
 }
 export function isNodeJS (): boolean {
 	return !isBrowser()
