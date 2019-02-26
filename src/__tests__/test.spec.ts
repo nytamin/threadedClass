@@ -377,7 +377,7 @@ const getTests = (disableMultithreading: boolean) => {
 					returnError = e
 				}
 				expect(returnError).toBeTruthy()
-				expect(returnError.toString()).toMatch(/Unsupported/)
+				expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
 			}
 
 			await ThreadedClassManager.destroy(threaded)

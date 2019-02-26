@@ -248,7 +248,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
 			instance.child.process.send(message)
 		} catch (e) {
-			if (cb) cb(instance, e.toString())
+			if (cb) cb(instance, (e.stack || e).toString())
 			else throw e
 		}
 	}

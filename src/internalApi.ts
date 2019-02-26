@@ -182,7 +182,7 @@ export abstract class Worker {
 		let msg: MessageFromChildReplyConstr = {
 			cmd: MessageType.REPLY,
 			replyTo: replyTo,
-			error: error ? error.toString() : error,
+			error: error ? (error.stack || error).toString() : error,
 			reply: reply
 		}
 		this.sendMessageToParent(handle, msg)
@@ -468,22 +468,29 @@ export abstract class Worker {
 let argumentsCallbackId: number = 0
 export function encodeArguments (callbacks: {[key: string]: Function}, args: any[]): ArgDefinition[] {
 	try {
-		return args.map((arg): ArgDefinition => {
-			if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, value: arg.toString('hex') }
-			if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
-			if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
-			if (typeof arg === 'function') {
-				const callbackId = argumentsCallbackId++
-				callbacks[callbackId + ''] = arg
-				return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+		return args.map((arg, i): ArgDefinition => {
+			try {
+
+				if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, value: arg.toString('hex') }
+				if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
+				if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
+				if (typeof arg === 'function') {
+					const callbackId = argumentsCallbackId++
+					callbacks[callbackId + ''] = arg
+					return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+				}
+				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
+				if (arg === null) return { type: ArgumentType.NULL, value: arg }
+				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
+				return { type: ArgumentType.OTHER, value: arg }
+			} catch (e) {
+				if (e.stack) e.stack += '\nIn encodeArguments, argument ' + i
+				throw e
 			}
-			if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
-			if (arg === null) return { type: ArgumentType.NULL, value: arg }
-			if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
-			return { type: ArgumentType.OTHER, value: arg }
 		})
 	} catch (e) {
-		throw Error(`Unsupported attribute: ${e.toString()}`)
+		if (e.stack) e.stack += '\nThreadedClass, unsupported attribute'
+		throw e
 	}
 }
 export type ArgCallback = (...args: any[]) => Promise<any>
