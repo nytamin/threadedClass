@@ -47,7 +47,7 @@ class ThreadedWorker extends Worker {
 	}
 
 }
-const _orgConsoleLog = console.log
+// const _orgConsoleLog = console.log
 
 if (process.send) {
 	const worker = new ThreadedWorker()
