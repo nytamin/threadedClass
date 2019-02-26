@@ -214,6 +214,9 @@ export abstract class Worker {
 	log = (...data: any[]) => {
 		this.sendLog(data)
 	}
+	logError = (...data: any[]) => {
+		this.sendLog(['Error', ...data])
+	}
 
 	protected abstract sendMessageToParent (handle: InstanceHandle | null, msg: MessageFromChildConstr, cb?: CallbackFunction): void
 
