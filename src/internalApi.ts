@@ -116,6 +116,7 @@ export type CallbackFunction = (e: Error | string | null, res?: ArgDefinition) =
 
 export interface ArgDefinition {
 	type: ArgumentType
+	original?: any
 	value: any
 }
 export enum ArgumentType {
@@ -140,6 +141,8 @@ export abstract class Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
 	private callbacks: {[key: string]: Function} = {}
+
+	protected disabledMultithreading: boolean = false
 
 	private _pingCount: number = 0
 	private _config?: ThreadedClassConfig
@@ -169,7 +172,7 @@ export abstract class Worker {
 		})
 	}
 	protected encodeArgumentsToParent (args: any[]): ArgDefinition[] {
-		return encodeArguments(this.callbacks, args)
+		return encodeArguments(this.callbacks, args, this.disabledMultithreading)
 	}
 
 	protected reply (handle: InstanceHandle, m: MessageToChild, reply: any) {
@@ -469,10 +472,16 @@ export abstract class Worker {
 	}
 }
 let argumentsCallbackId: number = 0
-export function encodeArguments (callbacks: {[key: string]: Function}, args: any[]): ArgDefinition[] {
+export function encodeArguments (callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
 	try {
 		return args.map((arg, i): ArgDefinition => {
 			try {
+
+				if (disabledMultithreading) {
+					// In single-threaded mode, we can send the arguments directly, without any conversion:
+					if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, original: arg, value: null }
+					if (typeof arg === 'object') return { type: ArgumentType.OBJECT, original: arg, value: null }
+				}
 
 				if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, value: arg.toString('hex') }
 				if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
@@ -500,6 +509,8 @@ export type ArgCallback = (...args: any[]) => Promise<any>
 export function decodeArguments (args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
 	// Go through arguments and de-serialize them
 	return args.map((a) => {
+		if (a.original !== undefined) return a.original
+
 		if (a.type === ArgumentType.STRING) return a.value
 		if (a.type === ArgumentType.NUMBER) return a.value
 		if (a.type === ArgumentType.BUFFER) return Buffer.from(a.value, 'hex')

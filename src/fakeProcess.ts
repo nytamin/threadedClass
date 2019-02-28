@@ -15,6 +15,7 @@ export class FakeWorker extends Worker {
 
 	constructor (cb: (m: MessageFromChild) => void) {
 		super()
+		this.disabledMultithreading = true
 		this.mockProcessSend = cb
 	}
 

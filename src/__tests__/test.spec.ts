@@ -362,7 +362,6 @@ const getTests = (disableMultithreading: boolean) => {
 					expect(returned).toEqual(value)
 				}
 			}
-
 			let o: any = {}
 			o.parent = o
 			let unsupportedValues = [
@@ -375,8 +374,12 @@ const getTests = (disableMultithreading: boolean) => {
 				} catch (e) {
 					returnError = e
 				}
-				expect(returnError).toBeTruthy()
-				expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
+				if (!disableMultithreading) { // When running in single-thread, allow circular objects
+					expect(returnError).toBeTruthy()
+					expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
+				} else {
+					expect(returnError).toBeNull()
+				}
 			}
 
 			await ThreadedClassManager.destroy(threaded)
@@ -523,3 +526,70 @@ const getTests = (disableMultithreading: boolean) => {
 
 describe('threadedclass', getTests(false))
 describe('threadedclass single thread', getTests(true))
+
+// Test on behaviour that differ bewteen Multi-threading vs none
+describe('single-thread tests', () => {
+	const disableMultithreading = true
+	test('circular object', async () => {
+		let original = new TestClass()
+
+		expect(original.returnValue('asdf')).toEqual('asdf')
+
+		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+
+		// circular objects should be supported when running in single thread
+		expect(await threaded.getCircular('asdf')).toMatchObject({
+			a: 1,
+			b: 2,
+			val: 'asdf'
+		})
+
+		await ThreadedClassManager.destroy(threaded)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(1)
+	})
+	test('Buffer', async () => {
+		let original = new TestClass()
+
+		let bugString = '123456789abcfdef'
+
+		let buf = Buffer.from(bugString)
+		let buf2 = buf
+		let buf3 = Buffer.from(bugString)
+
+		expect(buf === buf2).toEqual(true)
+		expect(buf === buf3).toEqual(false)
+
+		expect((original.returnValue(buf)) === buf2).toEqual(true)
+		expect((original.returnValue(buf)) === buf3).toEqual(false)
+
+		let singleThreaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(singleThreaded, 'thread_closed', onClosed)
+
+		let multiThreaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], {})
+		let onClosed2 = jest.fn()
+		ThreadedClassManager.onEvent(multiThreaded, 'thread_closed', onClosed2)
+
+		// Handle buffers correctly in single threaded mode
+		expect((await singleThreaded.returnValue(buf)) === buf2).toEqual(true)
+		expect((await singleThreaded.returnValue(buf)) === buf3).toEqual(false)
+
+		// Not possible to handle buffers correctly in threaded mode
+		expect((await multiThreaded.returnValue(buf)) === buf2).toEqual(false)
+		expect((await multiThreaded.returnValue(buf)) === buf3).toEqual(false)
+		// However the values of the buffers should be correct:
+		expect((await multiThreaded.returnValue(buf)).toString() === buf2.toString()).toEqual(true)
+		expect((await multiThreaded.returnValue(buf)).toString() === buf3.toString()).toEqual(true)
+
+		await ThreadedClassManager.destroy(singleThreaded)
+		await ThreadedClassManager.destroy(multiThreaded)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(1)
+		expect(onClosed2).toHaveBeenCalledTimes(1)
+	})
+})

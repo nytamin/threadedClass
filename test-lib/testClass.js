@@ -37,6 +37,15 @@ class TestClass {
 				resolve(reply)
 			}, waitTime)
 		})
+    }
+    getCircular (val) {
+		let o = {
+			a: 1,
+            b: 2,
+            val: val
+		}
+		o.c = o
+		return o
 	}
 }
 exports.TestClass = TestClass;
