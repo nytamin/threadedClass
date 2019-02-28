@@ -131,7 +131,7 @@ export function threadedClass<T> (
 					try {
 						Promise.resolve(callback(...msg.args))
 						.then((result: any) => {
-							let encodedResult = encodeArguments(instance.child.callbacks, [result])
+							let encodedResult = encodeArguments(instance.child.callbacks, [result], !!config.disableMultithreading)
 							sendReply(
 								instance,
 								msg.cmdId,
@@ -210,7 +210,7 @@ export function threadedClass<T> (
 								return ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
 									if (!instance.child) throw new Error('Instance has been detached from child process')
 									// Go through arguments and serialize them:
-									let encodedArgs = encodeArguments(instance.child.callbacks, args)
+									let encodedArgs = encodeArguments(instance.child.callbacks, args, !!config.disableMultithreading)
 									sendFcn(
 										instance,
 										p.key,
@@ -264,7 +264,7 @@ export function threadedClass<T> (
 								p.descriptor.writable
 							) {
 								m.set = function (newVal) {
-									let fixedArgs = encodeArguments(instance.child.callbacks, [newVal])
+									let fixedArgs = encodeArguments(instance.child.callbacks, [newVal], !!config.disableMultithreading)
 
 									// in the strictest of worlds, we should block the main thread here,
 									// until the remote acknowledges the write.
