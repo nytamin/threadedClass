@@ -6,6 +6,7 @@ const internalApi_1 = require("./internalApi");
 class FakeWorker extends internalApi_1.Worker {
     constructor(cb) {
         super();
+        this.disabledMultithreading = true;
         this.mockProcessSend = cb;
     }
     killInstance() {
@@ -109,6 +110,7 @@ class Worker {
     constructor() {
         this.instanceHandles = {};
         this.callbacks = {};
+        this.disabledMultithreading = false;
         this._pingCount = 0;
         this.log = (...data) => {
             this.sendLog(data);
@@ -136,7 +138,7 @@ class Worker {
         });
     }
     encodeArgumentsToParent(args) {
-        return encodeArguments(this.callbacks, args);
+        return encodeArguments(this.callbacks, args, this.disabledMultithreading);
     }
     reply(handle, m, reply) {
         this.sendReplyToParent(handle, m.cmdId, undefined, reply);
@@ -418,10 +420,17 @@ class Worker {
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
-function encodeArguments(callbacks, args) {
+function encodeArguments(callbacks, args, disabledMultithreading) {
     try {
         return args.map((arg, i) => {
             try {
+                if (disabledMultithreading) {
+                    // In single-threaded mode, we can send the arguments directly, without any conversion:
+                    if (arg instanceof Buffer)
+                        return { type: ArgumentType.BUFFER, original: arg, value: null };
+                    if (typeof arg === 'object')
+                        return { type: ArgumentType.OBJECT, original: arg, value: null };
+                }
                 if (arg instanceof Buffer)
                     return { type: ArgumentType.BUFFER, value: arg.toString('hex') };
                 if (typeof arg === 'string')
@@ -458,6 +467,8 @@ exports.encodeArguments = encodeArguments;
 function decodeArguments(args, getCallback) {
     // Go through arguments and de-serialize them
     return args.map((a) => {
+        if (a.original !== undefined)
+            return a.original;
         if (a.type === ArgumentType.STRING)
             return a.value;
         if (a.type === ArgumentType.NUMBER)
@@ -1152,7 +1163,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                     try {
                         Promise.resolve(callback(...msg.args))
                             .then((result) => {
-                            let encodedResult = internalApi_1.encodeArguments(instance.child.callbacks, [result]);
+                            let encodedResult = internalApi_1.encodeArguments(instance.child.callbacks, [result], !!config.disableMultithreading);
                             sendReply(instance, msg.cmdId, undefined, encodedResult[0]);
                         })
                             .catch((err) => {
@@ -1212,7 +1223,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                                     if (!instance.child)
                                         throw new Error('Instance has been detached from child process');
                                     // Go through arguments and serialize them:
-                                    let encodedArgs = internalApi_1.encodeArguments(instance.child.callbacks, args);
+                                    let encodedArgs = internalApi_1.encodeArguments(instance.child.callbacks, args, !!config.disableMultithreading);
                                     sendFcn(instance, p.key, encodedArgs, (_instance, err, encodedResult) => {
                                         // Function result is returned from worker
                                         if (err) {
@@ -1253,7 +1264,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                             if (p.descriptor.set ||
                                 p.descriptor.writable) {
                                 m.set = function (newVal) {
-                                    let fixedArgs = internalApi_1.encodeArguments(instance.child.callbacks, [newVal]);
+                                    let fixedArgs = internalApi_1.encodeArguments(instance.child.callbacks, [newVal], !!config.disableMultithreading);
                                     // in the strictest of worlds, we should block the main thread here,
                                     // until the remote acknowledges the write.
                                     // Instead we're going to pretend that everything is okay. *whistling*

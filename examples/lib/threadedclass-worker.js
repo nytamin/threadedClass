@@ -35,6 +35,7 @@ class Worker {
     constructor() {
         this.instanceHandles = {};
         this.callbacks = {};
+        this.disabledMultithreading = false;
         this._pingCount = 0;
         this.log = (...data) => {
             this.sendLog(data);
@@ -62,7 +63,7 @@ class Worker {
         });
     }
     encodeArgumentsToParent(args) {
-        return encodeArguments(this.callbacks, args);
+        return encodeArguments(this.callbacks, args, this.disabledMultithreading);
     }
     reply(handle, m, reply) {
         this.sendReplyToParent(handle, m.cmdId, undefined, reply);
@@ -344,10 +345,17 @@ class Worker {
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
-function encodeArguments(callbacks, args) {
+function encodeArguments(callbacks, args, disabledMultithreading) {
     try {
         return args.map((arg, i) => {
             try {
+                if (disabledMultithreading) {
+                    // In single-threaded mode, we can send the arguments directly, without any conversion:
+                    if (arg instanceof Buffer)
+                        return { type: ArgumentType.BUFFER, original: arg, value: null };
+                    if (typeof arg === 'object')
+                        return { type: ArgumentType.OBJECT, original: arg, value: null };
+                }
                 if (arg instanceof Buffer)
                     return { type: ArgumentType.BUFFER, value: arg.toString('hex') };
                 if (typeof arg === 'string')
@@ -384,6 +392,8 @@ exports.encodeArguments = encodeArguments;
 function decodeArguments(args, getCallback) {
     // Go through arguments and de-serialize them
     return args.map((a) => {
+        if (a.original !== undefined)
+            return a.original;
         if (a.type === ArgumentType.STRING)
             return a.value;
         if (a.type === ArgumentType.NUMBER)
