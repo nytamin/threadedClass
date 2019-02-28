@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [0.4.1](https://github.com/nytamin/threadedClass/compare/0.4.0...0.4.1) (2019-02-26)
+## [0.4.2](https://github.com/nytamin/threadedClass/compare/0.4.1...0.4.2) (2019-02-28)
 
 
 ### Bug Fixes
 
-* apaprently, when using process.stdin during Jest tests, the process freezes ([9885b82](https://github.com/nytamin/threadedClass/commit/9885b82))
-* better error handling, try to keep stack traces, as much as possible ([aa48098](https://github.com/nytamin/threadedClass/commit/aa48098))
-* handle errors even better ([4c4c3b1](https://github.com/nytamin/threadedClass/commit/4c4c3b1))
-* update devDependencies, due to security audit issues. added temporary resolutions, until typedoc has been updated ([86c8f69](https://github.com/nytamin/threadedClass/commit/86c8f69))
-* update jest config ([c517431](https://github.com/nytamin/threadedClass/commit/c517431))
-* uppgrade typescript ([3148c43](https://github.com/nytamin/threadedClass/commit/3148c43))
+* in single-threaded mode, don't convert arguments, but pass them through directly ([56375c6](https://github.com/nytamin/threadedClass/commit/56375c6))
 
 
 
