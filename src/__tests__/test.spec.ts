@@ -563,8 +563,8 @@ describe('single-thread tests', () => {
 		expect(buf === buf2).toEqual(true)
 		expect(buf === buf3).toEqual(false)
 
-		expect((await original.returnValue(buf)) === buf2).toEqual(true)
-		expect((await original.returnValue(buf)) === buf3).toEqual(false)
+		expect((original.returnValue(buf)) === buf2).toEqual(true)
+		expect((original.returnValue(buf)) === buf3).toEqual(false)
 
 		let singleThreaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 		let onClosed = jest.fn()
