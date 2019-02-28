@@ -551,4 +551,45 @@ describe('single-thread tests', () => {
 
 		expect(onClosed).toHaveBeenCalledTimes(1)
 	})
+	test('Buffer', async () => {
+		let original = new TestClass()
+
+		let bugString = '123456789abcfdef'
+
+		let buf = Buffer.from(bugString)
+		let buf2 = buf
+		let buf3 = Buffer.from(bugString)
+
+		expect(buf === buf2).toEqual(true)
+		expect(buf === buf3).toEqual(false)
+
+		expect((await original.returnValue(buf)) === buf2).toEqual(true)
+		expect((await original.returnValue(buf)) === buf3).toEqual(false)
+
+		let singleThreaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+		let onClosed = jest.fn()
+		ThreadedClassManager.onEvent(singleThreaded, 'thread_closed', onClosed)
+
+		let multiThreaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], {})
+		let onClosed2 = jest.fn()
+		ThreadedClassManager.onEvent(multiThreaded, 'thread_closed', onClosed2)
+
+		// Handle buffers correctly in single threaded mode
+		expect((await singleThreaded.returnValue(buf)) === buf2).toEqual(true)
+		expect((await singleThreaded.returnValue(buf)) === buf3).toEqual(false)
+
+		// Not possible to handle buffers correctly in threaded mode
+		expect((await multiThreaded.returnValue(buf)) === buf2).toEqual(false)
+		expect((await multiThreaded.returnValue(buf)) === buf3).toEqual(false)
+		// However the values of the buffers should be correct:
+		expect((await multiThreaded.returnValue(buf)).toString() === buf2.toString()).toEqual(true)
+		expect((await multiThreaded.returnValue(buf)).toString() === buf3.toString()).toEqual(true)
+
+		await ThreadedClassManager.destroy(singleThreaded)
+		await ThreadedClassManager.destroy(multiThreaded)
+		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		expect(onClosed).toHaveBeenCalledTimes(1)
+		expect(onClosed2).toHaveBeenCalledTimes(1)
+	})
 })
