@@ -35,4 +35,13 @@ export class TestClass {
 			}, waitTime)
 		})
 	}
+	public getCircular (val: any) {
+		let o: any = {
+			a: 1,
+			b: 2,
+			val: val
+		}
+		o.c = o
+		return o
+	}
 }
