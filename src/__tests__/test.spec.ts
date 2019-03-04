@@ -521,6 +521,27 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(mockLog).toHaveBeenCalledTimes(1)
 			expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
 		})
+		test('EventEmitter', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			const eventListener0 = jest.fn()
+			const eventListener1 = jest.fn()
+			await threaded.on('event0', eventListener0)
+			await threaded.on('event1', eventListener1)
+
+			await threaded.emitMessage('event0', 'a')
+			await threaded.emitMessage('event1', 'b')
+
+			expect(eventListener0).toHaveBeenCalledTimes(1)
+			expect(eventListener0).toHaveBeenCalledWith('a')
+			expect(eventListener1).toHaveBeenCalledTimes(1)
+			expect(eventListener1).toHaveBeenCalledWith('b')
+
+			let self = await threaded.getSelf()
+
+			expect(self).toEqual(threaded)
+
+		})
 	}
 }
 

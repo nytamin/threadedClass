@@ -1,6 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class TestClass {
+const events_1 = require("events");
+class TestClass extends events_1.EventEmitter {
+    constructor() {
+        super();
+        // circular reference:
+        this.myself = this;
+    }
     returnValue(value) {
         return value;
     }
@@ -26,26 +32,32 @@ class TestClass {
     logSomething(...args) {
         console.log(...args);
     }
-    freeze () {
-		while (true) {
-			// do nothing, but freeze
-		}
+    freeze() {
+        while (true) {
+            // do nothing, but freeze
+        }
     }
-    waitReply (waitTime, reply) {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				resolve(reply)
-			}, waitTime)
-		})
+    waitReply(waitTime, reply) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(reply);
+            }, waitTime);
+        });
     }
-    getCircular (val) {
-		let o = {
-			a: 1,
+    getCircular(val) {
+        let o = {
+            a: 1,
             b: 2,
             val: val
-		}
-		o.c = o
-		return o
-	}
+        };
+        o.c = o;
+        return o;
+    }
+    emitMessage(name, val) {
+        this.emit(name, val);
+    }
+    getSelf() {
+        return this;
+    }
 }
 exports.TestClass = TestClass;
