@@ -4,8 +4,9 @@ const events_1 = require("events");
 class TestClass extends events_1.EventEmitter {
     constructor() {
         super();
-        // circular reference:
+        // circular reference, so that function that return self (such as EventEmitter.on can have trouble)
         this.myself = this;
+        this.myself = this.myself;
     }
     returnValue(value) {
         return value;

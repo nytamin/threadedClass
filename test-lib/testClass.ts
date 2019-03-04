@@ -9,6 +9,7 @@ export class TestClass extends EventEmitter {
 
 		// circular reference, so that function that return self (such as EventEmitter.on can have trouble)
 		this.myself = this
+		this.myself = this.myself
 	}
 
 	public returnValue<T> (value: T): T {
