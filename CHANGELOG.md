@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [0.4.2](https://github.com/nytamin/threadedClass/compare/0.4.1...0.4.2) (2019-02-28)
+## [0.4.3](https://github.com/nytamin/threadedClass/compare/0.4.2...0.4.3) (2019-03-05)
 
 
 ### Bug Fixes
 
-* in single-threaded mode, don't convert arguments, but pass them through directly ([56375c6](https://github.com/nytamin/threadedClass/commit/56375c6))
+* encode "self" reference the same way in threaded/single-thread mode ([511f632](https://github.com/nytamin/threadedClass/commit/511f632))
+* special case when transmitting a reference to own class instance ([2ee4c91](https://github.com/nytamin/threadedClass/commit/2ee4c91))
 
 
 
