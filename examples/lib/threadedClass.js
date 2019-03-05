@@ -120,7 +120,7 @@ class Worker {
         };
     }
     decodeArgumentsFromParent(handle, args) {
-        return decodeArguments(args, (a) => {
+        return decodeArguments(handle.instance, args, (a) => {
             return ((...args) => {
                 return new Promise((resolve, reject) => {
                     const callbackId = a.value;
@@ -137,8 +137,8 @@ class Worker {
             });
         });
     }
-    encodeArgumentsToParent(args) {
-        return encodeArguments(this.callbacks, args, this.disabledMultithreading);
+    encodeArgumentsToParent(instance, args) {
+        return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading);
     }
     reply(handle, m, reply) {
         this.sendReplyToParent(handle, m.cmdId, undefined, reply);
@@ -341,7 +341,7 @@ class Worker {
                     instance[msg.fcn]); // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
                 Promise.resolve(p)
                     .then((result) => {
-                    const encodedResult = this.encodeArgumentsToParent([result]);
+                    const encodedResult = this.encodeArgumentsToParent(instance, [result]);
                     this.reply(handle, msg, encodedResult[0]);
                 })
                     .catch((err) => {
@@ -367,7 +367,7 @@ class Worker {
                     try {
                         Promise.resolve(callback(...msg.args))
                             .then((result) => {
-                            const encodedResult = this.encodeArgumentsToParent([result]);
+                            const encodedResult = this.encodeArgumentsToParent(instance, [result]);
                             this.reply(handle, msg, encodedResult[0]);
                         })
                             .catch((err) => {
@@ -420,10 +420,13 @@ class Worker {
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
-function encodeArguments(callbacks, args, disabledMultithreading) {
+function encodeArguments(instance, callbacks, args, disabledMultithreading) {
     try {
         return args.map((arg, i) => {
             try {
+                if (typeof arg === 'object' && arg === instance) {
+                    return { type: ArgumentType.OBJECT, value: 'self' };
+                }
                 if (disabledMultithreading) {
                     // In single-threaded mode, we can send the arguments directly, without any conversion:
                     if (arg instanceof Buffer)
@@ -464,7 +467,7 @@ function encodeArguments(callbacks, args, disabledMultithreading) {
     }
 }
 exports.encodeArguments = encodeArguments;
-function decodeArguments(args, getCallback) {
+function decodeArguments(instance, args, getCallback) {
     // Go through arguments and de-serialize them
     return args.map((a) => {
         if (a.original !== undefined)
@@ -482,8 +485,14 @@ function decodeArguments(args, getCallback) {
         if (a.type === ArgumentType.FUNCTION) {
             return getCallback(a);
         }
-        if (a.type === ArgumentType.OBJECT)
-            return JSON.parse(a.value);
+        if (a.type === ArgumentType.OBJECT) {
+            if (a.value === 'self') {
+                return instance;
+            }
+            else {
+                return JSON.parse(a.value);
+            }
+        }
         return a.value;
     });
 }
@@ -1122,7 +1131,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
             manager_1.ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb);
         }
         function decodeResultFromWorker(instance, encodedResult) {
-            return internalApi_1.decodeArguments([encodedResult], (a) => {
+            return internalApi_1.decodeArguments(instance.proxy, [encodedResult], (a) => {
                 return (...args) => {
                     return new Promise((resolve, reject) => {
                         // Function result function is called from parent
@@ -1163,7 +1172,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                     try {
                         Promise.resolve(callback(...msg.args))
                             .then((result) => {
-                            let encodedResult = internalApi_1.encodeArguments(instance.child.callbacks, [result], !!config.disableMultithreading);
+                            let encodedResult = internalApi_1.encodeArguments(instance, instance.child.callbacks, [result], !!config.disableMultithreading);
                             sendReply(instance, msg.cmdId, undefined, encodedResult[0]);
                         })
                             .catch((err) => {
@@ -1223,7 +1232,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                                     if (!instance.child)
                                         throw new Error('Instance has been detached from child process');
                                     // Go through arguments and serialize them:
-                                    let encodedArgs = internalApi_1.encodeArguments(instance.child.callbacks, args, !!config.disableMultithreading);
+                                    let encodedArgs = internalApi_1.encodeArguments(instance, instance.child.callbacks, args, !!config.disableMultithreading);
                                     sendFcn(instance, p.key, encodedArgs, (_instance, err, encodedResult) => {
                                         // Function result is returned from worker
                                         if (err) {
@@ -1264,7 +1273,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
                             if (p.descriptor.set ||
                                 p.descriptor.writable) {
                                 m.set = function (newVal) {
-                                    let fixedArgs = internalApi_1.encodeArguments(instance.child.callbacks, [newVal], !!config.disableMultithreading);
+                                    let fixedArgs = internalApi_1.encodeArguments(instance, instance.child.callbacks, [newVal], !!config.disableMultithreading);
                                     // in the strictest of worlds, we should block the main thread here,
                                     // until the remote acknowledges the write.
                                     // Instead we're going to pretend that everything is okay. *whistling*

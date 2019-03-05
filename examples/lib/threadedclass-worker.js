@@ -45,7 +45,7 @@ class Worker {
         };
     }
     decodeArgumentsFromParent(handle, args) {
-        return decodeArguments(args, (a) => {
+        return decodeArguments(handle.instance, args, (a) => {
             return ((...args) => {
                 return new Promise((resolve, reject) => {
                     const callbackId = a.value;
@@ -62,8 +62,8 @@ class Worker {
             });
         });
     }
-    encodeArgumentsToParent(args) {
-        return encodeArguments(this.callbacks, args, this.disabledMultithreading);
+    encodeArgumentsToParent(instance, args) {
+        return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading);
     }
     reply(handle, m, reply) {
         this.sendReplyToParent(handle, m.cmdId, undefined, reply);
@@ -266,7 +266,7 @@ class Worker {
                     instance[msg.fcn]); // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
                 Promise.resolve(p)
                     .then((result) => {
-                    const encodedResult = this.encodeArgumentsToParent([result]);
+                    const encodedResult = this.encodeArgumentsToParent(instance, [result]);
                     this.reply(handle, msg, encodedResult[0]);
                 })
                     .catch((err) => {
@@ -292,7 +292,7 @@ class Worker {
                     try {
                         Promise.resolve(callback(...msg.args))
                             .then((result) => {
-                            const encodedResult = this.encodeArgumentsToParent([result]);
+                            const encodedResult = this.encodeArgumentsToParent(instance, [result]);
                             this.reply(handle, msg, encodedResult[0]);
                         })
                             .catch((err) => {
@@ -345,10 +345,13 @@ class Worker {
 }
 exports.Worker = Worker;
 let argumentsCallbackId = 0;
-function encodeArguments(callbacks, args, disabledMultithreading) {
+function encodeArguments(instance, callbacks, args, disabledMultithreading) {
     try {
         return args.map((arg, i) => {
             try {
+                if (typeof arg === 'object' && arg === instance) {
+                    return { type: ArgumentType.OBJECT, value: 'self' };
+                }
                 if (disabledMultithreading) {
                     // In single-threaded mode, we can send the arguments directly, without any conversion:
                     if (arg instanceof Buffer)
@@ -389,7 +392,7 @@ function encodeArguments(callbacks, args, disabledMultithreading) {
     }
 }
 exports.encodeArguments = encodeArguments;
-function decodeArguments(args, getCallback) {
+function decodeArguments(instance, args, getCallback) {
     // Go through arguments and de-serialize them
     return args.map((a) => {
         if (a.original !== undefined)
@@ -407,8 +410,14 @@ function decodeArguments(args, getCallback) {
         if (a.type === ArgumentType.FUNCTION) {
             return getCallback(a);
         }
-        if (a.type === ArgumentType.OBJECT)
-            return JSON.parse(a.value);
+        if (a.type === ArgumentType.OBJECT) {
+            if (a.value === 'self') {
+                return instance;
+            }
+            else {
+                return JSON.parse(a.value);
+            }
+        }
         return a.value;
     });
 }
