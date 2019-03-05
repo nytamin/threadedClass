@@ -477,6 +477,10 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 		return args.map((arg, i): ArgDefinition => {
 			try {
 
+				if (typeof arg === 'object' && arg === instance) {
+					return { type: ArgumentType.OBJECT, value: 'self' }
+				}
+
 				if (disabledMultithreading) {
 					// In single-threaded mode, we can send the arguments directly, without any conversion:
 					if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, original: arg, value: null }
@@ -493,13 +497,8 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 				}
 				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 				if (arg === null) return { type: ArgumentType.NULL, value: arg }
-				if (typeof arg === 'object') {
-					if (arg === instance) {
-						return { type: ArgumentType.OBJECT, value: 'self' }
-					} else {
-						return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
-					}
-				}
+				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
+
 				return { type: ArgumentType.OTHER, value: arg }
 			} catch (e) {
 				if (e.stack) e.stack += '\nIn encodeArguments, argument ' + i
