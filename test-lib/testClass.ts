@@ -1,4 +1,17 @@
-export class TestClass {
+import { EventEmitter } from 'events'
+
+export class TestClass extends EventEmitter {
+
+	private myself: TestClass
+
+	constructor () {
+		super()
+
+		// circular reference, so that function that return self (such as EventEmitter.on can have trouble)
+		this.myself = this
+		this.myself = this.myself
+	}
+
 	public returnValue<T> (value: T): T {
 		return value
 	}
@@ -43,5 +56,11 @@ export class TestClass {
 		}
 		o.c = o
 		return o
+	}
+	public emitMessage (name: string, val: any) {
+		this.emit(name, val)
+	}
+	public getSelf (): TestClass {
+		return this
 	}
 }

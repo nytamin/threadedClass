@@ -150,7 +150,7 @@ export abstract class Worker {
 	protected abstract killInstance (handle: InstanceHandle): void
 
 	protected decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
-		return decodeArguments(args, (a: ArgDefinition) => {
+		return decodeArguments(handle.instance, args, (a: ArgDefinition) => {
 			return ((...args: any[]) => {
 				return new Promise((resolve, reject) => {
 					const callbackId = a.value
@@ -171,8 +171,8 @@ export abstract class Worker {
 			})
 		})
 	}
-	protected encodeArgumentsToParent (args: any[]): ArgDefinition[] {
-		return encodeArguments(this.callbacks, args, this.disabledMultithreading)
+	protected encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {
+		return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading)
 	}
 
 	protected reply (handle: InstanceHandle, m: MessageToChild, reply: any) {
@@ -393,7 +393,7 @@ export abstract class Worker {
 				) // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
 				Promise.resolve(p)
 				.then((result) => {
-					const encodedResult = this.encodeArgumentsToParent([result])
+					const encodedResult = this.encodeArgumentsToParent(instance, [result])
 					this.reply(handle, msg, encodedResult[0])
 				})
 				.catch((err) => {
@@ -419,7 +419,7 @@ export abstract class Worker {
 					try {
 						Promise.resolve(callback(...msg.args))
 						.then((result: any) => {
-							const encodedResult = this.encodeArgumentsToParent([result])
+							const encodedResult = this.encodeArgumentsToParent(instance, [result])
 							this.reply(handle, msg, encodedResult[0])
 						})
 						.catch((err: Error) => {
@@ -472,10 +472,14 @@ export abstract class Worker {
 	}
 }
 let argumentsCallbackId: number = 0
-export function encodeArguments (callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
+export function encodeArguments (instance: any, callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
 	try {
 		return args.map((arg, i): ArgDefinition => {
 			try {
+
+				if (typeof arg === 'object' && arg === instance) {
+					return { type: ArgumentType.OBJECT, value: 'self' }
+				}
 
 				if (disabledMultithreading) {
 					// In single-threaded mode, we can send the arguments directly, without any conversion:
@@ -494,6 +498,7 @@ export function encodeArguments (callbacks: {[key: string]: Function}, args: any
 				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 				if (arg === null) return { type: ArgumentType.NULL, value: arg }
 				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
+
 				return { type: ArgumentType.OTHER, value: arg }
 			} catch (e) {
 				if (e.stack) e.stack += '\nIn encodeArguments, argument ' + i
@@ -506,7 +511,7 @@ export function encodeArguments (callbacks: {[key: string]: Function}, args: any
 	}
 }
 export type ArgCallback = (...args: any[]) => Promise<any>
-export function decodeArguments (args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
+export function decodeArguments (instance: any, args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
 	// Go through arguments and de-serialize them
 	return args.map((a) => {
 		if (a.original !== undefined) return a.original
@@ -519,7 +524,13 @@ export function decodeArguments (args: Array<ArgDefinition>, getCallback: (arg: 
 		if (a.type === ArgumentType.FUNCTION) {
 			return getCallback(a)
 		}
-		if (a.type === ArgumentType.OBJECT) return JSON.parse(a.value)
+		if (a.type === ArgumentType.OBJECT) {
+			if (a.value === 'self') {
+				return instance
+			} else {
+				return JSON.parse(a.value)
+			}
+		}
 		return a.value
 	})
 }
