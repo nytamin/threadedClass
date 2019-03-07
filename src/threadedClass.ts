@@ -184,6 +184,7 @@ export function threadedClass<T> (
 				proxy,
 				pathToModule,
 				orgClassName,
+				orgClass,
 				constructorArgs,
 				onMessage
 			)
