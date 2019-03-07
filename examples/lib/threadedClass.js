@@ -243,7 +243,18 @@ class Worker {
                         return module[msg.className];
                     });
                 }
-                pModuleClass.then((moduleClass) => {
+                pModuleClass
+                    .then((moduleClass) => {
+                    if (m.classFunction) {
+                        // In single thread mode.
+                        // When classFunction is provided, use that instead of the imported js file.
+                        return m.classFunction;
+                    }
+                    else {
+                        return moduleClass;
+                    }
+                })
+                    .then((moduleClass) => {
                     const handle = {
                         id: msg.instanceId,
                         cmdId: 0,
@@ -617,7 +628,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
      * @param proxy
      * @param onMessage
      */
-    attachInstance(config, child, proxy, pathToModule, className, constructorArgs, onMessage) {
+    attachInstance(config, child, proxy, pathToModule, className, classFunction, constructorArgs, onMessage) {
         const instance = {
             id: 'instance_' + this._instanceId++,
             child: child,
@@ -627,6 +638,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             onMessageCallback: onMessage,
             pathToModule: pathToModule,
             className: className,
+            classFunction: classFunction,
             constructorArgs: constructorArgs,
             initialized: false,
             config: config
@@ -810,6 +822,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             cmd: internalApi_1.MessageType.INIT,
             modulePath: instance.pathToModule,
             className: instance.className,
+            classFunction: (config.disableMultithreading ? instance.classFunction : undefined),
             args: instance.constructorArgs,
             config: config
         };
@@ -1209,7 +1222,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
             }
             const child = manager_1.ThreadedClassManagerInternal.getChild(config, pathToWorker);
             const proxy = {};
-            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstance(config, child, proxy, pathToModule, orgClassName, constructorArgs, onMessage);
+            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstance(config, child, proxy, pathToModule, orgClassName, orgClass, constructorArgs, onMessage);
             manager_1.ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance, err, props) => {
                 // This callback is called from the worker process, with a list of supported properties of the c
                 if (err) {

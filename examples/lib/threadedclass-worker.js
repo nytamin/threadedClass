@@ -168,7 +168,18 @@ class Worker {
                         return module[msg.className];
                     });
                 }
-                pModuleClass.then((moduleClass) => {
+                pModuleClass
+                    .then((moduleClass) => {
+                    if (m.classFunction) {
+                        // In single thread mode.
+                        // When classFunction is provided, use that instead of the imported js file.
+                        return m.classFunction;
+                    }
+                    else {
+                        return moduleClass;
+                    }
+                })
+                    .then((moduleClass) => {
                     const handle = {
                         id: msg.instanceId,
                         cmdId: 0,
