@@ -47,6 +47,7 @@ export interface MessageInitConstr {
 	cmd: MessageType.INIT
 	modulePath: string
 	className: string
+	classFunction?: Function // only used in single-thread mode
 	args: Array<ArgDefinition>
 	config: ThreadedClassConfig
 }
@@ -248,6 +249,7 @@ export abstract class Worker {
 				this._config = m.config
 
 				let pModuleClass: Promise<any>
+
 				if (isBrowser()) {
 					pModuleClass = new Promise((resolve, reject) => {
 						// @ts-ignore
@@ -292,7 +294,17 @@ export abstract class Worker {
 					})
 				}
 
-				pModuleClass.then((moduleClass) => {
+				pModuleClass
+				.then((moduleClass) => {
+					if (m.classFunction) {
+						// In single thread mode.
+						// When classFunction is provided, use that instead of the imported js file.
+						return m.classFunction
+					} else {
+						return moduleClass
+					}
+				})
+				.then((moduleClass) => {
 
 					const handle: InstanceHandle = {
 						id: msg.instanceId,

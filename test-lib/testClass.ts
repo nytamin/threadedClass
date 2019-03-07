@@ -11,7 +11,9 @@ export class TestClass extends EventEmitter {
 		this.myself = this
 		this.myself = this.myself
 	}
-
+	public getId (): string {
+		return 'abc'
+	}
 	public returnValue<T> (value: T): T {
 		return value
 	}
