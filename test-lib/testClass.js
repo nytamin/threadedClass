@@ -8,6 +8,9 @@ class TestClass extends events_1.EventEmitter {
         this.myself = this;
         this.myself = this.myself;
     }
+    getId() {
+        return 'abc';
+    }
     returnValue(value) {
         return value;
     }

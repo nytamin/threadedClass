@@ -10,6 +10,7 @@ import { TestClass } from '../../test-lib/testClass'
 
 const HOUSE_PATH = '../../test-lib/house.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
+const TESTCLASS_PATH_UNSYNCED = '../../test-lib/testClass-unsynced.js'
 
 // function wait (time: number) {
 // 	return new Promise((resolve) => {
@@ -540,6 +541,20 @@ const getTests = (disableMultithreading: boolean) => {
 			let self = await threaded.getSelf()
 
 			expect(self).toEqual(threaded)
+
+		})
+		test('import typescript', async () => {
+			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH_UNSYNCED, TestClass, [], { disableMultithreading })
+
+			let id = await threaded.getId()
+
+			if (disableMultithreading) {
+				// expect the ts file to have been loaded:
+				expect(id).toEqual('abc')
+			} else {
+				// expect the js file to have been loaded:
+				expect(id).toEqual('unsynced')
+			}
 
 		})
 	}
