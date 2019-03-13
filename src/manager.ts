@@ -235,9 +235,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	public sendMessageToChild (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
-			if (!instance.child) throw Error('Instance has been detached from child process')
-			if (!instance.child.alive) throw Error('Child process has been closed')
-			if (instance.child.isClosing) throw Error('Child process is closing')
+			if (!instance.child) throw new Error('Instance has been detached from child process')
+			if (!instance.child.alive) throw new Error('Child process has been closed')
+			if (instance.child.isClosing) throw new Error('Child process is closing')
 			const message: MessageToChild = {...messageConstr, ...{
 				cmdId: instance.child.cmdId++,
 				instanceId: instance.id
@@ -249,17 +249,25 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			) throw Error('Child instance is not initialized')
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
-			instance.child.process.send(message, (error) => {
-				if (error) {
-					if (instance.child.queue[message.cmdId + '']) {
-						instance.child.queue[message.cmdId + ''](
-							instance,
-							new Error('Error sending message to child process: ' + error)
-						)
-						delete instance.child.queue[message.cmdId + '']
+			try {
+				instance.child.process.send(message, (error) => {
+					if (error) {
+						if (instance.child.queue[message.cmdId + '']) {
+							instance.child.queue[message.cmdId + ''](
+								instance,
+								new Error('Error sending message to child process: ' + error)
+							)
+							delete instance.child.queue[message.cmdId + '']
+						}
 					}
+				})
+			} catch (e) {
+				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
+					throw new Error('Unsupported attribute (circular structure): ' + e.toString())
+				} else {
+					throw e
 				}
-			})
+			}
 		} catch (e) {
 			if (cb) cb(instance, (e.stack || e).toString())
 			else throw e

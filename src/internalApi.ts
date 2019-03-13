@@ -509,7 +509,7 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 				}
 				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 				if (arg === null) return { type: ArgumentType.NULL, value: arg }
-				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) }
+				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: arg }
 
 				return { type: ArgumentType.OTHER, value: arg }
 			} catch (e) {
@@ -540,7 +540,7 @@ export function decodeArguments (instance: any, args: Array<ArgDefinition>, getC
 			if (a.value === 'self') {
 				return instance
 			} else {
-				return JSON.parse(a.value)
+				return a.value
 			}
 		}
 		return a.value

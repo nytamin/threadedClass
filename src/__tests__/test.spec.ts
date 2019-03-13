@@ -557,6 +557,37 @@ const getTests = (disableMultithreading: boolean) => {
 			}
 
 		})
+		test('circular object', async () => {
+			let original = new TestClass()
+
+			expect(original.returnValue('asdf')).toEqual('asdf')
+
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+			let onClosed = jest.fn()
+			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+
+			if (disableMultithreading) {
+				// circular objects should be supported when running in single thread
+				expect(await threaded.getCircular('asdf')).toMatchObject({
+					a: 1,
+					b: 2,
+					val: 'asdf'
+				})
+			} else {
+				let error: any = null
+				try {
+					await threaded.getCircular('asdf')
+				} catch (e) {
+					error = e
+				}
+				expect(error.toString()).toMatch(/circular/)
+			}
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+			expect(onClosed).toHaveBeenCalledTimes(1)
+		})
 	}
 }
 
@@ -566,27 +597,6 @@ describe('threadedclass single thread', getTests(true))
 // Test on behaviour that differ bewteen Multi-threading vs none
 describe('single-thread tests', () => {
 	const disableMultithreading = true
-	test('circular object', async () => {
-		let original = new TestClass()
-
-		expect(original.returnValue('asdf')).toEqual('asdf')
-
-		let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
-		let onClosed = jest.fn()
-		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
-
-		// circular objects should be supported when running in single thread
-		expect(await threaded.getCircular('asdf')).toMatchObject({
-			a: 1,
-			b: 2,
-			val: 'asdf'
-		})
-
-		await ThreadedClassManager.destroy(threaded)
-		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-
-		expect(onClosed).toHaveBeenCalledTimes(1)
-	})
 	test('Buffer', async () => {
 		let original = new TestClass()
 
