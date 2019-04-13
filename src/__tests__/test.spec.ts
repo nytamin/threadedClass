@@ -7,6 +7,7 @@ import {
 } from '../index'
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
+import { ThreadMode } from '../manager'
 
 const HOUSE_PATH = '../../test-lib/house.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
@@ -375,11 +376,17 @@ const getTests = (disableMultithreading: boolean) => {
 				} catch (e) {
 					returnError = e
 				}
-				if (!disableMultithreading) { // When running in single-thread, allow circular objects
-					expect(returnError).toBeTruthy()
-					expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
-				} else {
+				if (disableMultithreading) {
+					// When running in single-thread, allow circular objects
 					expect(returnError).toBeNull()
+				} else {
+					if (ThreadedClassManager.getThreadMode() === ThreadMode.WORKER_THREADS) {
+						// In Worker_threads, circular objects CAN be sent
+						expect(returnError).toBeNull()
+					} else {
+						expect(returnError).toBeTruthy()
+						expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
+					}
 				}
 			}
 
@@ -566,8 +573,10 @@ const getTests = (disableMultithreading: boolean) => {
 			let onClosed = jest.fn()
 			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
-			if (disableMultithreading) {
-				// circular objects should be supported when running in single thread
+			if (
+				disableMultithreading || // circular objects should be supported when running in single thread
+				ThreadedClassManager.getThreadMode() === ThreadMode.WORKER_THREADS // When using worker_threads, circular objects are allowed
+			) {
 				expect(await threaded.getCircular('asdf')).toMatchObject({
 					a: 1,
 					b: 2,
