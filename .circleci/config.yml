@@ -129,6 +129,7 @@ workflows:
           requires:
             - Check for vulnerabilities
             - Test node-8
+            - Test node-11
           filters:
             branches:
               only:
