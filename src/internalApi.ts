@@ -250,6 +250,8 @@ export abstract class Worker {
 
 				let pModuleClass: Promise<any>
 
+				// Load in the class:
+
 				if (isBrowser()) {
 					pModuleClass = new Promise((resolve, reject) => {
 						// @ts-ignore

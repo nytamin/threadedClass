@@ -15,8 +15,9 @@ import {
 	DEFAULT_CHILD_FREEZE_TIME
 } from './internalApi'
 import { EventEmitter } from 'events'
-import { isNodeJS, isBrowser } from './lib'
+import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from './lib'
 import { forkWebWorker, WebWorkerProcess } from './webWorkers'
+import { forkWorkerThread } from './workerThreads'
 
 export class ThreadedClassManagerClass {
 
@@ -52,6 +53,25 @@ export class ThreadedClassManagerClass {
 	 */
 	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		return this._internal.restart(proxy, forceRestart)
+	}
+	/**
+	 * Returns a description of what threading mode the library will use in the current context.
+	 */
+	public getThreadMode (): ThreadMode {
+
+		if (isBrowser()) {
+			if (browserSupportsWebWorkers()) {
+				return ThreadMode.WEB_WORKER
+			} else {
+				return ThreadMode.NOT_SUPPORTED
+			}
+		} else {
+			if (nodeSupportsWorkerThreads()) {
+				return ThreadMode.WORKER_THREADS
+			} else {
+				return ThreadMode.CHILD_PROCESS
+			}
+		}
 	}
 }
 /**
@@ -458,7 +478,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			!this.dontHandleExit
 		) {
 
-			if (isNodeJS()) { // in NodeJS
+			if (!isBrowser()) { // in NodeJS
 
 				// Close the child processes upon exit:
 				process.stdin.resume() // so the program will not close instantly
@@ -542,7 +562,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (isBrowser()) {
 				return forkWebWorker(pathToWorker)
 			} else {
-				return fork(pathToWorker)
+				// in NodeJS
+				if (nodeSupportsWorkerThreads()) {
+					return forkWorkerThread(pathToWorker)
+				} else {
+					return fork(pathToWorker)
+				}
 			}
 		}
 	}
@@ -649,6 +674,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.methods = {}
 	}
 }
+
+export enum ThreadMode {
+	/** Web-workers, in browser */
+	WEB_WORKER = 'web_worker',
+	/** Nothing, Web-workers not supported */
+	NOT_SUPPORTED = 'not_supported',
+	/** Worker threads */
+	WORKER_THREADS = 'worker_threads',
+	/** Child process */
+	CHILD_PROCESS = 'child_process'
+}
+
 // Singleton:
 export const ThreadedClassManagerInternal = new ThreadedClassManagerClassInternal()
 export const ThreadedClassManager = new ThreadedClassManagerClass(ThreadedClassManagerInternal)

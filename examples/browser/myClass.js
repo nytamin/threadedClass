@@ -12,4 +12,11 @@ class MyClass {
         }
         return result
     }
+    simple() {
+    }
+    oneWay(a) {
+    }
+    twoWay(a) {
+        return a
+    }
 }

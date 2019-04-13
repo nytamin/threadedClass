@@ -65,31 +65,31 @@
   },
   "devDependencies": {
     "@types/callsites": "^2.0.0",
-    "@types/jest": "^24.0.9",
-    "@types/node": "^8.0.4",
+    "@types/jest": "^24.0.11",
+    "@types/node": "^11.13.4",
     "browserify": "^16.2.3",
     "casparcg-connection": "^3.0.1",
-    "codecov": "^3.2.0",
+    "codecov": "^3.3.0",
     "gh-pages": "^2.0.1",
     "gulp": "^4.0.0",
     "gulp-rename": "^1.4.0",
-    "gulp-sourcemaps": "^2.6.4",
-    "gulp-uglify": "^3.0.1",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-uglify": "^3.0.2",
     "gulp-uglify-es": "^1.0.4",
-    "jest": "^24.1.0",
+    "jest": "^24.7.1",
     "mkdirp": "^0.5.1",
     "npm-scripts-info": "^0.3.9",
     "nyc": "^13.3.0",
-    "opn-cli": "^4.0.0",
+    "opn-cli": "^4.1.0",
     "sleep-ms": "^2.0.1",
-    "standard-version": "^5.0.0",
+    "standard-version": "^5.0.2",
     "trash-cli": "^1.4.0",
-    "ts-jest": "^24.0.0",
-    "tslint": "^5.13.0",
+    "ts-jest": "^24.0.2",
+    "tslint": "^5.15.0",
     "tslint-config-standard": "^8.0.1",
     "typedoc": "^0.14.2",
     "typescript": "^3.2.2",
-    "uglify-js": "^3.4.9",
+    "uglify-js": "^3.5.4",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
   },
@@ -101,6 +101,7 @@
     "typedoc/highlight.js/**/uglify-js": "^2.6.0",
     "typedoc/highlight.js/**/handlebars": "^4.0.13",
     "typedoc/highlight.js/**/mime": "^1.4.1",
+    "typedoc/**/marked": "^0.6.2",
     "**/minimatch": "^3.0.2",
     "**/micromatch/braces": "^2.3.1"
   },
@@ -112,6 +113,6 @@
   ],
   "dependencies": {
     "callsites": "^2.0.0",
-    "tslib": "^1.6.0"
+    "tslib": "^1.9.3"
   }
 }

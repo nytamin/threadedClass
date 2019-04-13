@@ -7,16 +7,24 @@ import {
 	Worker,
 	MessageType
 } from './internalApi'
-import { isBrowser } from './lib'
+import { isBrowser, nodeSupportsWorkerThreads, getWorkerThreads } from './lib'
+
+const WorkerThreads = getWorkerThreads()
 
 /* This file is the one that is launched in the worker child process */
 
 function send (message: any) {
 
-	if (process.send) {
+	if (WorkerThreads) {
+		if (WorkerThreads.parentPort) {
+			WorkerThreads.parentPort.postMessage(message)
+		} else {
+			throw Error('WorkerThreads.parentPort not set!')
+		}
+	} else if (process.send) {
 		process.send(message)
 
-		// @ts-ignore
+		// @ts-ignore global postMessage
 	} else if (postMessage) {
 		// @ts-ignore
 		postMessage(message)
@@ -49,16 +57,7 @@ class ThreadedWorker extends Worker {
 }
 // const _orgConsoleLog = console.log
 
-if (process.send) {
-	const worker = new ThreadedWorker()
-	console.log = worker.log
-	console.error = worker.logError
-	process.on('message', (m: MessageToChild) => {
-		// Received message from parent
-		worker.onMessageFromParent(m)
-	})
-	// @ts-ignore
-} else if (isBrowser()) {
+if (isBrowser()) {
 	const worker = new ThreadedWorker()
 	// console.log = worker.log
 	// @ts-ignore global onmessage
@@ -70,6 +69,32 @@ if (process.send) {
 			console.log('child process: onMessage', m)
 		}
 	}
+} else if (nodeSupportsWorkerThreads()) {
+
+	if (WorkerThreads) {
+		const worker = new ThreadedWorker()
+		console.log = worker.log
+		console.error = worker.logError
+
+		if (WorkerThreads.parentPort) {
+			WorkerThreads.parentPort.on('message', (m: MessageToChild) => {
+				// Received message from parent
+				worker.onMessageFromParent(m)
+			})
+		} else {
+			throw Error('WorkerThreads.parentPort not set!')
+		}
+	} else {
+		throw Error('WorkerThreads not available!')
+	}
+} else if (process.send) {
+	const worker = new ThreadedWorker()
+	console.log = worker.log
+	console.error = worker.logError
+	process.on('message', (m: MessageToChild) => {
+		// Received message from parent
+		worker.onMessageFromParent(m)
+	})
 } else {
 	throw Error('process.send and onmessage are undefined!')
 }
