@@ -61,9 +61,9 @@ export class WorkerThread extends EventEmitter implements ChildProcess {
 	}
 
 	kill (): void {
-		this.worker.terminate()
-
-		this.emit('close')
+		this.worker.terminate(() => {
+			this.emit('close')
+		})
 		// throw new Error('Function kill in Worker Threads is not implemented.')
 	}
 
