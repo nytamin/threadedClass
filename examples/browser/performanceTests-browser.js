@@ -1,9 +1,12 @@
 
-const { threadedClass, ThreadedClassManager } = require('../dist')
-
-const testData = require('./testData.js')
-const { TestClass } = require('./testClass.js')
-const CLASS_PATH = './testClass.js' // This is the path to the js-file (not a ts-file!) that contains the class
+var threadedClass = ThreadedClass.threadedClass
+var ThreadedClassManager = ThreadedClass.ThreadedClassManager
+const testData = {
+    string: 'alkdfjnawiefbalwkbr3lkh4rb2lj4rb2l3h4bfljh34bf',
+    number: 21351.1513132118,
+    object: {asfgsdfg: 'asdfawf3', bdfghdfgh: '56he5h6e5he', certyertyerty: 3, ddhfgty4353g4: 'fi3h4fi34fhi3f', esdfgsg4g4rgwerg: { asegseryujtyuj: 1, besgw3r3grw34g: 'f3i473w4ufgi34gf3w64ufg3'}}
+}
+const CLASS_PATH = '../myClass.js' // This is the path to the js-file (not a ts-file!) that contains the class
 
 async function runTests () {
 
@@ -59,8 +62,10 @@ async function twoWay (data) {
 
 async function prepareTest (fcnName, data) {
 
-	let original = new TestClass()
-	let threaded = await threadedClass(CLASS_PATH, TestClass, [])
+	let original = new MyClass()
+	let threaded = await threadedClass(CLASS_PATH, MyClass, [], {
+		pathToWorker: 'threadedclass-worker.js'
+	})
 	
 	var orgFcn = original[fcnName]
 	var threadFcn = threaded[fcnName]
@@ -89,17 +94,18 @@ async function runTest (fcn, checkIteration) {
 	while (elapsedTime < minElapsedTime) {
 		for (var i = 0; i < checkIteration; i++) {
 			await fcn()
+			runCount++
 		}
-		runCount += 100
 		elapsedTime = Date.now() - startTime
 	}
 
 	return elapsedTime / runCount
 	return (Math.round((elapsedTime / runCount)*1000000)/1000000)
 }
+window.runTests = runTests
 
-runTests()
-.catch(console.log)
+// runTests()
+// .catch(console.log)
 
 
 
