@@ -15,7 +15,7 @@ gulp.task('browserify-main', function () {
 		entries: './dist/index.js',
 		standalone: 'ThreadedClass',
 		debug: true
-	});
+	}).exclude('worker_threads')
 	return b.bundle()
 		.pipe(source('app.js'))
 		.pipe(rename("threadedClass.js"))
@@ -30,7 +30,7 @@ gulp.task('browserify-worker', function () {
 	var b = browserify({
 		entries: './dist/threadedclass-worker.js',
 		debug: true
-	});
+	}).exclude('worker_threads')
 	return b.bundle()
 		.pipe(source('app.js'))
 		.pipe(rename("threadedclass-worker.js"))
@@ -46,7 +46,7 @@ gulp.task('minify-main', function () {
 		entries: './dist/index.js',
 		standalone: 'ThreadedClass',
 		debug: true
-	});
+	}).exclude('worker_threads')
 	return b.bundle()
 		.pipe(source('app.js'))
 		.pipe(rename("threadedClass.min.js"))
@@ -62,7 +62,7 @@ gulp.task('minify-worker', function () {
 	var b = browserify({
 		entries: './dist/threadedclass-worker.js',
 		debug: true
-	});
+	}).exclude('worker_threads')
 	return b.bundle()
 		.pipe(source('app.js'))
 		.pipe(rename("threadedclass-worker.min.js"))

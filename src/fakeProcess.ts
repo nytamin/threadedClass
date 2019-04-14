@@ -1,4 +1,4 @@
-import { ChildProcess, StdioStreams } from 'child_process'
+import { ChildProcess } from 'child_process'
 import { Writable, Readable } from 'stream'
 import { EventEmitter } from 'events'
 import {
@@ -48,7 +48,13 @@ export class FakeProcess extends EventEmitter implements ChildProcess {
 	stdin: Writable
 	stdout: Readable
 	stderr: Readable
-	stdio: StdioStreams
+	readonly stdio: [
+		Writable, // stdin
+		Readable, // stdout
+		Readable, // stderr
+		Readable | Writable | null | undefined, // extra, no modification
+		Readable | Writable | null | undefined // extra, no modification
+	]
 	killed: boolean = false
 	pid: number = 0
 	connected: boolean = true
