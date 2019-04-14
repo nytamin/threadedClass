@@ -36,7 +36,7 @@
     "docs:html": "typedoc src/index.ts --excludePrivate --mode file --theme minimal --out docs",
     "docs:json": "typedoc --mode file --json docs/typedoc.json src/index.ts",
     "docs:prepare": "yarn docs:html && yarn build:all && yarn docs:copy",
-    "docs:publish": "yarn docs:prepare && gh-pages -d docs",
+    "docs:publish": "yarn docs:prepare && gh-pages -d docs -m \"Updates [skip ci]\"",
     "docs:copy": "gulp copy-to-docs",
     "help": "gh-pages -h",
     "changelog": "standard-version",

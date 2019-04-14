@@ -5,6 +5,10 @@
 Fork instances of classes (while keeping typings) with one line of code.
 
 ## Getting started
+
+```
+npm install threadedclass
+```
 Let's say you have a class that has several computational-heavy methods:
 ```typescript
 // Normal, single-threaded way:
