@@ -84,14 +84,14 @@ threadedClass('./professor.js', Professor, ['maths', 'greek'])
 ### Options
 An optional options object can be passed to threadedClass() with the following properties:
 
-* **threadUsage** _Optional_ number
-   <br>A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances.
-* **threadId** _Optional_ string
-   <br>Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread.
-* **disableMultithreading** _Optional_ boolean
-   <br>Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged.
-* *Not implemented yet:* **autoRestart** _Optional_ boolean
-   <br>Set to true to automatically restart a crashed thread. ThreadedClassManager will emit the "restarted" event upon restart.
+| Option | Type | Description |
+|--|--|--|
+| `threadUsage` | number | A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. |
+| `threadId` | string | Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread. |
+| `autoRestart` | boolean | If the process crashes or freezes it's automatically restarted. (ThreadedClassManager will emit the "restarted" event upon restart) |
+| `disableMultithreading` | boolean | Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. |
+| `pathToWorker` | string | Set path to worker, used in browser |
+| `freezeLimit` | number | (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms) |
 
 ## Features
 
@@ -109,7 +109,7 @@ When calling a method of your threaded instance (`threaded.myMethod()`), there a
 * Functions (such as callbacks or returned functions)
 
 #### Unsupported data types
-* Non-JSON-encodable types, such as objects with *cyclic references* (except when in worker_threads).
+* Non-JSON-encodable types, such as objects with *cyclic references* (except when in worker_threads, then it's fine).
 * Instances of classes (the instance will be serialized as JSON and piped through, but its methods will not).
 
 ## Known limitations
@@ -121,20 +121,27 @@ When calling a method of your threaded instance (`threaded.myMethod()`), there a
 ## Under the hood
 ### Used API:s
 Different API:s will be used for threading, depending on the platform:
+
 | Platform | API used   |
 | --- | -- |
 | [Browser](https://caniuse.com/#feat=webworkers) | Web-workers |
 | NodeJS <10.x | Child process |
-| NodeJS 10.x - 11.7 | Worker-threads (if enabling `node --experimental-worker`) |
+| NodeJS 10.x - 11.7 | Worker-threads (if `node --experimental-worker` flag is enabled) |
 | NodeJS >11.8 | Worker-threads |
 
-### Tips on performance
+### Notes on performance
 Doing method-calls to threads is slower than when running in a single thread. The greatest benefit comes when there is heavy computations to be made.
 
-This table shows measured round-trip times of [calling a method](https://github.com/nytamin/threadedClass/blob/master/performance-test/index.js):
-| API | Avg response time per call |
-|--|--|
-| Single-thread | 0.000080 ms per call |
-| Browser (Web-workers) |  |
-| NodeJS (Child process) | 0.080000 ms per call |
-| NodeJS (Worker-threads) | 0.045000 ms / call |
+This table shows measured round-trip times of [just calling a method](https://github.com/nytamin/threadedClass/blob/master/performance-test/index.js):
+
+| Platform | API used | Avg. time per call |
+|--|--|--|
+| NodeJS 8.9.x     | Single-thread mode   | 0.000200 ms per call     |
+| NodeJS 8.9.x     | Child process        | **0.117000** ms per call |
+| NodeJS 10.15.x   | Single-thread mode   | 0.000080 ms per call     |
+| NodeJS 10.15.x   | Child process        | **0.090000** ms per call |
+| NodeJS 10.15.x   | Worker-threads       | **0.045000** ms per call |
+| NodeJS 11.14.x   | Single-thread mode   | 0.000085 ms per call     |
+| NodeJS 11.14.x   | Worker-threads       | **0.047000** ms per call |
+| Browser (Chrome) | Single-thread mode   | 0.001500 ms per call     |
+| Browser (Chrome) | Web-workers          | **0.140000** ms per call |
