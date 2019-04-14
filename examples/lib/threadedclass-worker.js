@@ -125,6 +125,7 @@ class Worker {
                 const msg = m;
                 this._config = m.config;
                 let pModuleClass;
+                // Load in the class:
                 if (lib_1.isBrowser()) {
                     pModuleClass = new Promise((resolve, reject) => {
                         // @ts-ignore
@@ -386,7 +387,7 @@ function encodeArguments(instance, callbacks, args, disabledMultithreading) {
                 if (arg === null)
                     return { type: ArgumentType.NULL, value: arg };
                 if (typeof arg === 'object')
-                    return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) };
+                    return { type: ArgumentType.OBJECT, value: arg };
                 return { type: ArgumentType.OTHER, value: arg };
             }
             catch (e) {
@@ -426,7 +427,7 @@ function decodeArguments(instance, args, getCallback) {
                 return instance;
             }
             else {
-                return JSON.parse(a.value);
+                return a.value;
             }
         }
         return a.value;
@@ -440,33 +441,56 @@ exports.decodeArguments = decodeArguments;
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Returns true if running in th browser (if not, then we're in NodeJS)
+ */
 function isBrowser() {
     return !(process && process.hasOwnProperty('stdin'));
 }
 exports.isBrowser = isBrowser;
-function isNodeJS() {
-    return !isBrowser();
-}
-exports.isNodeJS = isNodeJS;
 function browserSupportsWebWorkers() {
     // @ts-ignore
     return !!(isBrowser() && window.Worker);
 }
 exports.browserSupportsWebWorkers = browserSupportsWebWorkers;
+function nodeSupportsWorkerThreads() {
+    const workerThreads = getWorkerThreads();
+    return !!workerThreads;
+}
+exports.nodeSupportsWorkerThreads = nodeSupportsWorkerThreads;
+function getWorkerThreads() {
+    try {
+        const workerThreads = require('worker_threads');
+        return workerThreads;
+    }
+    catch (e) {
+        return null;
+    }
+}
+exports.getWorkerThreads = getWorkerThreads;
 
 }).call(this,require('_process'))
 
-},{"_process":7}],3:[function(require,module,exports){
+},{"_process":7,"worker_threads":undefined}],3:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const internalApi_1 = require("./internalApi");
 const lib_1 = require("./lib");
+const WorkerThreads = lib_1.getWorkerThreads();
 /* This file is the one that is launched in the worker child process */
 function send(message) {
-    if (process.send) {
+    if (WorkerThreads) {
+        if (WorkerThreads.parentPort) {
+            WorkerThreads.parentPort.postMessage(message);
+        }
+        else {
+            throw Error('WorkerThreads.parentPort not set!');
+        }
+    }
+    else if (process.send) {
         process.send(message);
-        // @ts-ignore
+        // @ts-ignore global postMessage
     }
     else if (postMessage) {
         // @ts-ignore
@@ -503,17 +527,7 @@ class ThreadedWorker extends internalApi_1.Worker {
     }
 }
 // const _orgConsoleLog = console.log
-if (process.send) {
-    const worker = new ThreadedWorker();
-    console.log = worker.log;
-    console.error = worker.logError;
-    process.on('message', (m) => {
-        // Received message from parent
-        worker.onMessageFromParent(m);
-    });
-    // @ts-ignore
-}
-else if (lib_1.isBrowser()) {
+if (lib_1.isBrowser()) {
     const worker = new ThreadedWorker();
     // console.log = worker.log
     // @ts-ignore global onmessage
@@ -526,6 +540,34 @@ else if (lib_1.isBrowser()) {
             console.log('child process: onMessage', m);
         }
     };
+}
+else if (lib_1.nodeSupportsWorkerThreads()) {
+    if (WorkerThreads) {
+        const worker = new ThreadedWorker();
+        console.log = worker.log;
+        console.error = worker.logError;
+        if (WorkerThreads.parentPort) {
+            WorkerThreads.parentPort.on('message', (m) => {
+                // Received message from parent
+                worker.onMessageFromParent(m);
+            });
+        }
+        else {
+            throw Error('WorkerThreads.parentPort not set!');
+        }
+    }
+    else {
+        throw Error('WorkerThreads not available!');
+    }
+}
+else if (process.send) {
+    const worker = new ThreadedWorker();
+    console.log = worker.log;
+    console.error = worker.logError;
+    process.on('message', (m) => {
+        // Received message from parent
+        worker.onMessageFromParent(m);
+    });
 }
 else {
     throw Error('process.send and onmessage are undefined!');

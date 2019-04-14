@@ -65,7 +65,7 @@ class FakeProcess extends events_1.EventEmitter {
 }
 exports.FakeProcess = FakeProcess;
 
-},{"./internalApi":3,"events":12}],2:[function(require,module,exports){
+},{"./internalApi":3,"events":13}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
@@ -73,7 +73,7 @@ const manager_1 = require("./manager");
 exports.ThreadedClassManager = manager_1.ThreadedClassManager;
 tslib_1.__exportStar(require("./threadedClass"), exports);
 
-},{"./manager":5,"./threadedClass":6,"tslib":16}],3:[function(require,module,exports){
+},{"./manager":5,"./threadedClass":6,"tslib":17}],3:[function(require,module,exports){
 (function (process,Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -200,6 +200,7 @@ class Worker {
                 const msg = m;
                 this._config = m.config;
                 let pModuleClass;
+                // Load in the class:
                 if (lib_1.isBrowser()) {
                     pModuleClass = new Promise((resolve, reject) => {
                         // @ts-ignore
@@ -461,7 +462,7 @@ function encodeArguments(instance, callbacks, args, disabledMultithreading) {
                 if (arg === null)
                     return { type: ArgumentType.NULL, value: arg };
                 if (typeof arg === 'object')
-                    return { type: ArgumentType.OBJECT, value: JSON.stringify(arg) };
+                    return { type: ArgumentType.OBJECT, value: arg };
                 return { type: ArgumentType.OTHER, value: arg };
             }
             catch (e) {
@@ -501,7 +502,7 @@ function decodeArguments(instance, args, getCallback) {
                 return instance;
             }
             else {
-                return JSON.parse(a.value);
+                return a.value;
             }
         }
         return a.value;
@@ -511,27 +512,41 @@ exports.decodeArguments = decodeArguments;
 
 }).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":4,"_process":15,"buffer":10}],4:[function(require,module,exports){
+},{"./lib":4,"_process":16,"buffer":11}],4:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Returns true if running in th browser (if not, then we're in NodeJS)
+ */
 function isBrowser() {
     return !(process && process.hasOwnProperty('stdin'));
 }
 exports.isBrowser = isBrowser;
-function isNodeJS() {
-    return !isBrowser();
-}
-exports.isNodeJS = isNodeJS;
 function browserSupportsWebWorkers() {
     // @ts-ignore
     return !!(isBrowser() && window.Worker);
 }
 exports.browserSupportsWebWorkers = browserSupportsWebWorkers;
+function nodeSupportsWorkerThreads() {
+    const workerThreads = getWorkerThreads();
+    return !!workerThreads;
+}
+exports.nodeSupportsWorkerThreads = nodeSupportsWorkerThreads;
+function getWorkerThreads() {
+    try {
+        const workerThreads = require('worker_threads');
+        return workerThreads;
+    }
+    catch (e) {
+        return null;
+    }
+}
+exports.getWorkerThreads = getWorkerThreads;
 
 }).call(this,require('_process'))
 
-},{"_process":15}],5:[function(require,module,exports){
+},{"_process":16,"worker_threads":undefined}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -542,6 +557,7 @@ const internalApi_1 = require("./internalApi");
 const events_1 = require("events");
 const lib_1 = require("./lib");
 const webWorkers_1 = require("./webWorkers");
+const workerThreads_1 = require("./workerThreads");
 class ThreadedClassManagerClass {
     constructor(internal) {
         this._internal = internal;
@@ -574,6 +590,27 @@ class ThreadedClassManagerClass {
      */
     restart(proxy, forceRestart) {
         return this._internal.restart(proxy, forceRestart);
+    }
+    /**
+     * Returns a description of what threading mode the library will use in the current context.
+     */
+    getThreadMode() {
+        if (lib_1.isBrowser()) {
+            if (lib_1.browserSupportsWebWorkers()) {
+                return ThreadMode.WEB_WORKER;
+            }
+            else {
+                return ThreadMode.NOT_SUPPORTED;
+            }
+        }
+        else {
+            if (lib_1.nodeSupportsWorkerThreads()) {
+                return ThreadMode.WORKER_THREADS;
+            }
+            else {
+                return ThreadMode.CHILD_PROCESS;
+            }
+        }
     }
 }
 exports.ThreadedClassManagerClass = ThreadedClassManagerClass;
@@ -695,11 +732,11 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     sendMessageToChild(instance, messageConstr, cb) {
         try {
             if (!instance.child)
-                throw Error('Instance has been detached from child process');
+                throw new Error('Instance has been detached from child process');
             if (!instance.child.alive)
-                throw Error('Child process has been closed');
+                throw new Error('Child process has been closed');
             if (instance.child.isClosing)
-                throw Error('Child process is closing');
+                throw new Error('Child process is closing');
             const message = Object.assign({}, messageConstr, {
                 cmdId: instance.child.cmdId++,
                 instanceId: instance.id
@@ -709,14 +746,24 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 throw Error('Child instance is not initialized');
             if (cb)
                 instance.child.queue[message.cmdId + ''] = cb;
-            instance.child.process.send(message, (error) => {
-                if (error) {
-                    if (instance.child.queue[message.cmdId + '']) {
-                        instance.child.queue[message.cmdId + ''](instance, new Error('Error sending message to child process: ' + error));
-                        delete instance.child.queue[message.cmdId + ''];
+            try {
+                instance.child.process.send(message, (error) => {
+                    if (error) {
+                        if (instance.child.queue[message.cmdId + '']) {
+                            instance.child.queue[message.cmdId + ''](instance, new Error('Error sending message to child process: ' + error));
+                            delete instance.child.queue[message.cmdId + ''];
+                        }
                     }
+                });
+            }
+            catch (e) {
+                if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
+                    throw new Error('Unsupported attribute (circular structure): ' + e.toString());
                 }
-            });
+                else {
+                    throw e;
+                }
+            }
         }
         catch (e) {
             if (cb)
@@ -884,7 +931,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     _init() {
         if (!this.isInitialized &&
             !this.dontHandleExit) {
-            if (lib_1.isNodeJS()) { // in NodeJS
+            if (!lib_1.isBrowser()) { // in NodeJS
                 // Close the child processes upon exit:
                 process.stdin.resume(); // so the program will not close instantly
                 const exitHandler = (options, err) => {
@@ -965,7 +1012,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 return webWorkers_1.forkWebWorker(pathToWorker);
             }
             else {
-                return child_process_1.fork(pathToWorker);
+                // in NodeJS
+                if (lib_1.nodeSupportsWorkerThreads()) {
+                    return workerThreads_1.forkWorkerThread(pathToWorker);
+                }
+                else {
+                    return child_process_1.fork(pathToWorker);
+                }
             }
         }
     }
@@ -1071,13 +1124,24 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     }
 }
 exports.ThreadedClassManagerClassInternal = ThreadedClassManagerClassInternal;
+var ThreadMode;
+(function (ThreadMode) {
+    /** Web-workers, in browser */
+    ThreadMode["WEB_WORKER"] = "web_worker";
+    /** Nothing, Web-workers not supported */
+    ThreadMode["NOT_SUPPORTED"] = "not_supported";
+    /** Worker threads */
+    ThreadMode["WORKER_THREADS"] = "worker_threads";
+    /** Child process */
+    ThreadMode["CHILD_PROCESS"] = "child_process";
+})(ThreadMode = exports.ThreadMode || (exports.ThreadMode = {}));
 // Singleton:
 exports.ThreadedClassManagerInternal = new ThreadedClassManagerClassInternal();
 exports.ThreadedClassManager = new ThreadedClassManagerClass(exports.ThreadedClassManagerInternal);
 
 }).call(this,require('_process'))
 
-},{"./fakeProcess":1,"./internalApi":3,"./lib":4,"./webWorkers":7,"_process":15,"child_process":9,"events":12,"tslib":16}],6:[function(require,module,exports){
+},{"./fakeProcess":1,"./internalApi":3,"./lib":4,"./webWorkers":7,"./workerThreads":8,"_process":16,"child_process":10,"events":13,"tslib":17}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
@@ -1313,7 +1377,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
 }
 exports.threadedClass = threadedClass;
 
-},{"./internalApi":3,"./lib":4,"./manager":5,"callsites":11,"path":14}],7:[function(require,module,exports){
+},{"./internalApi":3,"./lib":4,"./manager":5,"callsites":12,"path":15}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
@@ -1379,7 +1443,70 @@ class WebWorkerProcess extends events_1.EventEmitter {
 }
 exports.WebWorkerProcess = WebWorkerProcess;
 
-},{"events":12}],8:[function(require,module,exports){
+},{"events":13}],8:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+const lib_1 = require("./lib");
+const WorkerThreads = lib_1.getWorkerThreads();
+const Worker = WorkerThreads ? WorkerThreads.Worker : undefined;
+/** Functions for spawning worker-threads in NodeJS */
+function forkWorkerThread(pathToWorker) {
+    return new WorkerThread(pathToWorker);
+}
+exports.forkWorkerThread = forkWorkerThread;
+class WorkerThread extends events_1.EventEmitter {
+    constructor(pathToWorker) {
+        super();
+        this.killed = false;
+        this.pid = 0;
+        this.connected = true;
+        // @ts-ignore
+        // this.worker = new window.Worker(pathToWorker)
+        if (!Worker)
+            throw new Error('Unable to create Worker thread! Not supported!');
+        this.worker = new Worker(pathToWorker, {
+            workerData: ''
+        });
+        this.worker.on('message', (message) => {
+            this.emit('message', message);
+            // if (message.type === 'message') {
+            // } else console.log('unknown message type', message)
+        });
+        this.worker.on('error', (error) => {
+            console.error('Worker Thread error', error);
+        });
+        this.worker.on('exit', (_code) => {
+            this.emit('close');
+        });
+        this.worker.on('close', () => {
+            this.emit('close');
+        });
+    }
+    kill() {
+        this.worker.terminate(() => {
+            this.emit('close');
+        });
+        // throw new Error('Function kill in Worker Threads is not implemented.')
+    }
+    send(message) {
+        this.worker.postMessage(message);
+        // this.worker.onMessageFromParent(m)
+        return true;
+    }
+    disconnect() {
+        throw new Error('Function disconnect in Worker Threads is not implemented.');
+    }
+    unref() {
+        throw new Error('Function unref in Worker Threads is not implemented.');
+    }
+    ref() {
+        throw new Error('Function ref in Worker Threads is not implemented.');
+    }
+}
+exports.WorkerThread = WorkerThread;
+
+},{"./lib":4,"events":13}],9:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1532,9 +1659,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],9:[function(require,module,exports){
-
 },{}],10:[function(require,module,exports){
+
+},{}],11:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -3313,7 +3440,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":8,"ieee754":13}],11:[function(require,module,exports){
+},{"base64-js":9,"ieee754":14}],12:[function(require,module,exports){
 'use strict';
 module.exports = () => {
 	const _ = Error.prepareStackTrace;
@@ -3323,7 +3450,7 @@ module.exports = () => {
 	return stack;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3848,7 +3975,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -3934,7 +4061,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -4241,7 +4368,7 @@ var substr = 'ab'.substr(-1) === 'b'
 
 }).call(this,require('_process'))
 
-},{"_process":15}],15:[function(require,module,exports){
+},{"_process":16}],16:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4427,7 +4554,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (global){
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
