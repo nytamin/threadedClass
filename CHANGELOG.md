@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+# [0.6.0](https://github.com/nytamin/threadedClass/compare/0.5.0...0.6.0) (2019-04-14)
+
+
+### Bug Fixes
+
+* proper termination of worker thread ([2850a70](https://github.com/nytamin/threadedClass/commit/2850a70))
+
+
+### Features
+
+* remove JSON.stringify, to increase performance (message is still stringified at send, no need to do it twice) ([28b53c9](https://github.com/nytamin/threadedClass/commit/28b53c9))
+* Support for worker_threads ([c6ee116](https://github.com/nytamin/threadedClass/commit/c6ee116))
+
+
+
 # [0.5.0](https://github.com/nytamin/threadedClass/compare/0.4.3...0.5.0) (2019-03-07)
 
 
