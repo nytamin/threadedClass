@@ -1662,6 +1662,7 @@ function fromByteArray (uint8) {
 },{}],10:[function(require,module,exports){
 
 },{}],11:[function(require,module,exports){
+(function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -3440,7 +3441,9 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":9,"ieee754":14}],12:[function(require,module,exports){
+}).call(this,require("buffer").Buffer)
+
+},{"base64-js":9,"buffer":11,"ieee754":14}],12:[function(require,module,exports){
 'use strict';
 module.exports = () => {
 	const _ = Error.prepareStackTrace;
@@ -4583,6 +4586,7 @@ var __exportStar;
 var __values;
 var __read;
 var __spread;
+var __spreadArrays;
 var __await;
 var __asyncGenerator;
 var __asyncDelegator;
@@ -4637,8 +4641,10 @@ var __importDefault;
         for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
             t[p] = s[p];
         if (s != null && typeof Object.getOwnPropertySymbols === "function")
-            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0)
-                t[p[i]] = s[p[i]];
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
         return t;
     };
 
@@ -4732,6 +4738,14 @@ var __importDefault;
         return ar;
     };
 
+    __spreadArrays = function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
+
     __await = function (v) {
         return this instanceof __await ? (this.v = v, this) : new __await(v);
     };
@@ -4791,6 +4805,7 @@ var __importDefault;
     exporter("__values", __values);
     exporter("__read", __read);
     exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
     exporter("__await", __await);
     exporter("__asyncGenerator", __asyncGenerator);
     exporter("__asyncDelegator", __asyncDelegator);
