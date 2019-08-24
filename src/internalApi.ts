@@ -380,7 +380,9 @@ export abstract class Worker {
 					console.log('INIT error', e)
 				})
 
-				this.startOrphanMonitoring()
+				if (!m.config.disableMultithreading) {
+					this.startOrphanMonitoring()
+				}
 
 			} else if (m.cmd === MessageType.PING) {
 				this._pingCount++
