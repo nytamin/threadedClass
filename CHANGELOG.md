@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.4](https://github.com/nytamin/threadedClass/compare/0.6.3...0.6.4) (2019-08-24)
+
+
+### Bug Fixes
+
+* don't monitor orphaned child in single-threaded mode (this kills the parent process) ([1432f16](https://github.com/nytamin/threadedClass/commit/1432f16))
+* update dependencies ([ce99482](https://github.com/nytamin/threadedClass/commit/ce99482))
+
 ### [0.6.3](https://github.com/nytamin/threadedClass/compare/0.6.2...0.6.3) (2019-07-16)
 
 
