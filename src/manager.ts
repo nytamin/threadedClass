@@ -98,6 +98,9 @@ export interface Child {
 	callbackId: number
 	callbacks: {[key: string]: Function}
 }
+export function childName (child: Child) {
+	return `Child_ ${Object.keys(child.instances).join(',')}`
+}
 /**
  * The ChildInstance represents a proxy-instance of a class, running in a child process
  */
@@ -440,7 +443,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						!instance.child.isClosing
 					) {
 						// console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
-						this._childHasCrashed(instance.child, 'Child process ping timeout')
+						this._childHasCrashed(instance.child, `Child process of instance ${instance.id} ping timeout`)
 					}
 				})
 
@@ -577,7 +580,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				child.alive = false
 				this.emit('thread_closed', child)
 
-				this._childHasCrashed(child, 'Child process closed')
+				this._childHasCrashed(child, `Child process "${childName(child)}" was closed`)
 			}
 		})
 		child.process.on('error', (err) => {
