@@ -413,7 +413,9 @@ export abstract class Worker {
 					this.reply(handle, msg, encodedResult[0])
 				})
 				.catch((err) => {
-					this.replyError(handle, msg, err)
+
+					let errorResponse: string = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
+					this.replyError(handle, msg, errorResponse)
 				})
 			} else if (m.cmd === MessageType.SET) {
 				let msg: MessageSet = m
@@ -439,19 +441,22 @@ export abstract class Worker {
 							this.reply(handle, msg, encodedResult[0])
 						})
 						.catch((err: Error) => {
-							this.replyError(handle, msg, err)
+							let errorResponse: string = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`
+							this.replyError(handle, msg, errorResponse)
 						})
 					} catch (err) {
-						this.replyError(handle, msg, err)
+						let errorResponse: string = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`
+						this.replyError(handle, msg, errorResponse)
 					}
 				} else {
-					this.replyError(handle, msg, 'callback "' + msg.callbackId + '" not found')
+					this.replyError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`)
 				}
 			}
 		} catch (e) {
 
-			if (m.cmdId) this.replyError(handle, m, 'Error: ' + e.toString() + e.stack)
-			else this.log('Error: ' + e.toString(), e.stack)
+			if (m.cmdId) {
+				this.replyError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`)
+			} else this.log('Error: ' + e.toString(), e.stack)
 		}
 	}
 	private startOrphanMonitoring () {

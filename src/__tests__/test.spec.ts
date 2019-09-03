@@ -573,7 +573,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(original.returnValue('asdf')).toEqual('asdf')
 
-			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading, instanceName: 'myInstance' })
 			let onClosed = jest.fn()
 			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
@@ -594,6 +594,8 @@ const getTests = (disableMultithreading: boolean) => {
 					error = e
 				}
 				expect(error.toString()).toMatch(/circular/)
+				expect(error.toString()).toMatch(/getCircular/)
+				expect(error.toString()).toMatch(/myInstance/)
 			}
 
 			await ThreadedClassManager.destroy(threaded)
