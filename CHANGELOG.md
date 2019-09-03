@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.5](https://github.com/nytamin/threadedClass/compare/0.6.4...0.6.5) (2019-09-03)
+
+
+### Bug Fixes
+
+* add note to stack trace on error replies ([0322313](https://github.com/nytamin/threadedClass/commit/0322313))
+* be more descriptive in error messages ([ea37bef](https://github.com/nytamin/threadedClass/commit/ea37bef))
+* make logging output log instance id ([5e4190c](https://github.com/nytamin/threadedClass/commit/5e4190c))
+* make onEvent return a method for removing the listener ([d877d24](https://github.com/nytamin/threadedClass/commit/d877d24))
+
+
+### Features
+
+* be able to name instances ([77e72c1](https://github.com/nytamin/threadedClass/commit/77e72c1))
+
 ### [0.6.4](https://github.com/nytamin/threadedClass/compare/0.6.3...0.6.4) (2019-08-24)
 
 
