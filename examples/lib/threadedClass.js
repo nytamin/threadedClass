@@ -359,7 +359,8 @@ class Worker {
                     this.reply(handle, msg, encodedResult[0]);
                 })
                     .catch((err) => {
-                    this.replyError(handle, msg, err);
+                    let errorResponse = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`;
+                    this.replyError(handle, msg, errorResponse);
                 });
             }
             else if (m.cmd === MessageType.SET) {
@@ -385,21 +386,24 @@ class Worker {
                             this.reply(handle, msg, encodedResult[0]);
                         })
                             .catch((err) => {
-                            this.replyError(handle, msg, err);
+                            let errorResponse = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`;
+                            this.replyError(handle, msg, errorResponse);
                         });
                     }
                     catch (err) {
-                        this.replyError(handle, msg, err);
+                        let errorResponse = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`;
+                        this.replyError(handle, msg, errorResponse);
                     }
                 }
                 else {
-                    this.replyError(handle, msg, 'callback "' + msg.callbackId + '" not found');
+                    this.replyError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`);
                 }
             }
         }
         catch (e) {
-            if (m.cmdId)
-                this.replyError(handle, m, 'Error: ' + e.toString() + e.stack);
+            if (m.cmdId) {
+                this.replyError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`);
+            }
             else
                 this.log('Error: ' + e.toString(), e.stack);
         }
@@ -575,7 +579,7 @@ class ThreadedClassManagerClass {
         return this._internal.getChildrenCount();
     }
     onEvent(proxy, event, cb) {
-        this._internal.on(event, (child) => {
+        const onEvent = (child) => {
             let foundChild = Object.keys(child.instances).find((instanceId) => {
                 const instance = child.instances[instanceId];
                 return instance.proxy === proxy;
@@ -583,7 +587,13 @@ class ThreadedClassManagerClass {
             if (foundChild) {
                 cb();
             }
-        });
+        };
+        this._internal.on(event, onEvent);
+        return {
+            stop: () => {
+                this._internal.removeListener(event, onEvent);
+            }
+        };
     }
     /**
      * Restart the thread of the proxy instance
@@ -616,6 +626,10 @@ class ThreadedClassManagerClass {
     }
 }
 exports.ThreadedClassManagerClass = ThreadedClassManagerClass;
+function childName(child) {
+    return `Child_ ${Object.keys(child.instances).join(',')}`;
+}
+exports.childName = childName;
 class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     constructor() {
         super(...arguments);
@@ -669,7 +683,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
      */
     attachInstance(config, child, proxy, pathToModule, className, classFunction, constructorArgs, onMessage) {
         const instance = {
-            id: 'instance_' + this._instanceId++,
+            id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
             child: child,
             proxy: proxy,
             usage: config.threadUsage,
@@ -901,7 +915,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                         instance.child.alive &&
                         !instance.child.isClosing) {
                         // console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
-                        this._childHasCrashed(instance.child, 'Child process ping timeout');
+                        this._childHasCrashed(instance.child, `Child process of instance ${instance.id} ping timeout`);
                     }
                 });
             }
@@ -1029,15 +1043,15 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             if (child.alive) {
                 child.alive = false;
                 this.emit('thread_closed', child);
-                this._childHasCrashed(child, 'Child process closed');
+                this._childHasCrashed(child, `Child process "${childName(child)}" was closed`);
             }
         });
         child.process.on('error', (err) => {
-            console.log('Error from ' + child.id, err);
+            console.error('Error from child ' + child.id, err);
         });
         child.process.on('message', (message) => {
             if (message.cmd === internalApi_1.MessageType.LOG) {
-                console.log(...message.log);
+                console.log(message.instanceId, ...message.log);
             }
             else {
                 const instance = child.instances[message.instanceId];
@@ -1046,13 +1060,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                         instance.onMessageCallback(instance, message);
                     }
                     catch (e) {
-                        console.log('Error in onMessageCallback', message, instance);
-                        console.log(e);
+                        console.error('Error in onMessageCallback', message, instance);
+                        console.error(e);
                         throw e;
                     }
                 }
                 else {
-                    console.log(`Instance "${message.instanceId}" not found`);
+                    console.error(`Instance "${message.instanceId}" not found`);
                 }
             }
         });
