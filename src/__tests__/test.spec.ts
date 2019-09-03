@@ -41,13 +41,15 @@ const getTests = (disableMultithreading: boolean) => {
 
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 			let onClosed = jest.fn()
-			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+			const onClosedListener = ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
 			expect(await threaded.getWindows('')).toHaveLength(2)
 			expect(await threaded.getRooms()).toHaveLength(1)
 
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+			onClosedListener.stop()
 
 			expect(onClosed).toHaveBeenCalledTimes(1)
 		})
@@ -524,10 +526,14 @@ const getTests = (disableMultithreading: boolean) => {
 
 			await threaded.logSomething('aa', 'bb')
 
-			console.log = orgConsoleLog
+			console.log = orgConsoleLog // restore
 
 			expect(mockLog).toHaveBeenCalledTimes(1)
-			expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
+			if (disableMultithreading) {
+				expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
+			} else {
+				expect(mockLog.mock.calls[0]).toEqual(['', 'aa', 'bb'])
+			}
 		})
 		test('EventEmitter', async () => {
 			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
@@ -569,7 +575,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(original.returnValue('asdf')).toEqual('asdf')
 
-			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading, instanceName: 'myInstance' })
 			let onClosed = jest.fn()
 			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
@@ -590,6 +596,8 @@ const getTests = (disableMultithreading: boolean) => {
 					error = e
 				}
 				expect(error.toString()).toMatch(/circular/)
+				expect(error.toString()).toMatch(/getCircular/)
+				expect(error.toString()).toMatch(/myInstance/)
 			}
 
 			await ThreadedClassManager.destroy(threaded)
