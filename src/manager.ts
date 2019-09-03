@@ -36,7 +36,7 @@ export class ThreadedClassManagerClass {
 		return this._internal.getChildrenCount()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
-		this._internal.on(event, (child: Child) => {
+		const onEvent = (child: Child) => {
 			let foundChild = Object.keys(child.instances).find((instanceId) => {
 				const instance = child.instances[instanceId]
 				return instance.proxy === proxy
@@ -44,7 +44,13 @@ export class ThreadedClassManagerClass {
 			if (foundChild) {
 				cb()
 			}
-		})
+		}
+		this._internal.on(event, onEvent)
+		return {
+			stop: () => {
+				this._internal.removeListener(event, onEvent)
+			}
+		}
 	}
 	/**
 	 * Restart the thread of the proxy instance

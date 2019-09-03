@@ -41,13 +41,15 @@ const getTests = (disableMultithreading: boolean) => {
 
 			let threaded = await threadedClass<House>(HOUSE_PATH, House, [['north', 'west'], ['south']], { disableMultithreading })
 			let onClosed = jest.fn()
-			ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+			const onClosedListener = ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 
 			expect(await threaded.getWindows('')).toHaveLength(2)
 			expect(await threaded.getRooms()).toHaveLength(1)
 
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+			onClosedListener.stop()
 
 			expect(onClosed).toHaveBeenCalledTimes(1)
 		})
