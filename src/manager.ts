@@ -184,7 +184,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	): ChildInstance {
 		const instance: ChildInstance = {
 
-			id: 'instance_' + this._instanceId++,
+			id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
 			child: child,
 			proxy: proxy,
 			usage: config.threadUsage,

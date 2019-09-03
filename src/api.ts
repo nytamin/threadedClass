@@ -23,5 +23,7 @@ export interface ThreadedClassConfig {
 	pathToWorker?: string
 	/** (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms) */
 	freezeLimit?: number
+	/** Optional: name of the instance, used in debugging */
+	instanceName?: string
 
 }
