@@ -581,23 +581,23 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 		child.process.on('error', (err) => {
-			console.log('Error from ' + child.id, err)
+			console.error('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: MessageFromChild) => {
 			if (message.cmd === MessageType.LOG) {
-				console.log(...message.log)
+				console.log(message.instanceId, ...message.log)
 			} else {
 				const instance = child.instances[message.instanceId]
 				if (instance) {
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						console.log('Error in onMessageCallback', message, instance)
-						console.log(e)
+						console.error('Error in onMessageCallback', message, instance)
+						console.error(e)
 						throw e
 					}
 				} else {
-					console.log(`Instance "${message.instanceId}" not found`)
+					console.error(`Instance "${message.instanceId}" not found`)
 				}
 			}
 		})

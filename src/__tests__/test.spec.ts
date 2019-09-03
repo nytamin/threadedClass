@@ -524,10 +524,14 @@ const getTests = (disableMultithreading: boolean) => {
 
 			await threaded.logSomething('aa', 'bb')
 
-			console.log = orgConsoleLog
+			console.log = orgConsoleLog // restore
 
 			expect(mockLog).toHaveBeenCalledTimes(1)
-			expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
+			if (disableMultithreading) {
+				expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
+			} else {
+				expect(mockLog.mock.calls[0]).toEqual(['', 'aa', 'bb'])
+			}
 		})
 		test('EventEmitter', async () => {
 			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
