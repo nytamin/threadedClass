@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.6](https://github.com/nytamin/threadedClass/compare/0.6.5...0.6.6) (2019-09-04)
+
+
+### Bug Fixes
+
+* make error messages clearer ([c5505f9](https://github.com/nytamin/threadedClass/commit/c5505f9))
+
 ### [0.6.5](https://github.com/nytamin/threadedClass/compare/0.6.4...0.6.5) (2019-09-03)
 
 
