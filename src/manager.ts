@@ -264,9 +264,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	public sendMessageToChild (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
-			if (!instance.child) throw new Error('Instance has been detached from child process')
-			if (!instance.child.alive) throw new Error('Child process has been closed')
-			if (instance.child.isClosing) throw new Error('Child process is closing')
+			if (!instance.child) throw new Error(`Instance ${instance.id} has been detached from child process`)
+			if (!instance.child.alive) throw new Error(`Child process of instance ${instance.id} has been closed`)
+			if (instance.child.isClosing) throw new Error(`Child process of instance ${instance.id} is closing`)
 			const message: MessageToChild = {...messageConstr, ...{
 				cmdId: instance.child.cmdId++,
 				instanceId: instance.id
@@ -275,7 +275,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (
 				message.cmd !== MessageType.INIT &&
 				!instance.initialized
-			) throw Error('Child instance is not initialized')
+			) throw Error(`Child instance ${instance.id} is not initialized`)
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
 			try {
@@ -284,7 +284,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						if (instance.child.queue[message.cmdId + '']) {
 							instance.child.queue[message.cmdId + ''](
 								instance,
-								new Error('Error sending message to child process: ' + error)
+								new Error(`Error sending message to child process of instance ${instance.id}: ` + error)
 							)
 							delete instance.child.queue[message.cmdId + '']
 						}
@@ -292,7 +292,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				})
 			} catch (e) {
 				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
-					throw new Error('Unsupported attribute (circular structure): ' + e.toString())
+					throw new Error(`Unsupported attribute (circular structure) in instance ${instance.id}: ` + e.toString())
 				} else {
 					throw e
 				}
@@ -333,8 +333,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 			return false
 		})
-		if (!foundChild) throw Error('Child not found')
-		if (!foundInstance) throw Error('Instance not found')
+		if (!foundChild) throw Error(`Child of proxy not found`)
+		if (!foundInstance) throw Error(`Instance of proxy not found`)
 
 		await this.restartChild(foundChild, [foundInstance], forceRestart)
 	}
@@ -601,7 +601,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						console.error('Error in onMessageCallback', message, instance)
+						console.error(`Error in onMessageCallback in instance ${instance.id}`, message, instance)
 						console.error(e)
 						throw e
 					}

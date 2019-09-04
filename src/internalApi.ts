@@ -262,7 +262,7 @@ export abstract class Worker {
 							if (oReq.response) {
 								resolve(oReq.response)
 							} else {
-								reject(Error('Bad reply from ' + msg.modulePath))
+								reject(Error(`Bad reply from ${msg.modulePath} in instance ${handle.id}`))
 							}
 						}
 						oReq.send()
@@ -390,7 +390,7 @@ export abstract class Worker {
 			} else if (m.cmd === MessageType.REPLY) {
 				const msg: MessageReply = m
 				let cb = handle.queue[msg.replyTo + '']
-				if (!cb) throw Error('cmdId "' + msg.cmdId + '" not found!')
+				if (!cb) throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`)
 				if (msg.error) {
 					cb(msg.error)
 				} else {
