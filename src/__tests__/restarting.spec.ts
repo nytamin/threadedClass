@@ -247,6 +247,6 @@ describe('restarts', () => {
 		await expect(
 			ThreadedClassManager.restart(otherInstance)
 			.catch(e => Promise.reject(e.toString()))
-		).rejects.toMatch(/Child not found/)
+		).rejects.toMatch(/Child of proxy not found/)
 	})
 })

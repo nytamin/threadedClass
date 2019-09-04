@@ -36,13 +36,11 @@ export function threadedClass<T> (
 	constructorArgs: any[],
 	config: ThreadedClassConfig = {}
 ): Promise<ThreadedClass<T>> {
-	// @ts-ignore expression is allways false
-	// if (typeof orgClass !== 'function') throw Error('argument 2 must be a class!')
 	let orgClassName: string = orgClass.name
 
 	if (isBrowser()) {
 		if (!config.pathToWorker) {
-			throw Error('config.pathToWorker is required in brower')
+			throw Error('config.pathToWorker is required in browser')
 		}
 		if (!browserSupportsWebWorkers()) {
 			console.log('Web-workers not supported, disabling multi-threading')
@@ -145,7 +143,7 @@ export function threadedClass<T> (
 					} catch (err) {
 						replyError(instance, msg, err)
 					}
-				} else throw Error('callback "' + msg.callbackId + '" not found')
+				} else throw Error(`callback "${msg.callbackId}" not found in instance ${m.instanceId}`)
 			}
 		}
 		try {
@@ -196,7 +194,7 @@ export function threadedClass<T> (
 					return false
 				} else {
 					props.forEach((p: InitProp) => {
-						if (!instance.child.alive) throw Error('Child process has been closed')
+						if (!instance.child.alive) throw Error(`Child process of instance ${instance.id} has been closed`)
 
 						if (proxy.hasOwnProperty(p.key)) {
 							return
@@ -206,10 +204,10 @@ export function threadedClass<T> (
 							const fcn = (...args: any[]) => {
 								// An instance method is called by parent
 
-								if (!instance.child) return Promise.reject(new Error('Instance has been detached from child process'))
+								if (!instance.child) return Promise.reject(new Error(`Instance ${instance.id} has been detached from child process`))
 
 								return ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
-									if (!instance.child) throw new Error('Instance has been detached from child process')
+									if (!instance.child) throw new Error(`Instance ${instance.id} has been detached from child process`)
 									// Go through arguments and serialize them:
 									let encodedArgs = encodeArguments(instance, instance.child.callbacks, args, !!config.disableMultithreading)
 									sendFcn(
