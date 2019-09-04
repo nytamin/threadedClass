@@ -137,7 +137,7 @@ class Worker {
                                 resolve(oReq.response);
                             }
                             else {
-                                reject(Error('Bad reply from ' + msg.modulePath));
+                                reject(Error(`Bad reply from ${msg.modulePath} in instance ${handle.id}`));
                             }
                         };
                         oReq.send();
@@ -262,7 +262,7 @@ class Worker {
                 const msg = m;
                 let cb = handle.queue[msg.replyTo + ''];
                 if (!cb)
-                    throw Error('cmdId "' + msg.cmdId + '" not found!');
+                    throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`);
                 if (msg.error) {
                     cb(msg.error);
                 }
