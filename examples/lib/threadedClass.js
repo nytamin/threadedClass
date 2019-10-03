@@ -567,6 +567,7 @@ const workerThreads_1 = require("./workerThreads");
 class ThreadedClassManagerClass {
     constructor(internal) {
         this._internal = internal;
+        this._internal.setMaxListeners(0);
     }
     /** Destroy a proxy class */
     destroy(proxy) {
