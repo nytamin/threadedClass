@@ -204,6 +204,8 @@ export function threadedClass<T> (
 							const fcn = (...args: any[]) => {
 								// An instance method is called by parent
 
+								const originalStack = 'Original stack:\n' + new Error().stack
+
 								if (!instance.child) return Promise.reject(new Error(`Instance ${instance.id} has been detached from child process`))
 
 								return ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
@@ -218,6 +220,11 @@ export function threadedClass<T> (
 											// Function result is returned from worker
 
 											if (err) {
+												if (typeof err === 'string') {
+													err += '\n' + originalStack
+												} else {
+													err.stack += '\n' + originalStack
+												}
 												reject(err)
 											} else {
 												let result = decodeResultFromWorker(_instance, encodedResult)

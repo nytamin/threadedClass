@@ -598,6 +598,9 @@ const getTests = (disableMultithreading: boolean) => {
 				expect(error.toString()).toMatch(/circular/)
 				expect(error.toString()).toMatch(/getCircular/)
 				expect(error.toString()).toMatch(/myInstance/)
+				expect(error.toString()).toMatch(/executing function/)
+				expect(error.toString()).toMatch(/original stack/i)
+				expect(error.toString()).toMatch(/test\.spec\.ts/) // path to this file
 			}
 
 			await ThreadedClassManager.destroy(threaded)
