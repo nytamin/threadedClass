@@ -24,6 +24,7 @@ export class ThreadedClassManagerClass {
 	private _internal: ThreadedClassManagerClassInternal
 	constructor (internal: ThreadedClassManagerClassInternal) {
 		this._internal = internal
+		this._internal.setMaxListeners(0)
 	}
 	/** Destroy a proxy class */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
