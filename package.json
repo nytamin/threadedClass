@@ -21,18 +21,18 @@
     "info": "npm-scripts-info",
     "build": "trash dist && yarn build:all",
     "buildtest": "yarn build:main && yarn unit",
-    "build:main": "tsc -p tsconfig.json",
+    "build:main": "tsc -p tsconfig.build.json",
     "build:all": "yarn build:main && gulp browserify && gulp browserify-worker",
     "build:test-lib": "tsc -p tsconfig.test-lib.json",
-    "lint": "tslint --project tsconfig.jest.json --config tslint.json",
+    "lint": "tslint --project tsconfig.json --config tslint.json",
     "unit": "jest --forceExit",
-    "test": "yarn lint && yarn build:main && yarn unit",
+    "test": "yarn lint && yarn unit",
     "test:integration": "yarn lint && jest --config=jest-integration.config.js",
     "watch": "jest --watch",
-    "cov": "jest; opn coverage/lcov-report/index.html",
-    "cov-open": "opn coverage/lcov-report/index.html",
-    "send-coverage": "yarn build:main && yarn unit && codecov",
-    "docs": "yarn docs:html && opn docs/index.html",
+    "cov": "jest; open-cli coverage/lcov-report/index.html",
+    "cov-open": "open-cli coverage/lcov-report/index.html",
+    "send-coverage": "codecov",
+    "docs": "yarn docs:html && open-cli docs/index.html",
     "docs:html": "typedoc src/index.ts --excludePrivate --mode file --theme minimal --out docs",
     "docs:json": "typedoc --mode file --json docs/typedoc.json src/index.ts",
     "docs:prepare": "yarn docs:html && yarn build:all && yarn docs:copy",
@@ -42,7 +42,6 @@
     "changelog": "standard-version",
     "release": "yarn reset && yarn test && yarn docs:publish && yarn changelog",
     "reset": "git clean -dfx && git reset --hard && yarn",
-    "ci": "yarn test",
     "validate:dependencies": "yarn audit"
   },
   "scripts-info": {
@@ -63,6 +62,12 @@
   "engines": {
     "node": ">=8.0"
   },
+  "files": [
+    "/dist",
+    "/CHANGELOG.md",
+    "/README.md",
+    "/LICENSE"
+  ],
   "devDependencies": {
     "@types/callsites": "^3.0.0",
     "@types/jest": "^24.0.18",
