@@ -1,4 +1,4 @@
-import { StringDecoder, NodeStringDecoder } from 'string_decoder'
+import { StringDecoder } from 'string_decoder'
 import { CasparCG } from 'casparcg-connection'
 import {
 	threadedClass,
@@ -148,7 +148,7 @@ const getTests = (disableMultithreading: boolean) => {
 			let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
 			expect(euroSign).toEqual('€')
 
-			let threaded = await threadedClass<NodeStringDecoder>('string_decoder', StringDecoder, ['utf8'], { disableMultithreading })
+			let threaded = await threadedClass<StringDecoder>('string_decoder', StringDecoder, ['utf8'], { disableMultithreading })
 
 			let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
 
