@@ -27,6 +27,18 @@ export class TestClass extends EventEmitter {
 	public callFunction<T> (fcn: (...args: any[]) => T, ...args: any[]): T {
 		return fcn(...args)
 	}
+	public setParam1 (val: any) {
+		return this.param1 = val
+	}
+	public callParam1<T> (...args: any[]): T {
+		return this.param1(...args)
+	}
+	public callParam1Function<T> (...args: any[]): T {
+		return this.param1.fcn(...args)
+	}
+	public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
+		return obj.fcn(...args)
+	}
 	public throwError () {
 		throw new Error('Error thrown')
 	}

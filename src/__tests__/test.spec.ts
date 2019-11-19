@@ -353,8 +353,7 @@ const getTests = (disableMultithreading: boolean) => {
 				[1], [],[1,2,3],[null], // array
 				{}, { a: 1 }, { a: 0 },
 				(num0: number, num1: number): number => num0 + num1 + 1,
-				Buffer.from([1,2,3,4,4,5,6,7,8]),
-				// { func: (num0: number, num1: number): number => num0 + num1 + 1 } // callback inside object
+				Buffer.from([1,2,3,4,4,5,6,7,8])
 			]
 
 			for (let value of values) {
@@ -408,8 +407,7 @@ const getTests = (disableMultithreading: boolean) => {
 				[1], [],[1,2,3],[null], // array
 				{}, { a: 1 }, { a: 0 },
 				(num0: number, num1: number): number => num0 + num1 + 1,
-				Buffer.from([1,2,3,4,4,5,6,7,8]),
-				// { func: (num0: number, num1: number): number => num0 + num1 + 1 } // callback inside object
+				Buffer.from([1,2,3,4,4,5,6,7,8])
 			]
 
 			for (let value of values) {
@@ -456,6 +454,44 @@ const getTests = (disableMultithreading: boolean) => {
 			// await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
+		})
+		test('execute wrapped callback loaded via constructor', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [
+				{ fcn: (num0: number, num1: number): number => num0 + num1 + 1 }
+			], { disableMultithreading })
+
+			expect(await threaded.callParam1Function(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
+		test('execute callback loaded via constructor', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [
+				(num0: number, num1: number): number => num0 + num1 + 1
+			], { disableMultithreading })
+
+			expect(await threaded.callParam1(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
+		test('execute wrapped callback loaded via setter', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			await threaded.setParam1({ fcn: (num0: number, num1: number): number => num0 + num1 + 1 })
+			expect(await threaded.callParam1Function(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
+		test('execute callback loaded via setter', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
+			expect(await threaded.callParam1(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
 		test('functions as arguments', async () => {
 			let threaded 	= await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })

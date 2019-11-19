@@ -21,6 +21,18 @@ class TestClass extends events_1.EventEmitter {
     callFunction(fcn, ...args) {
         return fcn(...args);
     }
+    setParam1(val) {
+        return this.param1 = val;
+    }
+    callParam1(...args) {
+        return this.param1(...args);
+    }
+    callParam1Function(...args) {
+        return this.param1.fcn(...args);
+    }
+    callChildFunction(obj, ...args) {
+        return obj.fcn(...args);
+    }
     throwError() {
         throw new Error('Error thrown');
     }
