@@ -353,7 +353,8 @@ const getTests = (disableMultithreading: boolean) => {
 				[1], [],[1,2,3],[null], // array
 				{}, { a: 1 }, { a: 0 },
 				(num0: number, num1: number): number => num0 + num1 + 1,
-				Buffer.from([1,2,3,4,4,5,6,7,8])
+				Buffer.from([1,2,3,4,4,5,6,7,8]),
+				// { func: (num0: number, num1: number): number => num0 + num1 + 1 } // callback inside object
 			]
 
 			for (let value of values) {
@@ -393,6 +394,66 @@ const getTests = (disableMultithreading: boolean) => {
 			}
 
 			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+
+		})
+		test('supported constructor data types', async () => {
+
+			let values: any[] = [
+				null,
+				undefined,
+				true,false, // boolean
+				0,1,2,3, // number
+				'','test', // string
+				[1], [],[1,2,3],[null], // array
+				{}, { a: 1 }, { a: 0 },
+				(num0: number, num1: number): number => num0 + num1 + 1,
+				Buffer.from([1,2,3,4,4,5,6,7,8]),
+				// { func: (num0: number, num1: number): number => num0 + num1 + 1 } // callback inside object
+			]
+
+			for (let value of values) {
+				let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [value], { disableMultithreading })
+				let returned: any = await threaded.returnParam1()
+
+				if (value && typeof value === 'function') {
+					expect(typeof returned).toEqual('function')
+					expect(await returned(40, 1)).toEqual(await value(40, 1))
+				} else {
+					expect(returned).toEqual(value)
+				}
+
+				await ThreadedClassManager.destroy(threaded)
+				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+			}
+			let o: any = {}
+			o.parent = o
+			let unsupportedValues = [
+				o // circular dependency
+			]
+			for (let value of unsupportedValues) {
+				let returnError: any = null
+				try {
+					await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [value], { disableMultithreading })
+				} catch (e) {
+					returnError = e
+				}
+				await ThreadedClassManager.destroyAll()
+				if (disableMultithreading) {
+					// When running in single-thread, allow circular objects
+					expect(returnError).toBeNull()
+				} else {
+					if (ThreadedClassManager.getThreadMode() === ThreadMode.WORKER_THREADS) {
+						// In Worker_threads, circular objects CAN be sent
+						expect(returnError).toBeNull()
+					} else {
+						expect(returnError).toBeTruthy()
+						expect((returnError.stack || returnError).toString()).toMatch(/unsupported attribute/i)
+					}
+				}
+			}
+
+			// await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		})

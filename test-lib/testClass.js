@@ -2,17 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 class TestClass extends events_1.EventEmitter {
-    constructor() {
+    constructor(param1) {
         super();
         // circular reference, so that function that return self (such as EventEmitter.on can have trouble)
         this.myself = this;
         this.myself = this.myself;
+        this.param1 = param1;
     }
     getId() {
         return 'abc';
     }
     returnValue(value) {
         return value;
+    }
+    returnParam1() {
+        return this.param1;
     }
     callFunction(fcn, ...args) {
         return fcn(...args);

@@ -4,18 +4,25 @@ export class TestClass extends EventEmitter {
 
 	private myself: TestClass
 
-	constructor () {
+	private param1: any
+
+	constructor (param1?: any) {
 		super()
 
 		// circular reference, so that function that return self (such as EventEmitter.on can have trouble)
 		this.myself = this
 		this.myself = this.myself
+
+		this.param1 = param1
 	}
 	public getId (): string {
 		return 'abc'
 	}
 	public returnValue<T> (value: T): T {
 		return value
+	}
+	public returnParam1 () {
+		return this.param1
 	}
 	public callFunction<T> (fcn: (...args: any[]) => T, ...args: any[]): T {
 		return fcn(...args)
