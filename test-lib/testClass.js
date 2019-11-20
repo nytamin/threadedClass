@@ -9,6 +9,9 @@ class TestClass extends events_1.EventEmitter {
         this.myself = this.myself;
         this.param1 = param1;
     }
+    set Param1(val) {
+        this.param1 = val;
+    }
     getId() {
         return 'abc';
     }

@@ -6,6 +6,10 @@ export class TestClass extends EventEmitter {
 
 	private param1: any
 
+	set Param1 (val: any) {
+		this.param1 = val
+	}
+
 	constructor (param1?: any) {
 		super()
 

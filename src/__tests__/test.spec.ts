@@ -475,7 +475,7 @@ const getTests = (disableMultithreading: boolean) => {
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
-		test('execute wrapped callback loaded via setter', async () => {
+		test('execute wrapped callback loaded via function', async () => {
 			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 
 			await threaded.setParam1({ fcn: (num0: number, num1: number): number => num0 + num1 + 1 })
@@ -484,10 +484,28 @@ const getTests = (disableMultithreading: boolean) => {
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
-		test('execute callback loaded via setter', async () => {
+		test('execute callback loaded via function', async () => {
 			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
 
 			await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
+			expect(await threaded.callParam1(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
+		test.only('execute wrapped callback loaded via setter', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			threaded.Param1 = Promise.resolve({ fcn: (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1) })
+			expect(await threaded.callParam1Function(40, 1)).toEqual(42)
+
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
+		test.only('execute callback loaded via setter', async () => {
+			let threaded = await threadedClass<TestClass>(TESTCLASS_PATH, TestClass, [], { disableMultithreading })
+
+			threaded.Param1 = (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1)
 			expect(await threaded.callParam1(40, 1)).toEqual(42)
 
 			await ThreadedClassManager.destroy(threaded)
