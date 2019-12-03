@@ -12,7 +12,8 @@ import {
 	InstanceCallbackInitFunction,
 	InitProps,
 	MessagePingConstr,
-	DEFAULT_CHILD_FREEZE_TIME
+	DEFAULT_CHILD_FREEZE_TIME,
+	encodeArguments
 } from './internalApi'
 import { EventEmitter } from 'events'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from './lib'
@@ -408,13 +409,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		config: ThreadedClassConfig,
 		cb?: InstanceCallbackInitFunction
 	) {
+		let encodedArgs = encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading)
 
 		let msg: MessageInitConstr = {
 			cmd: MessageType.INIT,
 			modulePath: instance.pathToModule,
 			className: instance.className,
 			classFunction: (config.disableMultithreading ? instance.classFunction : undefined),
-			args: instance.constructorArgs,
+			args: encodedArgs,
 			config: config
 		}
 		instance.initialized = true

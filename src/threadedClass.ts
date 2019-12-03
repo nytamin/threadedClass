@@ -88,7 +88,7 @@ export function threadedClass<T> (
 			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
-			return decodeArguments(instance.proxy, [encodedResult], (a: ArgDefinition) => {
+			return decodeArguments(() => instance.proxy, [encodedResult], (a: ArgDefinition) => {
 				return (...args: any[]) => {
 					return new Promise((resolve, reject) => {
 						// Function result function is called from parent
