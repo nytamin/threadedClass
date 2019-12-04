@@ -44,7 +44,6 @@ describe('restarts', () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
 		expect(onClosed).toHaveBeenCalledTimes(2)
-
 	})
 	test('restart instance with multiple', async () => {
 		let threaded0 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { threadUsage: 0.1 })
@@ -170,9 +169,9 @@ describe('restarts', () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
 		const p0 = thread1.waitReply(200, 'test2')
-		.catch(err => { throw err.toString() })
+		.catch((err: any) => { throw err.toString() })
 		const p1 = thread1.exitProcess(0) // will cause the child to crash
-		.catch(err => { throw err.toString() })
+		.catch((err: any) => { throw err.toString() })
 
 		await expect(p0).rejects.toMatch(/closed/i)
 		await expect(p1).rejects.toMatch(/closed/i)
@@ -191,9 +190,9 @@ describe('restarts', () => {
 		expect(await thread0.getWindows('')).toEqual(['south0']) // because the instance has been restarted, it is reset
 
 		const p2 = thread1.waitReply(200, 'test2')
-		.catch(err => { throw err.toString() })
+		.catch((err: any) => { throw err.toString() })
 		const p3 = thread1.freeze() // will cause the child to freeze
-		.catch(err => { throw err.toString() })
+		.catch((err: any) => { throw err.toString() })
 
 		await expect(p2).rejects.toMatch(/timeout/i)
 		await expect(p3).rejects.toMatch(/timeout/i)

@@ -74,6 +74,7 @@
     "@types/callsites": "^3.0.0",
     "@types/jest": "^25.2.3",
     "@types/node": "^12.12.5",
+    "@types/uuid": "^3.4.6",
     "browserify": "^16.5.1",
     "casparcg-connection": "^3.0.1",
     "codecov": "^3.7.0",
@@ -92,7 +93,7 @@
     "tslint": "^6.1.2",
     "tslint-config-standard": "^9.0.0",
     "typedoc": "^0.16.0",
-    "typescript": "~3.6.4",
+    "typescript": "~3.9.4",
     "uglify-js": "^3.6.0",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
@@ -105,8 +106,10 @@
   ],
   "dependencies": {
     "callsites": "^3.1.0",
+    "emittery": "^0.5.1",
     "eventemitter3": "^4.0.4",
-    "tslib": "^1.13.0"
+    "tslib": "^2.0.0",
+    "uuid": "^3.3.3"
   },
   "standard-version": {
     "message": "chore(release): %s [skip ci]",
