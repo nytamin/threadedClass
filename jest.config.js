@@ -1,7 +1,7 @@
 module.exports = {
 	globals: {
 		'ts-jest': {
-			tsConfig: 'tsconfig.jest.json',
+			tsConfig: 'tsconfig.json',
 			diagnostics: {
 				ignoreCodes: ['TS2571']
 			}
@@ -26,12 +26,20 @@ module.exports = {
 	testEnvironment: 'node',
 	coverageThreshold: {
 		global: {
-			statements: 81,
-			branches: 74,
-			functions: 82,
-			lines: 83,
+			statements: 76,
+			branches: 67,
+			functions: 76,
+			lines: 76,
 		}
 	},
 	coverageDirectory: "./coverage/",
+	collectCoverageFrom: [
+		"**/src/**/*.{ts,js}",
+		"!**/src/**/*.d.ts",
+		"!**/node_modules/**",
+		"!**/__tests__/**",
+		"!**/__mocks__/**",
+		"!**/dist/**"
+	],
 	collectCoverage: true
 }

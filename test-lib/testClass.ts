@@ -4,12 +4,20 @@ export class TestClass extends EventEmitter {
 
 	private myself: TestClass
 
-	constructor () {
+	private param1: any
+
+	set Param1 (val: any) {
+		this.param1 = val
+	}
+
+	constructor (param1?: any) {
 		super()
 
 		// circular reference, so that function that return self (such as EventEmitter.on can have trouble)
 		this.myself = this
 		this.myself = this.myself
+
+		this.param1 = param1
 	}
 	public getId (): string {
 		return 'abc'
@@ -17,8 +25,23 @@ export class TestClass extends EventEmitter {
 	public returnValue<T> (value: T): T {
 		return value
 	}
+	public returnParam1 () {
+		return this.param1
+	}
 	public callFunction<T> (fcn: (...args: any[]) => T, ...args: any[]): T {
 		return fcn(...args)
+	}
+	public setParam1 (val: any) {
+		return this.param1 = val
+	}
+	public callParam1<T> (...args: any[]): T {
+		return this.param1(...args)
+	}
+	public callParam1Function<T> (...args: any[]): T {
+		return this.param1.fcn(...args)
+	}
+	public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
+		return obj.fcn(...args)
 	}
 	public throwError () {
 		throw new Error('Error thrown')

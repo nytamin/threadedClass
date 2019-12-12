@@ -24,16 +24,19 @@ import {
 import { ThreadedClassManagerInternal, ChildInstance, Child } from './manager'
 import { isBrowser, browserSupportsWebWorkers } from './lib'
 
+// From: https://github.com/Morglod/tsargs/blob/master/lib/ctor-args.ts
+type CtorArgs<CtorT extends new (...args: any) => any> = CtorT extends new (...args: infer K) => any ? K : never
+
 /**
  * Returns an asynchronous version of the provided class
  * @param orgModule Path to imported module (this is what is in the require('XX') function, or import {class} from 'XX'} )
  * @param orgClass The class to be threaded
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-export function threadedClass<T> (
+export function threadedClass<T, TCtor extends new (...args: any) => T> (
 	orgModule: string,
-	orgClass: Function,
-	constructorArgs: any[],
+	orgClass: TCtor,
+	constructorArgs: CtorArgs<TCtor>,
 	config: ThreadedClassConfig = {}
 ): Promise<ThreadedClass<T>> {
 	let orgClassName: string = orgClass.name
@@ -88,7 +91,7 @@ export function threadedClass<T> (
 			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
 		}
 		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
-			return decodeArguments(instance.proxy, [encodedResult], (a: ArgDefinition) => {
+			return decodeArguments(() => instance.proxy, [encodedResult], (a: ArgDefinition) => {
 				return (...args: any[]) => {
 					return new Promise((resolve, reject) => {
 						// Function result function is called from parent
