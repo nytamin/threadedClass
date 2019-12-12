@@ -45,7 +45,8 @@ class Worker {
         };
     }
     decodeArgumentsFromParent(handle, args) {
-        return decodeArguments(handle.instance, args, (a) => {
+        // Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
+        return decodeArguments(() => handle.instance, args, (a) => {
             return ((...args) => {
                 return new Promise((resolve, reject) => {
                     const callbackId = a.value;
@@ -185,10 +186,12 @@ class Worker {
                         id: msg.instanceId,
                         cmdId: 0,
                         queue: {},
-                        instance: ((...args) => {
-                            return new moduleClass(...args);
-                        }).apply(null, msg.args)
+                        instance: null // Note: This is dangerous, but gets set right after.
                     };
+                    const decodedArgs = this.decodeArgumentsFromParent(handle, msg.args);
+                    handle.instance = ((...args) => {
+                        return new moduleClass(...args);
+                    }).apply(null, decodedArgs);
                     this.instanceHandles[handle.id] = handle;
                     const instance = handle.instance;
                     const allProps = this.getAllProperties(instance);
@@ -430,7 +433,7 @@ function decodeArguments(instance, args, getCallback) {
         }
         if (a.type === ArgumentType.OBJECT) {
             if (a.value === 'self') {
-                return instance;
+                return instance();
             }
             else {
                 return a.value;
@@ -512,14 +515,14 @@ class ThreadedWorker extends internalApi_1.Worker {
     }
     sendMessageToParent(handle, msg, cb) {
         if (msg.cmd === internalApi_1.MessageType.LOG) {
-            const message = Object.assign({}, msg, {
+            const message = Object.assign(Object.assign({}, msg), {
                 cmdId: 0,
                 instanceId: ''
             });
             send(message);
         }
         else {
-            const message = Object.assign({}, msg, {
+            const message = Object.assign(Object.assign({}, msg), {
                 cmdId: handle.cmdId++,
                 instanceId: handle.id
             });
