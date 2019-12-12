@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.7.0](https://github.com/nytamin/threadedClass/compare/0.6.8...0.7.0) (2019-12-12)
+
+
+### Features
+
+* stricter typings for constructor ([708f9e4](https://github.com/nytamin/threadedClass/commit/708f9e48dc11db890948d710ceef3ad21616a92b))
+* update ci to run for node 8,10,12 ([e65d0e0](https://github.com/nytamin/threadedClass/commit/e65d0e076c6704ac8d6ceed6d181b14f4bf02680))
+
+
+### Bug Fixes
+
+* build before running tests ([d88d28f](https://github.com/nytamin/threadedClass/commit/d88d28fee31fe03125ffc092fe3cd9fade8cecf9))
+* build before test during release script ([33df104](https://github.com/nytamin/threadedClass/commit/33df10482e9c8a35a29e4e029740d47213684d88))
+* disable broken tests ([9102550](https://github.com/nytamin/threadedClass/commit/9102550eab8f5050a0f22f50e08d0c5eacf38a4d))
+* encode/decode constructor arguments ([29eadf8](https://github.com/nytamin/threadedClass/commit/29eadf82e3973ba4d4b7443d3655041c6484cf32))
+* functions often undefined ([#23](https://github.com/nytamin/threadedClass/issues/23)) ([312f08c](https://github.com/nytamin/threadedClass/commit/312f08cb70c3c2d08e13f6cbfce0d5c138bf72a2))
+* tweak coverage thresholds ([61273a6](https://github.com/nytamin/threadedClass/commit/61273a64fda27a9652a258a57c017f18ee2f740f))
+
 ### [0.6.8](https://github.com/nytamin/threadedClass/compare/0.6.7...0.6.8) (2019-10-03)
 
 
