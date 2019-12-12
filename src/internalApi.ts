@@ -151,7 +151,8 @@ export abstract class Worker {
 	protected abstract killInstance (handle: InstanceHandle): void
 
 	protected decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
-		return decodeArguments(handle.instance, args, (a: ArgDefinition) => {
+		// Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
+		return decodeArguments(() => handle.instance, args, (a: ArgDefinition) => {
 			return ((...args: any[]) => {
 				return new Promise((resolve, reject) => {
 					const callbackId = a.value
@@ -312,10 +313,13 @@ export abstract class Worker {
 						id: msg.instanceId,
 						cmdId: 0,
 						queue: {},
-						instance: ((...args: Array<any>) => {
-							return new moduleClass(...args)
-						}).apply(null, msg.args)
+						instance: null // Note: This is dangerous, but gets set right after.
 					}
+					const decodedArgs = this.decodeArgumentsFromParent(handle, msg.args)
+					handle.instance = ((...args: Array<any>) => {
+						return new moduleClass(...args)
+					}).apply(null, decodedArgs)
+
 					this.instanceHandles[handle.id] = handle
 
 					const instance = handle.instance
@@ -532,7 +536,7 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 	}
 }
 export type ArgCallback = (...args: any[]) => Promise<any>
-export function decodeArguments (instance: any, args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
+export function decodeArguments (instance: () => any, args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
 	// Go through arguments and de-serialize them
 	return args.map((a) => {
 		if (a.original !== undefined) return a.original
@@ -547,7 +551,7 @@ export function decodeArguments (instance: any, args: Array<ArgDefinition>, getC
 		}
 		if (a.type === ArgumentType.OBJECT) {
 			if (a.value === 'self') {
-				return instance
+				return instance()
 			} else {
 				return a.value
 			}
