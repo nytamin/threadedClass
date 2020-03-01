@@ -46,7 +46,7 @@ export interface MessageSent {
 export interface MessageInitConstr {
 	cmd: MessageType.INIT
 	modulePath: string
-	className: string
+	exportName: string
 	classFunction?: Function // only used in single-thread mode
 	args: Array<ArgDefinition>
 	config: ThreadedClassConfig
@@ -253,7 +253,12 @@ export abstract class Worker {
 
 				// Load in the class:
 
-				if (isBrowser()) {
+				if (m.classFunction) {
+					// In single thread mode.
+					// When classFunction is provided, use that instead of the imported js file.
+					pModuleClass = Promise.resolve(m.classFunction)
+
+				} else if (isBrowser()) {
 					pModuleClass = new Promise((resolve, reject) => {
 						// @ts-ignore
 						let oReq = new XMLHttpRequest()
@@ -279,35 +284,29 @@ export abstract class Worker {
 							f = function() {
 								${bodyString}
 								;
-								return ${msg.className}
+								return ${msg.exportName}
 							}
 						`
 						// tslint:disable-next-line:no-eval
 						let moduleClass = eval(fcn)()
 						f = f
 						if (!moduleClass) {
-							throw Error(`${msg.className} not found in ${msg.modulePath}`)
+							throw Error(`${msg.exportName} not found in ${msg.modulePath}`)
 						}
 						return moduleClass
 					})
 				} else {
 					pModuleClass = Promise.resolve(require(msg.modulePath))
 					.then((module) => {
-						return module[msg.className]
+						return module[msg.exportName]
 					})
 				}
 
 				pModuleClass
 				.then((moduleClass) => {
-					if (m.classFunction) {
-						// In single thread mode.
-						// When classFunction is provided, use that instead of the imported js file.
-						return m.classFunction
-					} else {
-						return moduleClass
+					if (!moduleClass) {
+						return Promise.reject('Failed to find class')
 					}
-				})
-				.then((moduleClass) => {
 
 					const handle: InstanceHandle = {
 						id: msg.instanceId,
@@ -379,6 +378,7 @@ export abstract class Worker {
 						}
 					})
 					this.reply(handle, msg, props)
+					return
 				})
 				.catch((e: any) => {
 					console.log('INIT error', e)

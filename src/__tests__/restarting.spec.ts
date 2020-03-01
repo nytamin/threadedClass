@@ -25,7 +25,7 @@ describe('restarts', () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 	})
 	test('restart instance', async () => {
-		let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [])
+		let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [])
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
 		})
@@ -47,9 +47,9 @@ describe('restarts', () => {
 
 	})
 	test('restart instance with multiple', async () => {
-		let threaded0 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
-		let threaded1 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
-		let threaded2 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [], { threadUsage: 0.1 })
+		let threaded0 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [], { threadUsage: 0.1 })
+		let threaded1 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [], { threadUsage: 0.1 })
+		let threaded2 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [], { threadUsage: 0.1 })
 		let onClosed0 = jest.fn()
 		let onClosed1 = jest.fn()
 		let onClosed2 = jest.fn()
@@ -94,7 +94,7 @@ describe('restarts', () => {
 	test('force restart', async () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		let thread0 = await threadedClass<House, typeof House>(HOUSE_PATH, House, [['south0'], []])
+		let thread0 = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', House, [['south0'], []])
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
 
@@ -121,7 +121,7 @@ describe('restarts', () => {
 	test('child process crash', async () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		let thread0 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [])
+		let thread0 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [])
 		let onClosed = jest.fn()
 		ThreadedClassManager.onEvent(thread0, 'thread_closed', onClosed)
 
@@ -145,11 +145,11 @@ describe('restarts', () => {
 	test('automatic restart', async () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		let thread0 = await threadedClass<House, typeof House>(HOUSE_PATH, House, [['south0'], []],{
+		let thread0 = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', House, [['south0'], []],{
 			autoRestart: true,
 			threadUsage: 0.5
 		})
-		let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [],{
+		let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [],{
 			autoRestart: true,
 			threadUsage: 0.5
 		})
@@ -210,7 +210,7 @@ describe('restarts', () => {
 	test('orphan monitoring', async () => {
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, TestClass, [],{
+		let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', TestClass, [],{
 			autoRestart: true,
 			threadUsage: 0.5,
 			freezeLimit: 200

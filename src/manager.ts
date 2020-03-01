@@ -120,7 +120,7 @@ export interface ChildInstance {
 	readonly freezeLimit?: number
 	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
 	readonly pathToModule: string
-	readonly className: string
+	readonly exportName: string
 	readonly classFunction: Function // used in single-threaded mode
 	readonly constructorArgs: any[]
 	readonly config: ThreadedClassConfig
@@ -188,7 +188,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child: Child,
 		proxy: ThreadedClass<any>,
 		pathToModule: string,
-		className: string,
+		exportName: string,
 		classFunction: Function,
 		constructorArgs: any[],
 		onMessage: (instance: ChildInstance, message: MessageFromChild) => void
@@ -202,7 +202,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			freezeLimit: config.freezeLimit,
 			onMessageCallback: onMessage,
 			pathToModule: pathToModule,
-			className: className,
+			exportName: exportName,
 			classFunction: classFunction,
 			constructorArgs: constructorArgs,
 			initialized: false,
@@ -414,7 +414,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		let msg: MessageInitConstr = {
 			cmd: MessageType.INIT,
 			modulePath: instance.pathToModule,
-			className: instance.className,
+			exportName: instance.exportName,
 			classFunction: (config.disableMultithreading ? instance.classFunction : undefined),
 			args: encodedArgs,
 			config: config
