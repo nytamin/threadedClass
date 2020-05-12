@@ -47,7 +47,6 @@ export interface MessageInitConstr {
 	cmd: MessageType.INIT
 	modulePath: string
 	exportName: string
-	classFunction?: Function // only used in single-thread mode
 	args: Array<ArgDefinition>
 	config: ThreadedClassConfig
 }
@@ -253,12 +252,7 @@ export abstract class Worker {
 
 				// Load in the class:
 
-				if (m.classFunction) {
-					// In single thread mode.
-					// When classFunction is provided, use that instead of the imported js file.
-					pModuleClass = Promise.resolve(m.classFunction)
-
-				} else if (isBrowser()) {
+				if (isBrowser()) {
 					pModuleClass = new Promise((resolve, reject) => {
 						// @ts-ignore
 						let oReq = new XMLHttpRequest()

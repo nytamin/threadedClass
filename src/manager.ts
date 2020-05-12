@@ -121,7 +121,6 @@ export interface ChildInstance {
 	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
 	readonly pathToModule: string
 	readonly exportName: string
-	readonly classFunction: Function // used in single-threaded mode
 	readonly constructorArgs: any[]
 	readonly config: ThreadedClassConfig
 	initialized: boolean
@@ -189,7 +188,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		proxy: ThreadedClass<any>,
 		pathToModule: string,
 		exportName: string,
-		classFunction: Function,
 		constructorArgs: any[],
 		onMessage: (instance: ChildInstance, message: MessageFromChild) => void
 	): ChildInstance {
@@ -203,7 +201,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			onMessageCallback: onMessage,
 			pathToModule: pathToModule,
 			exportName: exportName,
-			classFunction: classFunction,
 			constructorArgs: constructorArgs,
 			initialized: false,
 			config: config
@@ -415,7 +412,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			cmd: MessageType.INIT,
 			modulePath: instance.pathToModule,
 			exportName: instance.exportName,
-			classFunction: (config.disableMultithreading ? instance.classFunction : undefined),
 			args: encodedArgs,
 			config: config
 		}
