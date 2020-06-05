@@ -55,23 +55,23 @@ jobs:
       - store_test_results:
           path: ./coverage/clover.xml
 
-    test-node-latest:
-      docker:
-        - image: circleci/node
-      working_directory: ~/project
-      steps:
-        - checkout
-        - restore_cache:
-            keys:
-              - yarn-cache-latest-{{ .Branch }}-{{ checksum "yarn.lock" }}
-              - yarn-cache-latest-{{ .Branch }}
-              - yarn-cache-latest-
-        - run: yarn install
-        - save_cache:
-            key: yarn-cache-latest-{{ .Branch }}-{{ checksum "yarn.lock" }}
-            paths: [node_modules]
-        - run: yarn build
-        - run: yarn test
+  test-node-latest:
+    docker:
+      - image: circleci/node
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - yarn-cache-latest-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - yarn-cache-latest-{{ .Branch }}
+            - yarn-cache-latest-
+      - run: yarn install
+      - save_cache:
+          key: yarn-cache-latest-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths: [node_modules]
+      - run: yarn build
+      - run: yarn test
 
   validate-dependencies:
     docker:
