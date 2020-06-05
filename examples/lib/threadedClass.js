@@ -14,18 +14,18 @@ class FakeWorker extends internalApi_1.Worker {
     }
     sendMessageToParent(handle, msg, cb) {
         if (msg.cmd === internalApi_1.MessageType.LOG) {
-            const message = Object.assign(Object.assign({}, msg), {
-                cmdId: 0,
-                instanceId: ''
-            });
+            const message = { ...msg, ...{
+                    cmdId: 0,
+                    instanceId: ''
+                } };
             // Send message to Parent:
             this.mockProcessSend(message);
         }
         else {
-            const message = Object.assign(Object.assign({}, msg), {
-                cmdId: handle.cmdId++,
-                instanceId: handle.id
-            });
+            const message = { ...msg, ...{
+                    cmdId: handle.cmdId++,
+                    instanceId: handle.id
+                } };
             if (cb)
                 handle.queue[message.cmdId + ''] = cb;
             // Send message to Parent:
@@ -559,7 +559,6 @@ exports.getWorkerThreads = getWorkerThreads;
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const child_process_1 = require("child_process");
 const fakeProcess_1 = require("./fakeProcess");
 const internalApi_1 = require("./internalApi");
@@ -757,10 +756,10 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 throw new Error(`Child process of instance ${instance.id} has been closed`);
             if (instance.child.isClosing)
                 throw new Error(`Child process of instance ${instance.id} is closing`);
-            const message = Object.assign(Object.assign({}, messageConstr), {
-                cmdId: instance.child.cmdId++,
-                instanceId: instance.id
-            });
+            const message = { ...messageConstr, ...{
+                    cmdId: instance.child.cmdId++,
+                    instanceId: instance.id
+                } };
             if (message.cmd !== internalApi_1.MessageType.INIT &&
                 !instance.initialized)
                 throw Error(`Child instance ${instance.id} is not initialized`);
@@ -802,87 +801,83 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             return;
         });
     }
-    restart(proxy, forceRestart) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            let foundInstance;
-            let foundChild;
-            Object.keys(this._children).find((childId) => {
-                const child = this._children[childId];
-                const found = Object.keys(child.instances).find((instanceId) => {
-                    const instance = child.instances[instanceId];
-                    if (instance.proxy === proxy) {
-                        foundInstance = instance;
-                        return true;
-                    }
-                    return false;
-                });
-                if (found) {
-                    foundChild = child;
+    async restart(proxy, forceRestart) {
+        let foundInstance;
+        let foundChild;
+        Object.keys(this._children).find((childId) => {
+            const child = this._children[childId];
+            const found = Object.keys(child.instances).find((instanceId) => {
+                const instance = child.instances[instanceId];
+                if (instance.proxy === proxy) {
+                    foundInstance = instance;
                     return true;
                 }
                 return false;
             });
-            if (!foundChild)
-                throw Error(`Child of proxy not found`);
-            if (!foundInstance)
-                throw Error(`Instance of proxy not found`);
-            yield this.restartChild(foundChild, [foundInstance], forceRestart);
+            if (found) {
+                foundChild = child;
+                return true;
+            }
+            return false;
         });
+        if (!foundChild)
+            throw Error(`Child of proxy not found`);
+        if (!foundInstance)
+            throw Error(`Instance of proxy not found`);
+        await this.restartChild(foundChild, [foundInstance], forceRestart);
     }
-    restartChild(child, onlyInstances, forceRestart) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            if (child.alive && forceRestart) {
-                yield this.killChild(child, true);
-            }
-            if (!child.alive) {
-                // clear old process:
-                child.process.removeAllListeners();
-                delete child.process;
-                Object.keys(child.instances).forEach((instanceId) => {
-                    const instance = child.instances[instanceId];
-                    instance.initialized = false;
-                });
-                // start new process
-                child.alive = true;
-                child.isClosing = false;
-                child.process = this._createFork(child.config, child.pathToWorker);
-                this._setupChildProcess(child);
-            }
-            let p = new Promise((resolve, reject) => {
-                const onInit = (child) => {
-                    if (child === child) {
-                        resolve();
-                        this.removeListener('initialized', onInit);
-                    }
-                };
-                this.on('initialized', onInit);
-                setTimeout(() => {
-                    reject('Timeout when trying to restart');
+    async restartChild(child, onlyInstances, forceRestart) {
+        if (child.alive && forceRestart) {
+            await this.killChild(child, true);
+        }
+        if (!child.alive) {
+            // clear old process:
+            child.process.removeAllListeners();
+            delete child.process;
+            Object.keys(child.instances).forEach((instanceId) => {
+                const instance = child.instances[instanceId];
+                instance.initialized = false;
+            });
+            // start new process
+            child.alive = true;
+            child.isClosing = false;
+            child.process = this._createFork(child.config, child.pathToWorker);
+            this._setupChildProcess(child);
+        }
+        let p = new Promise((resolve, reject) => {
+            const onInit = (child) => {
+                if (child === child) {
+                    resolve();
                     this.removeListener('initialized', onInit);
-                }, 1000);
-            });
-            const promises = [];
-            let instances = (onlyInstances ||
-                Object.keys(child.instances).map((instanceId) => {
-                    return child.instances[instanceId];
-                }));
-            instances.forEach((instance) => {
-                promises.push(new Promise((resolve, reject) => {
-                    this.sendInit(child, instance, instance.config, (_instance, err) => {
-                        // no need to do anything, the proxy is already initialized from earlier
-                        if (err) {
-                            reject(err);
-                        }
-                        else {
-                            resolve();
-                        }
-                        return true;
-                    });
-                }));
-            });
-            yield Promise.all(promises);
-            yield p;
+                }
+            };
+            this.on('initialized', onInit);
+            setTimeout(() => {
+                reject('Timeout when trying to restart');
+                this.removeListener('initialized', onInit);
+            }, 1000);
         });
+        const promises = [];
+        let instances = (onlyInstances ||
+            Object.keys(child.instances).map((instanceId) => {
+                return child.instances[instanceId];
+            }));
+        instances.forEach((instance) => {
+            promises.push(new Promise((resolve, reject) => {
+                this.sendInit(child, instance, instance.config, (_instance, err) => {
+                    // no need to do anything, the proxy is already initialized from earlier
+                    if (err) {
+                        reject(err);
+                    }
+                    else {
+                        resolve();
+                    }
+                    return true;
+                });
+            }));
+        });
+        await Promise.all(promises);
+        await p;
     }
     sendInit(child, instance, config, cb) {
         let encodedArgs = internalApi_1.encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading);
@@ -1162,7 +1157,7 @@ exports.ThreadedClassManager = new ThreadedClassManagerClass(exports.ThreadedCla
 
 }).call(this,require('_process'))
 
-},{"./fakeProcess":1,"./internalApi":3,"./lib":4,"./webWorkers":7,"./workerThreads":8,"_process":16,"child_process":10,"events":13,"tslib":17}],6:[function(require,module,exports){
+},{"./fakeProcess":1,"./internalApi":3,"./lib":4,"./webWorkers":7,"./workerThreads":8,"_process":16,"child_process":10,"events":13}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
@@ -1702,10 +1697,6 @@ function fromByteArray (uint8) {
 
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
-var customInspectSymbol =
-  (typeof Symbol === 'function' && typeof Symbol.for === 'function')
-    ? Symbol.for('nodejs.util.inspect.custom')
-    : null
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -1742,9 +1733,7 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    var proto = { foo: function () { return 42 } }
-    Object.setPrototypeOf(proto, Uint8Array.prototype)
-    Object.setPrototypeOf(arr, proto)
+    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
     return arr.foo() === 42
   } catch (e) {
     return false
@@ -1773,7 +1762,7 @@ function createBuffer (length) {
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
-  Object.setPrototypeOf(buf, Buffer.prototype)
+  buf.__proto__ = Buffer.prototype
   return buf
 }
 
@@ -1823,7 +1812,7 @@ function from (value, encodingOrOffset, length) {
   }
 
   if (value == null) {
-    throw new TypeError(
+    throw TypeError(
       'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
       'or Array-like Object. Received type ' + (typeof value)
     )
@@ -1875,8 +1864,8 @@ Buffer.from = function (value, encodingOrOffset, length) {
 
 // Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
 // https://github.com/feross/buffer/pull/148
-Object.setPrototypeOf(Buffer.prototype, Uint8Array.prototype)
-Object.setPrototypeOf(Buffer, Uint8Array)
+Buffer.prototype.__proto__ = Uint8Array.prototype
+Buffer.__proto__ = Uint8Array
 
 function assertSize (size) {
   if (typeof size !== 'number') {
@@ -1980,8 +1969,7 @@ function fromArrayBuffer (array, byteOffset, length) {
   }
 
   // Return an augmented `Uint8Array` instance
-  Object.setPrototypeOf(buf, Buffer.prototype)
-
+  buf.__proto__ = Buffer.prototype
   return buf
 }
 
@@ -2303,9 +2291,6 @@ Buffer.prototype.inspect = function inspect () {
   if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
-if (customInspectSymbol) {
-  Buffer.prototype[customInspectSymbol] = Buffer.prototype.inspect
-}
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
   if (isInstance(target, Uint8Array)) {
@@ -2431,7 +2416,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
         return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
       }
     }
-    return arrayIndexOf(buffer, [val], byteOffset, encoding, dir)
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
   }
 
   throw new TypeError('val must be string, number or Buffer')
@@ -2760,7 +2745,7 @@ function hexSlice (buf, start, end) {
 
   var out = ''
   for (var i = start; i < end; ++i) {
-    out += hexSliceLookupTable[buf[i]]
+    out += toHex(buf[i])
   }
   return out
 }
@@ -2797,8 +2782,7 @@ Buffer.prototype.slice = function slice (start, end) {
 
   var newBuf = this.subarray(start, end)
   // Return an augmented `Uint8Array` instance
-  Object.setPrototypeOf(newBuf, Buffer.prototype)
-
+  newBuf.__proto__ = Buffer.prototype
   return newBuf
 }
 
@@ -3287,8 +3271,6 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
     }
   } else if (typeof val === 'number') {
     val = val & 255
-  } else if (typeof val === 'boolean') {
-    val = Number(val)
   }
 
   // Invalid ranges are not set to a default, so can range check early.
@@ -3344,6 +3326,11 @@ function base64clean (str) {
     str = str + '='
   }
   return str
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
 }
 
 function utf8ToBytes (string, units) {
@@ -3475,20 +3462,6 @@ function numberIsNaN (obj) {
   // For IE11 support
   return obj !== obj // eslint-disable-line no-self-compare
 }
-
-// Create lookup table for `toString('hex')`
-// See: https://github.com/feross/buffer/issues/219
-var hexSliceLookupTable = (function () {
-  var alphabet = '0123456789abcdef'
-  var table = new Array(256)
-  for (var i = 0; i < 16; ++i) {
-    var i16 = i * 16
-    for (var j = 0; j < 16; ++j) {
-      table[i16 + j] = alphabet[i] + alphabet[j]
-    }
-  }
-  return table
-})()
 
 }).call(this,require("buffer").Buffer)
 
@@ -4648,6 +4621,8 @@ var __asyncValues;
 var __makeTemplateObject;
 var __importStar;
 var __importDefault;
+var __classPrivateFieldGet;
+var __classPrivateFieldSet;
 (function (factory) {
     var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
     if (typeof define === "function" && define.amd) {
@@ -4718,10 +4693,11 @@ var __importDefault;
     };
 
     __awaiter = function (thisArg, _arguments, P, generator) {
+        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
         return new (P || (P = Promise))(function (resolve, reject) {
             function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
             function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
@@ -4759,14 +4735,15 @@ var __importDefault;
     };
 
     __values = function (o) {
-        var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
         if (m) return m.call(o);
-        return {
+        if (o && typeof o.length === "number") return {
             next: function () {
                 if (o && i >= o.length) o = void 0;
                 return { value: o && o[i++], done: !o };
             }
         };
+        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
     };
 
     __read = function (o, n) {
@@ -4847,6 +4824,21 @@ var __importDefault;
         return (mod && mod.__esModule) ? mod : { "default": mod };
     };
 
+    __classPrivateFieldGet = function (receiver, privateMap) {
+        if (!privateMap.has(receiver)) {
+            throw new TypeError("attempted to get private field on non-instance");
+        }
+        return privateMap.get(receiver);
+    };
+
+    __classPrivateFieldSet = function (receiver, privateMap, value) {
+        if (!privateMap.has(receiver)) {
+            throw new TypeError("attempted to set private field on non-instance");
+        }
+        privateMap.set(receiver, value);
+        return value;
+    }
+
     exporter("__extends", __extends);
     exporter("__assign", __assign);
     exporter("__rest", __rest);
@@ -4867,6 +4859,8 @@ var __importDefault;
     exporter("__makeTemplateObject", __makeTemplateObject);
     exporter("__importStar", __importStar);
     exporter("__importDefault", __importDefault);
+    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
+    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
 });
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
