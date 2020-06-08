@@ -9,7 +9,7 @@ async function runExample () {
 	let originalHouse = new House(['north', 'west'], ['entrance','kitchen', 'bedroom'])
 
 	// Create threaded instance of the class House:
-	let threadedHouse = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', House, [['north', 'west'], ['entrance','kitchen', 'bedroom']])
+	let threadedHouse = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['entrance','kitchen', 'bedroom']])
 
 	// Print number of rooms:
 	console.log(originalHouse.getRooms()) // ['entrance','kitchen', 'bedroom']

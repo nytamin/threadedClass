@@ -28,7 +28,7 @@ import { threadedClass} from 'threadedclass'
 import { Professor } from './professor'
 
 async function getStory() {
-  let mrSmith = await threadedClass<Professor>('./professor.js', 'Professor', Professor, ['maths', 'greek'])
+  let mrSmith = await threadedClass<Professor>('./professor.js', 'Professor', ['maths', 'greek'])
   let story = await mrSmith.talkAboutAncientGreece() // still takes a loong time, but now runs in a separate thread
   return story
 }
@@ -44,7 +44,7 @@ import { Professor } from './professor'
 
 threadedClass<Professor>(
    './professor.js',     // Path to imported module (this should be the same path as is in require('XX') or import {class} from 'XX'} )
-   Professor ,        // The class to be forked
+   'Professor' ,        // The export name for the class to be forked
    ['maths', 'greek'], // Array of arguments to be fed into the class constructor
    {} // Config (see below)
 )
