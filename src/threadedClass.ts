@@ -30,16 +30,16 @@ type CtorArgs<CtorT extends new (...args: any) => any> = CtorT extends new (...a
 /**
  * Returns an asynchronous version of the provided class
  * @param orgModule Path to imported module (this is what is in the require('XX') function, or import {class} from 'XX'} )
- * @param orgClass The class to be threaded
+ * @param orgExport Name of export in module
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
 export function threadedClass<T, TCtor extends new (...args: any) => T> (
 	orgModule: string,
-	orgClass: TCtor,
+	orgExport: string,
 	constructorArgs: CtorArgs<TCtor>,
 	config: ThreadedClassConfig = {}
 ): Promise<ThreadedClass<T>> {
-	let orgClassName: string = orgClass.name
+	let exportName: string = orgExport
 
 	if (isBrowser()) {
 		if (!config.pathToWorker) {
@@ -184,8 +184,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				child,
 				proxy,
 				pathToModule,
-				orgClassName,
-				orgClass,
+				exportName,
 				constructorArgs,
 				onMessage
 			)

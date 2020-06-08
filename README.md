@@ -28,7 +28,7 @@ import { threadedClass} from 'threadedclass'
 import { Professor } from './professor'
 
 async function getStory() {
-  let mrSmith = await threadedClass<Professor>('./professor.js', Professor, ['maths', 'greek'])
+  let mrSmith = await threadedClass<Professor>('./professor.js', 'Professor', Professor, ['maths', 'greek'])
   let story = await mrSmith.talkAboutAncientGreece() // still takes a loong time, but now runs in a separate thread
   return story
 }
