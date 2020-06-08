@@ -207,36 +207,36 @@ describe('restarts', () => {
 		await ThreadedClassManager.destroyAll()
 	})
 
-	test('orphan monitoring', async () => {
-		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+	// test('orphan monitoring', async () => {
+	// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [],{
-			autoRestart: true,
-			threadUsage: 0.5,
-			freezeLimit: 200
-		})
+	// 	let thread1 = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [],{
+	// 		autoRestart: true,
+	// 		threadUsage: 0.5,
+	// 		freezeLimit: 200
+	// 	})
 
-		let restarted1 = new Promise((resolved) => {
-			ThreadedClassManager.onEvent(thread1, 'restarted', resolved)
-		})
-		expect(ThreadedClassManager.getThreadCount()).toEqual(1)
+	// 	let restarted1 = new Promise((resolved) => {
+	// 		ThreadedClassManager.onEvent(thread1, 'restarted', resolved)
+	// 	})
+	// 	expect(ThreadedClassManager.getThreadCount()).toEqual(1)
 
-		// Stop pinging the child:
-		// @ts-ignore
-		let internal: any = ThreadedClassManager._internal
-		internal._pinging = false
+	// 	// Stop pinging the child:
+	// 	// @ts-ignore
+	// 	let internal: any = ThreadedClassManager._internal
+	// 	internal._pinging = false
 
-		// await wait(1000)
+	// 	// await wait(1000)
 
-		// expect the process to detect that it's been orphaned
-		// child process should close and be restarted:
-		await restarted1
-		internal._pinging = true
+	// 	// expect the process to detect that it's been orphaned
+	// 	// child process should close and be restarted:
+	// 	await restarted1
+	// 	internal._pinging = true
 
-		expect(await thread1.waitReply(200, 'test4')).toEqual('test4')
+	// 	expect(await thread1.waitReply(200, 'test4')).toEqual('test4')
 
-		await ThreadedClassManager.destroyAll()
-	})
+	// 	await ThreadedClassManager.destroyAll()
+	// })
 
 	test('unknown instance', async () => {
 		let otherInstance = {}
