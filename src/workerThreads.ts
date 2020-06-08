@@ -2,15 +2,10 @@ import { Writable, Readable } from 'stream'
 import { ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 
-import {
-	Worker as ClassWorker,
-	IWorker
-} from './worker_threads'
+import { Worker as IWorker } from 'worker_threads'
 import { getWorkerThreads } from './lib'
 
 const WorkerThreads = getWorkerThreads()
-
-const Worker: ClassWorker | undefined			= WorkerThreads ? WorkerThreads.Worker : undefined
 
 /** Functions for spawning worker-threads in NodeJS */
 
@@ -40,8 +35,8 @@ export class WorkerThread extends EventEmitter implements ChildProcess {
 
 		// @ts-ignore
 		// this.worker = new window.Worker(pathToWorker)
-		if (!Worker) throw new Error('Unable to create Worker thread! Not supported!')
-		this.worker = new Worker(pathToWorker, {
+		if (!WorkerThreads) throw new Error('Unable to create Worker thread! Not supported!')
+		this.worker = new WorkerThreads.Worker(pathToWorker, {
 			workerData: ''
 		})
 		this.worker.on('message', (message: any) => {
@@ -61,9 +56,17 @@ export class WorkerThread extends EventEmitter implements ChildProcess {
 	}
 
 	kill (): void {
-		this.worker.terminate(() => {
+		const p = this.worker.terminate()
+		if (p) {
+			p.then(() => {
+				this.emit('close')
+			}).catch((err: any) => {
+				console.error('Worker Thread terminate failed', err)
+			})
+		} else {
+			// If it didnt return a promise, then it as a blocking operation
 			this.emit('close')
-		})
+		}
 		// throw new Error('Function kill in Worker Threads is not implemented.')
 	}
 
