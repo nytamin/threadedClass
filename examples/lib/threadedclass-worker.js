@@ -152,14 +152,14 @@ class Worker {
 							f = function() {
 								${bodyString}
 								;
-								return ${msg.className}
+								return ${msg.exportName}
 							}
 						`;
                         // tslint:disable-next-line:no-eval
                         let moduleClass = eval(fcn)();
                         f = f;
                         if (!moduleClass) {
-                            throw Error(`${msg.className} not found in ${msg.modulePath}`);
+                            throw Error(`${msg.exportName} not found in ${msg.modulePath}`);
                         }
                         return moduleClass;
                     });
@@ -167,21 +167,14 @@ class Worker {
                 else {
                     pModuleClass = Promise.resolve(require(msg.modulePath))
                         .then((module) => {
-                        return module[msg.className];
+                        return module[msg.exportName];
                     });
                 }
                 pModuleClass
                     .then((moduleClass) => {
-                    if (m.classFunction) {
-                        // In single thread mode.
-                        // When classFunction is provided, use that instead of the imported js file.
-                        return m.classFunction;
+                    if (!moduleClass) {
+                        return Promise.reject('Failed to find class');
                     }
-                    else {
-                        return moduleClass;
-                    }
-                })
-                    .then((moduleClass) => {
                     const handle = {
                         id: msg.instanceId,
                         cmdId: 0,
@@ -249,6 +242,7 @@ class Worker {
                         }
                     });
                     this.reply(handle, msg, props);
+                    return;
                 })
                     .catch((e) => {
                     console.log('INIT error', e);

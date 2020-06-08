@@ -1,8 +1,34 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.ThreadedClass = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = require("events");
+const workerPlatformBase_1 = require("./workerPlatformBase");
+const child_process_1 = require("child_process");
+function forkChildProcess(pathToWorker) {
+    return new ChildProcessWorker(pathToWorker);
+}
+exports.forkChildProcess = forkChildProcess;
+class ChildProcessWorker extends workerPlatformBase_1.WorkerPlatformBase {
+    constructor(path) {
+        super();
+        this.worker = child_process_1.fork(path);
+        this.worker.on('message', (m) => this.emit('message', m));
+        this.worker.on('close', () => this.emit('close'));
+        this.worker.on('error', (e) => this.emit('error', e));
+    }
+    kill() {
+        this.worker.kill();
+    }
+    send(m) {
+        this.worker.send(m);
+    }
+}
+exports.ChildProcessWorker = ChildProcessWorker;
+
+},{"./workerPlatformBase":9,"child_process":12}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const internalApi_1 = require("./internalApi");
+const workerPlatformBase_1 = require("./workerPlatformBase");
 class FakeWorker extends internalApi_1.Worker {
     constructor(cb) {
         super();
@@ -34,12 +60,9 @@ class FakeWorker extends internalApi_1.Worker {
     }
 }
 exports.FakeWorker = FakeWorker;
-class FakeProcess extends events_1.EventEmitter {
+class FakeProcess extends workerPlatformBase_1.WorkerPlatformBase {
     constructor() {
         super();
-        this.killed = false;
-        this.pid = 0;
-        this.connected = true;
         this.worker = new FakeWorker((m) => {
             this.emit('message', m);
         });
@@ -47,25 +70,14 @@ class FakeProcess extends events_1.EventEmitter {
     kill() {
         // @todo: needs some implementation.
         this.emit('close');
-        // throw new Error('Function kill in FakeProcess is not implemented.')
     }
     send(m) {
         this.worker.onMessageFromParent(m);
-        return true;
-    }
-    disconnect() {
-        throw new Error('Function disconnect in FakeProcess is not implemented.');
-    }
-    unref() {
-        throw new Error('Function unref in FakeProcess is not implemented.');
-    }
-    ref() {
-        throw new Error('Function ref in FakeProcess is not implemented.');
     }
 }
 exports.FakeProcess = FakeProcess;
 
-},{"./internalApi":3,"events":13}],2:[function(require,module,exports){
+},{"./internalApi":4,"./workerPlatformBase":9}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
@@ -73,7 +85,7 @@ const manager_1 = require("./manager");
 exports.ThreadedClassManager = manager_1.ThreadedClassManager;
 tslib_1.__exportStar(require("./threadedClass"), exports);
 
-},{"./manager":5,"./threadedClass":6,"tslib":17}],3:[function(require,module,exports){
+},{"./manager":6,"./threadedClass":7,"tslib":20}],4:[function(require,module,exports){
 (function (process,Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -227,14 +239,14 @@ class Worker {
 							f = function() {
 								${bodyString}
 								;
-								return ${msg.className}
+								return ${msg.exportName}
 							}
 						`;
                         // tslint:disable-next-line:no-eval
                         let moduleClass = eval(fcn)();
                         f = f;
                         if (!moduleClass) {
-                            throw Error(`${msg.className} not found in ${msg.modulePath}`);
+                            throw Error(`${msg.exportName} not found in ${msg.modulePath}`);
                         }
                         return moduleClass;
                     });
@@ -242,21 +254,14 @@ class Worker {
                 else {
                     pModuleClass = Promise.resolve(require(msg.modulePath))
                         .then((module) => {
-                        return module[msg.className];
+                        return module[msg.exportName];
                     });
                 }
                 pModuleClass
                     .then((moduleClass) => {
-                    if (m.classFunction) {
-                        // In single thread mode.
-                        // When classFunction is provided, use that instead of the imported js file.
-                        return m.classFunction;
+                    if (!moduleClass) {
+                        return Promise.reject('Failed to find class');
                     }
-                    else {
-                        return moduleClass;
-                    }
-                })
-                    .then((moduleClass) => {
                     const handle = {
                         id: msg.instanceId,
                         cmdId: 0,
@@ -324,6 +329,7 @@ class Worker {
                         }
                     });
                     this.reply(handle, msg, props);
+                    return;
                 })
                     .catch((e) => {
                     console.log('INIT error', e);
@@ -521,7 +527,7 @@ exports.decodeArguments = decodeArguments;
 
 }).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":4,"_process":16,"buffer":11}],4:[function(require,module,exports){
+},{"./lib":5,"_process":19,"buffer":13}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -555,17 +561,17 @@ exports.getWorkerThreads = getWorkerThreads;
 
 }).call(this,require('_process'))
 
-},{"_process":16,"worker_threads":undefined}],5:[function(require,module,exports){
+},{"_process":19,"worker_threads":undefined}],6:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const child_process_1 = require("child_process");
 const fakeProcess_1 = require("./fakeProcess");
 const internalApi_1 = require("./internalApi");
 const events_1 = require("events");
 const lib_1 = require("./lib");
 const webWorkers_1 = require("./webWorkers");
 const workerThreads_1 = require("./workerThreads");
+const childProcess_1 = require("./childProcess");
 class ThreadedClassManagerClass {
     constructor(internal) {
         this._internal = internal;
@@ -684,7 +690,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
      * @param proxy
      * @param onMessage
      */
-    attachInstance(config, child, proxy, pathToModule, className, classFunction, constructorArgs, onMessage) {
+    attachInstance(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage) {
         const instance = {
             id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
             child: child,
@@ -693,8 +699,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             freezeLimit: config.freezeLimit,
             onMessageCallback: onMessage,
             pathToModule: pathToModule,
-            className: className,
-            classFunction: classFunction,
+            exportName: exportName,
             constructorArgs: constructorArgs,
             initialized: false,
             config: config
@@ -766,16 +771,10 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             if (cb)
                 instance.child.queue[message.cmdId + ''] = cb;
             try {
-                instance.child.process.send(message, (error) => {
-                    if (error) {
-                        if (instance.child.queue[message.cmdId + '']) {
-                            instance.child.queue[message.cmdId + ''](instance, new Error(`Error sending message to child process of instance ${instance.id}: ` + error));
-                            delete instance.child.queue[message.cmdId + ''];
-                        }
-                    }
-                });
+                instance.child.process.send(message);
             }
             catch (e) {
+                delete instance.child.queue[message.cmdId + ''];
                 if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
                     throw new Error(`Unsupported attribute (circular structure) in instance ${instance.id}: ` + e.toString());
                 }
@@ -884,8 +883,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         let msg = {
             cmd: internalApi_1.MessageType.INIT,
             modulePath: instance.pathToModule,
-            className: instance.className,
-            classFunction: (config.disableMultithreading ? instance.classFunction : undefined),
+            exportName: instance.exportName,
             args: encodedArgs,
             config: config
         };
@@ -1033,13 +1031,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     return workerThreads_1.forkWorkerThread(pathToWorker);
                 }
                 else {
-                    return child_process_1.fork(pathToWorker);
+                    return childProcess_1.forkChildProcess(pathToWorker);
                 }
             }
         }
     }
     _setupChildProcess(child) {
-        child.process.on('close', (_code) => {
+        child.process.on('close', () => {
             if (child.alive) {
                 child.alive = false;
                 this.emit('thread_closed', child);
@@ -1157,7 +1155,7 @@ exports.ThreadedClassManager = new ThreadedClassManagerClass(exports.ThreadedCla
 
 }).call(this,require('_process'))
 
-},{"./fakeProcess":1,"./internalApi":3,"./lib":4,"./webWorkers":7,"./workerThreads":8,"_process":16,"child_process":10,"events":13}],6:[function(require,module,exports){
+},{"./childProcess":1,"./fakeProcess":2,"./internalApi":4,"./lib":5,"./webWorkers":8,"./workerThreads":10,"_process":19,"events":16}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
@@ -1168,11 +1166,11 @@ const lib_1 = require("./lib");
 /**
  * Returns an asynchronous version of the provided class
  * @param orgModule Path to imported module (this is what is in the require('XX') function, or import {class} from 'XX'} )
- * @param orgClass The class to be threaded
+ * @param orgExport Name of export in module
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
-    let orgClassName = orgClass.name;
+function threadedClass(orgModule, orgExport, constructorArgs, config = {}) {
+    let exportName = orgExport;
     if (lib_1.isBrowser()) {
         if (!config.pathToWorker) {
             throw Error('config.pathToWorker is required in browser');
@@ -1300,7 +1298,7 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
             }
             const child = manager_1.ThreadedClassManagerInternal.getChild(config, pathToWorker);
             const proxy = {};
-            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstance(config, child, proxy, pathToModule, orgClassName, orgClass, constructorArgs, onMessage);
+            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstance(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage);
             manager_1.ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance, err, props) => {
                 // This callback is called from the worker process, with a list of supported properties of the c
                 if (err) {
@@ -1398,21 +1396,18 @@ function threadedClass(orgModule, orgClass, constructorArgs, config = {}) {
 }
 exports.threadedClass = threadedClass;
 
-},{"./internalApi":3,"./lib":4,"./manager":5,"callsites":12,"path":15}],7:[function(require,module,exports){
+},{"./internalApi":4,"./lib":5,"./manager":6,"callsites":14,"path":18}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = require("events");
+const workerPlatformBase_1 = require("./workerPlatformBase");
 /** Functions for emulating child-process in web-workers */
 function forkWebWorker(pathToWorker) {
     return new WebWorkerProcess(pathToWorker);
 }
 exports.forkWebWorker = forkWebWorker;
-class WebWorkerProcess extends events_1.EventEmitter {
+class WebWorkerProcess extends workerPlatformBase_1.WorkerPlatformBase {
     constructor(pathToWorker) {
         super();
-        this.killed = false;
-        this.pid = 0;
-        this.connected = true;
         try {
             // @ts-ignore
             this.worker = new window.Worker(pathToWorker);
@@ -1445,48 +1440,40 @@ class WebWorkerProcess extends events_1.EventEmitter {
     kill() {
         this.worker.terminate();
         this.emit('close');
-        // throw new Error('Function kill in WebWorker is not implemented.')
     }
     send(message) {
         this.worker.postMessage(message);
-        // this.worker.onMessageFromParent(m)
-        return true;
-    }
-    disconnect() {
-        throw new Error('Function disconnect in WebWorker is not implemented.');
-    }
-    unref() {
-        throw new Error('Function unref in WebWorker is not implemented.');
-    }
-    ref() {
-        throw new Error('Function ref in WebWorker is not implemented.');
     }
 }
 exports.WebWorkerProcess = WebWorkerProcess;
 
-},{"events":13}],8:[function(require,module,exports){
+},{"./workerPlatformBase":9}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = require("events");
+const eventemitter3_1 = require("eventemitter3");
+class WorkerPlatformBase extends eventemitter3_1.EventEmitter {
+}
+exports.WorkerPlatformBase = WorkerPlatformBase;
+
+},{"eventemitter3":15}],10:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("./lib");
+const workerPlatformBase_1 = require("./workerPlatformBase");
 const WorkerThreads = lib_1.getWorkerThreads();
-const Worker = WorkerThreads ? WorkerThreads.Worker : undefined;
 /** Functions for spawning worker-threads in NodeJS */
 function forkWorkerThread(pathToWorker) {
     return new WorkerThread(pathToWorker);
 }
 exports.forkWorkerThread = forkWorkerThread;
-class WorkerThread extends events_1.EventEmitter {
+class WorkerThread extends workerPlatformBase_1.WorkerPlatformBase {
     constructor(pathToWorker) {
         super();
-        this.killed = false;
-        this.pid = 0;
-        this.connected = true;
         // @ts-ignore
         // this.worker = new window.Worker(pathToWorker)
-        if (!Worker)
+        if (!WorkerThreads)
             throw new Error('Unable to create Worker thread! Not supported!');
-        this.worker = new Worker(pathToWorker, {
+        this.worker = new WorkerThreads.Worker(pathToWorker, {
             workerData: ''
         });
         this.worker.on('message', (message) => {
@@ -1505,29 +1492,26 @@ class WorkerThread extends events_1.EventEmitter {
         });
     }
     kill() {
-        this.worker.terminate(() => {
+        const p = this.worker.terminate();
+        if (p) {
+            p.then(() => {
+                this.emit('close');
+            }).catch((err) => {
+                console.error('Worker Thread terminate failed', err);
+            });
+        }
+        else {
+            // If it didnt return a promise, then it as a blocking operation
             this.emit('close');
-        });
-        // throw new Error('Function kill in Worker Threads is not implemented.')
+        }
     }
     send(message) {
         this.worker.postMessage(message);
-        // this.worker.onMessageFromParent(m)
-        return true;
-    }
-    disconnect() {
-        throw new Error('Function disconnect in Worker Threads is not implemented.');
-    }
-    unref() {
-        throw new Error('Function unref in Worker Threads is not implemented.');
-    }
-    ref() {
-        throw new Error('Function ref in Worker Threads is not implemented.');
     }
 }
 exports.WorkerThread = WorkerThread;
 
-},{"./lib":4,"events":13}],9:[function(require,module,exports){
+},{"./lib":5,"./workerPlatformBase":9}],11:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1681,9 +1665,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
@@ -3465,7 +3449,7 @@ function numberIsNaN (obj) {
 
 }).call(this,require("buffer").Buffer)
 
-},{"base64-js":9,"buffer":11,"ieee754":14}],12:[function(require,module,exports){
+},{"base64-js":11,"buffer":13,"ieee754":17}],14:[function(require,module,exports){
 'use strict';
 
 const callsites = () => {
@@ -3480,7 +3464,345 @@ module.exports = callsites;
 // TODO: Remove this for the next major release
 module.exports.default = callsites;
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+'use strict';
+
+var has = Object.prototype.hasOwnProperty
+  , prefix = '~';
+
+/**
+ * Constructor to create a storage for our `EE` objects.
+ * An `Events` instance is a plain object whose properties are event names.
+ *
+ * @constructor
+ * @private
+ */
+function Events() {}
+
+//
+// We try to not inherit from `Object.prototype`. In some engines creating an
+// instance in this way is faster than calling `Object.create(null)` directly.
+// If `Object.create(null)` is not supported we prefix the event names with a
+// character to make sure that the built-in object properties are not
+// overridden or used as an attack vector.
+//
+if (Object.create) {
+  Events.prototype = Object.create(null);
+
+  //
+  // This hack is needed because the `__proto__` property is still inherited in
+  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+  //
+  if (!new Events().__proto__) prefix = false;
+}
+
+/**
+ * Representation of a single event listener.
+ *
+ * @param {Function} fn The listener function.
+ * @param {*} context The context to invoke the listener with.
+ * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+ * @constructor
+ * @private
+ */
+function EE(fn, context, once) {
+  this.fn = fn;
+  this.context = context;
+  this.once = once || false;
+}
+
+/**
+ * Add a listener for a given event.
+ *
+ * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} context The context to invoke the listener with.
+ * @param {Boolean} once Specify if the listener is a one-time listener.
+ * @returns {EventEmitter}
+ * @private
+ */
+function addListener(emitter, event, fn, context, once) {
+  if (typeof fn !== 'function') {
+    throw new TypeError('The listener must be a function');
+  }
+
+  var listener = new EE(fn, context || emitter, once)
+    , evt = prefix ? prefix + event : event;
+
+  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+  else emitter._events[evt] = [emitter._events[evt], listener];
+
+  return emitter;
+}
+
+/**
+ * Clear event by name.
+ *
+ * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+ * @param {(String|Symbol)} evt The Event name.
+ * @private
+ */
+function clearEvent(emitter, evt) {
+  if (--emitter._eventsCount === 0) emitter._events = new Events();
+  else delete emitter._events[evt];
+}
+
+/**
+ * Minimal `EventEmitter` interface that is molded against the Node.js
+ * `EventEmitter` interface.
+ *
+ * @constructor
+ * @public
+ */
+function EventEmitter() {
+  this._events = new Events();
+  this._eventsCount = 0;
+}
+
+/**
+ * Return an array listing the events for which the emitter has registered
+ * listeners.
+ *
+ * @returns {Array}
+ * @public
+ */
+EventEmitter.prototype.eventNames = function eventNames() {
+  var names = []
+    , events
+    , name;
+
+  if (this._eventsCount === 0) return names;
+
+  for (name in (events = this._events)) {
+    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+  }
+
+  if (Object.getOwnPropertySymbols) {
+    return names.concat(Object.getOwnPropertySymbols(events));
+  }
+
+  return names;
+};
+
+/**
+ * Return the listeners registered for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Array} The registered listeners.
+ * @public
+ */
+EventEmitter.prototype.listeners = function listeners(event) {
+  var evt = prefix ? prefix + event : event
+    , handlers = this._events[evt];
+
+  if (!handlers) return [];
+  if (handlers.fn) return [handlers.fn];
+
+  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+    ee[i] = handlers[i].fn;
+  }
+
+  return ee;
+};
+
+/**
+ * Return the number of listeners listening to a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Number} The number of listeners.
+ * @public
+ */
+EventEmitter.prototype.listenerCount = function listenerCount(event) {
+  var evt = prefix ? prefix + event : event
+    , listeners = this._events[evt];
+
+  if (!listeners) return 0;
+  if (listeners.fn) return 1;
+  return listeners.length;
+};
+
+/**
+ * Calls each of the listeners registered for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Boolean} `true` if the event had listeners, else `false`.
+ * @public
+ */
+EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+  var evt = prefix ? prefix + event : event;
+
+  if (!this._events[evt]) return false;
+
+  var listeners = this._events[evt]
+    , len = arguments.length
+    , args
+    , i;
+
+  if (listeners.fn) {
+    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+
+    switch (len) {
+      case 1: return listeners.fn.call(listeners.context), true;
+      case 2: return listeners.fn.call(listeners.context, a1), true;
+      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+    }
+
+    for (i = 1, args = new Array(len -1); i < len; i++) {
+      args[i - 1] = arguments[i];
+    }
+
+    listeners.fn.apply(listeners.context, args);
+  } else {
+    var length = listeners.length
+      , j;
+
+    for (i = 0; i < length; i++) {
+      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+
+      switch (len) {
+        case 1: listeners[i].fn.call(listeners[i].context); break;
+        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+        default:
+          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+            args[j - 1] = arguments[j];
+          }
+
+          listeners[i].fn.apply(listeners[i].context, args);
+      }
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Add a listener for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.on = function on(event, fn, context) {
+  return addListener(this, event, fn, context, false);
+};
+
+/**
+ * Add a one-time listener for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.once = function once(event, fn, context) {
+  return addListener(this, event, fn, context, true);
+};
+
+/**
+ * Remove the listeners of a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn Only remove the listeners that match this function.
+ * @param {*} context Only remove the listeners that have this context.
+ * @param {Boolean} once Only remove one-time listeners.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+  var evt = prefix ? prefix + event : event;
+
+  if (!this._events[evt]) return this;
+  if (!fn) {
+    clearEvent(this, evt);
+    return this;
+  }
+
+  var listeners = this._events[evt];
+
+  if (listeners.fn) {
+    if (
+      listeners.fn === fn &&
+      (!once || listeners.once) &&
+      (!context || listeners.context === context)
+    ) {
+      clearEvent(this, evt);
+    }
+  } else {
+    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+      if (
+        listeners[i].fn !== fn ||
+        (once && !listeners[i].once) ||
+        (context && listeners[i].context !== context)
+      ) {
+        events.push(listeners[i]);
+      }
+    }
+
+    //
+    // Reset the array, or remove it completely if we have no more listeners.
+    //
+    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+    else clearEvent(this, evt);
+  }
+
+  return this;
+};
+
+/**
+ * Remove all listeners, or those of the specified event.
+ *
+ * @param {(String|Symbol)} [event] The event name.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+  var evt;
+
+  if (event) {
+    evt = prefix ? prefix + event : event;
+    if (this._events[evt]) clearEvent(this, evt);
+  } else {
+    this._events = new Events();
+    this._eventsCount = 0;
+  }
+
+  return this;
+};
+
+//
+// Alias methods names because people roll like that.
+//
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+
+//
+// Expose the prefix.
+//
+EventEmitter.prefixed = prefix;
+
+//
+// Allow `EventEmitter` to be imported as module namespace.
+//
+EventEmitter.EventEmitter = EventEmitter;
+
+//
+// Expose the module.
+//
+if ('undefined' !== typeof module) {
+  module.exports = EventEmitter;
+}
+
+},{}],16:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4005,7 +4327,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],14:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -4091,7 +4413,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],15:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -4398,7 +4720,7 @@ var substr = 'ab'.substr(-1) === 'b'
 
 }).call(this,require('_process'))
 
-},{"_process":16}],16:[function(require,module,exports){
+},{"_process":19}],19:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4584,22 +4906,23 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],17:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (global){
 /*! *****************************************************************************
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
+Copyright (c) Microsoft Corporation.
 
-THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-MERCHANTABLITY OR NON-INFRINGEMENT.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-See the Apache Version 2.0 License for specific language governing permissions
-and limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
+
 /* global global, define, System, Reflect, Promise */
 var __extends;
 var __assign;
@@ -4623,6 +4946,7 @@ var __importStar;
 var __importDefault;
 var __classPrivateFieldGet;
 var __classPrivateFieldSet;
+var __createBinding;
 (function (factory) {
     var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
     if (typeof define === "function" && define.amd) {
@@ -4730,8 +5054,13 @@ var __classPrivateFieldSet;
         }
     };
 
+    __createBinding = function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+    };
+
     __exportStar = function (m, exports) {
-        for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+        for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) exports[p] = m[p];
     };
 
     __values = function (o) {
@@ -4837,7 +5166,7 @@ var __classPrivateFieldSet;
         }
         privateMap.set(receiver, value);
         return value;
-    }
+    };
 
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -4848,6 +5177,7 @@ var __classPrivateFieldSet;
     exporter("__awaiter", __awaiter);
     exporter("__generator", __generator);
     exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
     exporter("__values", __values);
     exporter("__read", __read);
     exporter("__spread", __spread);
@@ -4865,7 +5195,7 @@ var __classPrivateFieldSet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}]},{},[2])(2)
+},{}]},{},[3])(3)
 });
 
 //# sourceMappingURL=threadedClass.js.map
