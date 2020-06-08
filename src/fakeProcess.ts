@@ -1,6 +1,3 @@
-import { ChildProcess } from 'child_process'
-import { Writable, Readable } from 'stream'
-import { EventEmitter } from 'events'
 import {
 	MessageFromChild,
 	CallbackFunction,
@@ -9,6 +6,7 @@ import {
 	InstanceHandle,
 	MessageType
 } from './internalApi'
+import { WorkerPlatformBase } from './workerPlatformBase'
 
 export class FakeWorker extends Worker {
 	private mockProcessSend: (m: MessageFromChild) => void
@@ -44,21 +42,7 @@ export class FakeWorker extends Worker {
 
 }
 
-export class FakeProcess extends EventEmitter implements ChildProcess {
-	stdin: Writable
-	stdout: Readable
-	stderr: Readable
-	readonly stdio: [
-		Writable, // stdin
-		Readable, // stdout
-		Readable, // stderr
-		Readable | Writable | null | undefined, // extra, no modification
-		Readable | Writable | null | undefined // extra, no modification
-	]
-	killed: boolean = false
-	pid: number = 0
-	connected: boolean = true
-
+export class FakeProcess extends WorkerPlatformBase {
 	private worker: FakeWorker
 
 	constructor () {
@@ -71,23 +55,9 @@ export class FakeProcess extends EventEmitter implements ChildProcess {
 	kill (): void {
 		// @todo: needs some implementation.
 		this.emit('close')
-		// throw new Error('Function kill in FakeProcess is not implemented.')
 	}
 
-	send (m: any) {
+	send (m: any): void {
 		this.worker.onMessageFromParent(m)
-		return true
-	}
-
-	disconnect (): void {
-		throw new Error('Function disconnect in FakeProcess is not implemented.')
-	}
-
-	unref (): void {
-		throw new Error('Function unref in FakeProcess is not implemented.')
-	}
-
-	ref (): void {
-		throw new Error('Function ref in FakeProcess is not implemented.')
 	}
 }

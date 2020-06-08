@@ -772,8 +772,8 @@ describe('single-thread tests', () => {
 		expect((await multiThreaded.returnValue(buf)) === buf2).toEqual(false)
 		expect((await multiThreaded.returnValue(buf)) === buf3).toEqual(false)
 		// However the values of the buffers should be correct:
-		expect((await multiThreaded.returnValue(buf)).toString() === buf2.toString()).toEqual(true)
-		expect((await multiThreaded.returnValue(buf)).toString() === buf3.toString()).toEqual(true)
+		expect((await multiThreaded.returnValue(buf) as any).toString() === buf2.toString()).toEqual(true)
+		expect((await multiThreaded.returnValue(buf) as any).toString() === buf3.toString()).toEqual(true)
 
 		await ThreadedClassManager.destroy(singleThreaded)
 		await ThreadedClassManager.destroy(multiThreaded)

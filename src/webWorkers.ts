@@ -1,6 +1,5 @@
-import { Writable, Readable } from 'stream'
-import { ChildProcess } from 'child_process'
-import { EventEmitter } from 'events'
+import { WorkerPlatformBase } from './workerPlatformBase'
+import { MessageToChild } from './internalApi'
 
 /** Functions for emulating child-process in web-workers */
 
@@ -10,21 +9,7 @@ export function forkWebWorker (pathToWorker: string): WebWorkerProcess {
 }
 type WebWorker = any
 
-export class WebWorkerProcess extends EventEmitter implements ChildProcess {
-	stdin: Writable
-	stdout: Readable
-	stderr: Readable
-	readonly stdio: [
-		Writable, // stdin
-		Readable, // stdout
-		Readable, // stderr
-		Readable | Writable | null | undefined, // extra, no modification
-		Readable | Writable | null | undefined // extra, no modification
-	]
-	killed: boolean = false
-	pid: number = 0
-	connected: boolean = true
-
+export class WebWorkerProcess extends WorkerPlatformBase {
 	private worker: WebWorker
 
 	constructor (pathToWorker: string) {
@@ -64,24 +49,9 @@ export class WebWorkerProcess extends EventEmitter implements ChildProcess {
 		this.worker.terminate()
 
 		this.emit('close')
-		// throw new Error('Function kill in WebWorker is not implemented.')
 	}
 
-	send (message: any) {
+	send (message: MessageToChild): void {
 		this.worker.postMessage(message)
-		// this.worker.onMessageFromParent(m)
-		return true
-	}
-
-	disconnect (): void {
-		throw new Error('Function disconnect in WebWorker is not implemented.')
-	}
-
-	unref (): void {
-		throw new Error('Function unref in WebWorker is not implemented.')
-	}
-
-	ref (): void {
-		throw new Error('Function ref in WebWorker is not implemented.')
 	}
 }

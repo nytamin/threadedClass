@@ -1,4 +1,3 @@
-import { ChildProcess, fork } from 'child_process'
 import { FakeProcess } from './fakeProcess'
 import { ThreadedClassConfig, ThreadedClass } from './api'
 import {
@@ -17,8 +16,10 @@ import {
 } from './internalApi'
 import { EventEmitter } from 'events'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from './lib'
-import { forkWebWorker, WebWorkerProcess } from './webWorkers'
+import { forkWebWorker } from './webWorkers'
 import { forkWorkerThread } from './workerThreads'
+import { WorkerPlatformBase } from './workerPlatformBase'
+import { forkChildProcess } from './childProcess'
 
 export class ThreadedClassManagerClass {
 
@@ -89,7 +90,7 @@ export interface Child {
 	readonly id: string
 	readonly isNamed: boolean
 	readonly pathToWorker: string
-	process: ChildProcess
+	process: WorkerPlatformBase
 	usage: number
 	instances: {[id: string]: ChildInstance}
 	methods: {[id: string]: {
@@ -278,18 +279,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 			if (cb) instance.child.queue[message.cmdId + ''] = cb
 			try {
-				instance.child.process.send(message, (error) => {
-					if (error) {
-						if (instance.child.queue[message.cmdId + '']) {
-							instance.child.queue[message.cmdId + ''](
-								instance,
-								new Error(`Error sending message to child process of instance ${instance.id}: ` + error)
-							)
-							delete instance.child.queue[message.cmdId + '']
-						}
-					}
-				})
+				instance.child.process.send(message)
 			} catch (e) {
+				delete instance.child.queue[message.cmdId + '']
 				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
 					throw new Error(`Unsupported attribute (circular structure) in instance ${instance.id}: ` + e.toString())
 				} else {
@@ -563,7 +555,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		}
 	}
-	private _createFork (config: ThreadedClassConfig, pathToWorker: string): ChildProcess | FakeProcess | WebWorkerProcess {
+	private _createFork (config: ThreadedClassConfig, pathToWorker: string): WorkerPlatformBase {
 		if (config.disableMultithreading) {
 			return new FakeProcess()
 		} else {
@@ -574,13 +566,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				if (nodeSupportsWorkerThreads()) {
 					return forkWorkerThread(pathToWorker)
 				} else {
-					return fork(pathToWorker)
+					return forkChildProcess(pathToWorker)
 				}
 			}
 		}
 	}
 	private _setupChildProcess (child: Child) {
-		child.process.on('close', (_code) => {
+		child.process.on('close', () => {
 			if (child.alive) {
 				child.alive = false
 				this.emit('thread_closed', child)

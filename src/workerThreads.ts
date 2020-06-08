@@ -1,9 +1,7 @@
-import { Writable, Readable } from 'stream'
-import { ChildProcess } from 'child_process'
-import { EventEmitter } from 'events'
-
 import { Worker as IWorker } from 'worker_threads'
 import { getWorkerThreads } from './lib'
+import { WorkerPlatformBase } from './workerPlatformBase'
+import { MessageToChild } from './internalApi'
 
 const WorkerThreads = getWorkerThreads()
 
@@ -13,21 +11,7 @@ export function forkWorkerThread (pathToWorker: string): WorkerThread {
 	return new WorkerThread(pathToWorker)
 }
 
-export class WorkerThread extends EventEmitter implements ChildProcess {
-	stdin: Writable
-	stdout: Readable
-	stderr: Readable
-	readonly stdio: [
-		Writable, // stdin
-		Readable, // stdout
-		Readable, // stderr
-		Readable | Writable | null | undefined, // extra, no modification
-		Readable | Writable | null | undefined // extra, no modification
-	]
-	killed: boolean = false
-	pid: number = 0
-	connected: boolean = true
-
+export class WorkerThread extends WorkerPlatformBase {
 	private worker: IWorker
 
 	constructor (pathToWorker: string) {
@@ -67,24 +51,9 @@ export class WorkerThread extends EventEmitter implements ChildProcess {
 			// If it didnt return a promise, then it as a blocking operation
 			this.emit('close')
 		}
-		// throw new Error('Function kill in Worker Threads is not implemented.')
 	}
 
-	send (message: any) {
+	send (message: MessageToChild): void {
 		this.worker.postMessage(message)
-		// this.worker.onMessageFromParent(m)
-		return true
-	}
-
-	disconnect (): void {
-		throw new Error('Function disconnect in Worker Threads is not implemented.')
-	}
-
-	unref (): void {
-		throw new Error('Function unref in Worker Threads is not implemented.')
-	}
-
-	ref (): void {
-		throw new Error('Function ref in Worker Threads is not implemented.')
 	}
 }
