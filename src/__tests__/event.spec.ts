@@ -1,4 +1,5 @@
 import { threadedClass, ThreadedClassManager } from '..'
+import { CallbackClass } from '../../test-lib/event'
 // import { EventEmitter } from 'events'
 
 describe('EventEmitter', () => {
@@ -56,38 +57,26 @@ describe('EventEmitter', () => {
 	// 	expect(false).toBeTruthy()
 	// })
 
-	class FakeClass {
-		basicFcn (cb: () => number) {
-			// An example function that is not aware it might want to be run in a threadedClass
-			return cb() + 5
-		}
-
-		async promiseFcn (cb: () => Promise<number>) {
-			// This function is safe for threaded class, as its callback returns a promise
-			return await cb() + 5
-		}
-	}
-
 	test('class promise-callback', async () => {
-		const em2 = await threadedClass<FakeClass>('../../test-lib/house.js', FakeClass, [], {
+		const em2 = await threadedClass<CallbackClass, typeof CallbackClass>('../../test-lib/event.js', 'CallbackClass', [], {
 			disableMultithreading: true
 		})
 
-		const callback = () => 10
+		const callback = async () => 10
 
 		const res = await em2.promiseFcn(callback)
 		expect(res).toEqual(15)
 	})
-	test('class normal-callback', async () => {
-		const em2 = await threadedClass<FakeClass>('../../test-lib/house.js', FakeClass, [], {
-			disableMultithreading: true
-		})
+	// test('class normal-callback', async () => {
+	// 	const em2 = await threadedClass<CallbackClass, typeof CallbackClass>('../../test-lib/event.js', 'CallbackClass', [], {
+	// 		disableMultithreading: true
+	// 	})
 
-		const callback = () => 10
+	// 	const callback = () => 10
 
-		const res = await em2.basicFcn(callback)
-		expect(res).toEqual(15)
-	})
+	// 	const res = await em2.basicFcn(callback)
+	// 	expect(res).toEqual(15)
+	// })
 
 
 })
