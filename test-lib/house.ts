@@ -53,9 +53,6 @@ export class House extends EventEmitter2 {
 
 	private windows: Array<string> = []
 	private _rooms: Array<string> = []
-	// private _lamps: number = 0
-	// private _readonly: number = 42
-	// private _writeonly: number = 0
 	constructor (windows: Array<string>, rooms: Array<string>) {
 		super()
 		this.windows = windows
@@ -76,22 +73,6 @@ export class House extends EventEmitter2 {
 	public async getRooms (): Promise<string[]> {
 		return this._rooms
 	}
-	// public get getterRooms () {
-	// 	return this._rooms
-	// }
-	// public set lamps (l: number) {
-	// 	this._lamps = l
-	// }
-	// public get lamps () {
-	// 	return this._lamps
-	// }
-	// public get readonly () {
-	// 	return this._readonly
-	// }
-	// public set writeonly (value: number) {
-	// 	this._writeonly = this._writeonly
-	// 	this._writeonly = value
-	// }
 	public async slowFib (num: number) {
 		return fib(num)
 	}

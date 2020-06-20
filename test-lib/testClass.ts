@@ -8,10 +8,6 @@ export class TestClass extends EventEmitter2 {
 
 	private param1: any
 
-	// set Param1 (val: any) {
-	// 	this.param1 = val
-	// }
-
 	constructor (param1?: any) {
 		super()
 
@@ -42,7 +38,7 @@ export class TestClass extends EventEmitter2 {
 	public async callParam1Function<T extends ReturnTypes> (...args: any[]): Promise<T> {
 		return this.param1.fcn(...args)
 	}
-	// public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
+	// public async callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): Promise<T> {
 	// 	return obj.fcn(...args)
 	// }
 	public async throwError () {

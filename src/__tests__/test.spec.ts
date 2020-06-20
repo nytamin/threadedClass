@@ -182,45 +182,10 @@ const getTests = (disableMultithreading: boolean) => {
 			await threaded.setWindows(['west', 'south'])
 			expect(await threaded.getWindows('')).toHaveLength(2)
 
-		// 	// Public property:
-		// 	original.windows = ['a','b','c','d']
-		// 	expect(original.windows).toEqual(['a','b','c','d'])
-		// 	//
-		// 	// @ts-ignore this technically works, though the typings do not:
-		// 	threaded.windows = ['a','b','c','d']
-		// 	expect(await threaded.windows).toEqual(['a','b','c','d'])
-
 			// Method to get private property:
 			expect(await original.getRooms()).toHaveLength(1)
 			//
 			expect(await threaded.getRooms()).toHaveLength(1)
-
-		// 	// Getter to get private property:
-		// 	expect(original.getterRooms).toHaveLength(1)
-		// 	//
-		// 	expect(await threaded.getterRooms).toHaveLength(1)
-
-		// 	// Private property that has both a getter and a setter:
-		// 	original.lamps = 91
-		// 	expect(original.lamps).toEqual(91)
-		// 	//
-		// 	// @ts-ignore this technically works, though the typings do not:
-		// 	threaded.lamps = 91
-		// 	expect(await threaded.lamps).toEqual(91)
-
-		// 	// Private property that only has getter:
-		// 	expect(original.readonly).toEqual(42)
-		// 	// original.readonly = 3 // not allowed according to types (which is correct)
-		// 	//
-		// 	expect(await threaded.readonly).toEqual(42)
-
-		// 	// Private property that only has setter:
-		// 	original.writeonly = 13
-		// 	expect(original.writeonly).toEqual(undefined)
-		// 	//
-		// 	// @ts-ignore this technically works, though the typings do not:
-		// 	threaded.writeonly = 13
-		// 	expect(await threaded.writeonly).toEqual(undefined)
 
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)

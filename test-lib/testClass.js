@@ -3,9 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestClass = void 0;
 const house_1 = require("./house");
 class TestClass extends house_1.EventEmitter2 {
-    // set Param1 (val: any) {
-    // 	this.param1 = val
-    // }
     constructor(param1) {
         super();
         // circular reference, so that function that return self (such as EventEmitter.on can have trouble)
@@ -34,7 +31,7 @@ class TestClass extends house_1.EventEmitter2 {
     async callParam1Function(...args) {
         return this.param1.fcn(...args);
     }
-    // public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
+    // public async callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): Promise<T> {
     // 	return obj.fcn(...args)
     // }
     async throwError() {

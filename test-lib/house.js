@@ -43,9 +43,6 @@ function fib(num) {
     return result;
 }
 class House extends EventEmitter2 {
-    // private _lamps: number = 0
-    // private _readonly: number = 42
-    // private _writeonly: number = 0
     constructor(windows, rooms) {
         super();
         this.windows = [];
@@ -68,22 +65,6 @@ class House extends EventEmitter2 {
     async getRooms() {
         return this._rooms;
     }
-    // public get getterRooms () {
-    // 	return this._rooms
-    // }
-    // public set lamps (l: number) {
-    // 	this._lamps = l
-    // }
-    // public get lamps () {
-    // 	return this._lamps
-    // }
-    // public get readonly () {
-    // 	return this._readonly
-    // }
-    // public set writeonly (value: number) {
-    // 	this._writeonly = this._writeonly
-    // 	this._writeonly = value
-    // }
     async slowFib(num) {
         return fib(num);
     }
