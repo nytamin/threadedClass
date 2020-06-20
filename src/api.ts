@@ -2,7 +2,9 @@
 // https://github.com/Microsoft/TypeScript/issues/5453
 export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
 
-export type ThreadedClass<T> = ValidatedClass<T>
+// export type ThreadedClass<T> = ValidatedClass<T>
+// Note: We want to use the raw function definitions whenever possible, as that means we keep any generics and so the api remains the same
+export type ThreadedClass<T> = { [P in keyof T]: T[P] extends Function ? T[P] : never }
 
 export interface ThreadedClassConfig {
 	/** A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. */

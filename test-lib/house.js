@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// import { EventEmitter } from 'events'
+exports.House = exports.EventEmitter2 = void 0;
 const Emittery = require("emittery");
 const uuid = require("uuid");
 class EventEmitter2 {
@@ -12,7 +12,7 @@ class EventEmitter2 {
     on(event, listener) {
         const unsubId = uuid.v4();
         this.unubscribeFunctions[unsubId] = this.emittery.on(event, listener);
-        return unsubId;
+        return Promise.resolve(unsubId);
     }
     // once(event: string | symbol, listener: (...args: any[]) => void): this;
     // prependListener(event: string | symbol, listener: (...args: any[]) => void): this;
@@ -29,6 +29,9 @@ class EventEmitter2 {
     }
 }
 exports.EventEmitter2 = EventEmitter2;
+// export type TS = ValidatedClass<EventEmitter2>
+// type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T]
+// export type tstsdf = FunctionPropertyNames<EventEmitter2>
 // function fib (num: number) {
 // 	let result = 0
 // 	if (num < 2) {
@@ -49,19 +52,19 @@ class House extends EventEmitter2 {
         this.windows = windows;
         this._rooms = rooms;
     }
-    // public returnValue<T> (value: T): T {
-    // 	return value
-    // }
-    getWindows(_a) {
+    async returnValue(value) {
+        return value;
+    }
+    async getWindows(_a) {
         if (_a) {
             return [_a, ...this.windows];
         }
         return this.windows;
     }
-    setWindows(windows) {
+    async setWindows(windows) {
         return this.windows = windows;
     }
-    getRooms() {
+    async getRooms() {
         return this._rooms;
     }
     // public get getterRooms () {
@@ -85,6 +88,17 @@ class House extends EventEmitter2 {
     // }
     doEmit(str) {
         return this.emit(str);
+    }
+    callCallback(d, cb) {
+        return new Promise((resolve, reject) => {
+            cb(d + ',child')
+                .then((result) => {
+                resolve(result + ',child2');
+            })
+                .catch((err) => {
+                reject(err);
+            });
+        });
     }
 }
 exports.House = House;

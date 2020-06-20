@@ -1,38 +1,36 @@
 "use strict";
-// import { EventEmitter } from 'events'
-// import { TransferableTypes } from '../src'
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TestClass = void 0;
 const house_1 = require("./house");
 class TestClass extends house_1.EventEmitter2 {
-    // private param1: any
     // set Param1 (val: any) {
     // 	this.param1 = val
     // }
-    constructor(_param1) {
+    constructor(param1) {
         super();
         // circular reference, so that function that return self (such as EventEmitter.on can have trouble)
         this.myself = this;
         this.myself = this.myself;
-        // this.param1 = param1
+        this.param1 = param1;
     }
-    getId() {
+    async getId() {
         return 'abc';
     }
-    returnValue(value) {
+    async returnValue(value) {
         return value;
     }
-    // public returnParam1 () {
-    // 	return this.param1
-    // }
-    // public callFunction<T> (fcn: (...args: any[]) => T, ...args: any[]): T {
+    async returnParam1() {
+        return this.param1;
+    }
+    // public async callFunction<T extends TransferableTypes> (fcn: (...args: TransferableTypes[]) => Promise<T>, ...args: TransferableTypes[]): Promise<T> {
     // 	return fcn(...args)
     // }
     // public setParam1 (val: any) {
     // 	return this.param1 = val
     // }
-    // public callParam1<T> (...args: any[]): T {
-    // 	return this.param1(...args)
-    // }
+    callParam1(...args) {
+        return this.param1(...args);
+    }
     // public callParam1Function<T> (...args: any[]): T {
     // 	return this.param1.fcn(...args)
     // }
@@ -45,7 +43,7 @@ class TestClass extends house_1.EventEmitter2 {
     // public throwErrorString () {
     // 	throw 'Error string thrown' // tslint:disable-line
     // }
-    exitProcess(time) {
+    async exitProcess(time) {
         if (!time) {
             process.exit(1);
         }
@@ -55,10 +53,10 @@ class TestClass extends house_1.EventEmitter2 {
             }, time);
         }
     }
-    logSomething(...args) {
+    async logSomething(...args) {
         console.log(...args);
     }
-    freeze() {
+    async freeze() {
         while (true) {
             // do nothing, but freeze
         }
@@ -70,7 +68,7 @@ class TestClass extends house_1.EventEmitter2 {
             }, waitTime);
         });
     }
-    getCircular(val) {
+    async getCircular(val) {
         let o = {
             a: 1,
             b: 2,

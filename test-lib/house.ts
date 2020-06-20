@@ -1,11 +1,11 @@
 import Emittery = require('emittery')
 import uuid = require('uuid')
-import type { ValidatedClass, TransferableTypes } from '../src/api'
+import type { TransferableTypes } from './tmp'
 
 export type HandlerId = string
 export class EventEmitter2 {
-	private emittery: Emittery
-	private unubscribeFunctions: { [key: string]: Emittery.UnsubscribeFn }
+	private readonly emittery: Emittery
+	private readonly unubscribeFunctions: { [key: string]: Emittery.UnsubscribeFn }
 
 	constructor () {
 		this.emittery = new Emittery()
@@ -35,7 +35,7 @@ export class EventEmitter2 {
 	// listenerCount(type: string | symbol): number;
 }
 
-export type TS = ValidatedClass<EventEmitter2>
+// export type TS = ValidatedClass<EventEmitter2>
 
 // type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T]
 // export type tstsdf = FunctionPropertyNames<EventEmitter2>
@@ -61,9 +61,9 @@ export class House extends EventEmitter2 {
 		this.windows = windows
 		this._rooms = rooms
 	}
-	// public returnValue<T> (value: T): T {
-	// 	return value
-	// }
+	public async returnValue<T extends TransferableTypes> (value: T): Promise<T> {
+		return value
+	}
 	public async getWindows (_a: string): Promise<string[]> {
 		if (_a) {
 			return [_a, ...this.windows]

@@ -1,6 +1,6 @@
 
 import { EventEmitter2 } from './house'
-import type { TransferableTypes } from '../src/api'
+import type { TransferableTypes, ReturnTypes } from './tmp'
 
 export class TestClass extends EventEmitter2 {
 
@@ -36,7 +36,7 @@ export class TestClass extends EventEmitter2 {
 	// public setParam1 (val: any) {
 	// 	return this.param1 = val
 	// }
-	public callParam1<T extends TransferableTypes> (...args: TransferableTypes[]): Promise<T> {
+	public callParam1<T extends ReturnTypes> (...args: TransferableTypes[]): Promise<T> {
 		return this.param1(...args)
 	}
 	// public callParam1Function<T> (...args: any[]): T {
