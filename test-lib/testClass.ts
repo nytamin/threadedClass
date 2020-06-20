@@ -1,7 +1,6 @@
-// import { EventEmitter } from 'events'
-// import { TransferableTypes } from '../src'
 
-import { EventEmitter2, BasicTypes } from './house'
+import { EventEmitter2 } from './house'
+import type { TransferableTypes } from '../src/api'
 
 export class TestClass extends EventEmitter2 {
 
@@ -25,7 +24,7 @@ export class TestClass extends EventEmitter2 {
 	public async getId (): Promise<string> {
 		return 'abc'
 	}
-	public async returnValue<T extends BasicTypes> (value: T): Promise<T> {
+	public async returnValue<T extends TransferableTypes> (value: T): Promise<T> {
 		return value
 	}
 	public async returnParam1 () {
@@ -37,7 +36,7 @@ export class TestClass extends EventEmitter2 {
 	// public setParam1 (val: any) {
 	// 	return this.param1 = val
 	// }
-	public callParam1<T extends BasicTypes> (...args: BasicTypes[]): Promise<T> {
+	public callParam1<T extends TransferableTypes> (...args: TransferableTypes[]): Promise<T> {
 		return this.param1(...args)
 	}
 	// public callParam1Function<T> (...args: any[]): T {

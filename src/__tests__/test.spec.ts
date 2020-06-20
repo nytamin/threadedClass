@@ -82,129 +82,129 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(error).toMatch(/Cannot find module/)
 
 		})
-		test('eventEmitter', async () => {
+		// test('eventEmitter', async () => {
 
-			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
+		// 	let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
 
-			let onEvent = jest.fn()
-			await threaded.on('test', onEvent)
+		// 	let onEvent = jest.fn()
+		// 	await threaded.on('test', onEvent)
 
-			await threaded.doEmit('test')
+		// 	await threaded.doEmit('test')
 
-			await new Promise((resolve) => { setTimeout(resolve, 200) })
-			expect(onEvent).toHaveBeenCalledTimes(1)
+		// 	await new Promise((resolve) => { setTimeout(resolve, 200) })
+		// 	expect(onEvent).toHaveBeenCalledTimes(1)
 
-			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
+		// 	await ThreadedClassManager.destroy(threaded)
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
 
-		test('method with callback', async () => {
+		// test('method with callback', async () => {
 
-			let original = new House(['north', 'west'], ['south'])
+		// 	let original = new House(['north', 'west'], ['south'])
 
-			let result = await original.callCallback('parent', (str) => {
-				return Promise.resolve(str + ',parent2')
-			})
+		// 	let result = await original.callCallback('parent', (str) => {
+		// 		return Promise.resolve(str + ',parent2')
+		// 	})
 
-			expect(result).toEqual('parent,child,parent2,child2')
+		// 	expect(result).toEqual('parent,child,parent2,child2')
 
-			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
+		// 	let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
 
-			let onEvent = jest.fn()
-			await threaded.on('test', onEvent)
+		// 	let onEvent = jest.fn()
+		// 	await threaded.on('test', onEvent)
 
-			result = await threaded.callCallback('parent', (str: any) => {
-				return str + ',parent2'
-			})
+		// 	result = await threaded.callCallback('parent', (str: any) => {
+		// 		return str + ',parent2'
+		// 	})
 
-			// await new Promise((resolve) => { setTimeout(resolve, 200) })
-			expect(result).toEqual('parent,child,parent2,child2')
+		// 	// await new Promise((resolve) => { setTimeout(resolve, 200) })
+		// 	expect(result).toEqual('parent,child,parent2,child2')
 
-			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
+		// 	await ThreadedClassManager.destroy(threaded)
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
 
-		test('import library class', async () => {
+		// test('import library class', async () => {
 
-			let original = new CasparCG({
-				host: '192.168.0.1',
-				autoConnect: false
-			})
-			expect(original.host).toEqual('192.168.0.1')
+		// 	let original = new CasparCG({
+		// 		host: '192.168.0.1',
+		// 		autoConnect: false
+		// 	})
+		// 	expect(original.host).toEqual('192.168.0.1')
 
-			let threaded = await threadedClass<CasparCG, typeof CasparCG>('casparcg-connection', 'CasparCG', [{
-				host: '192.168.0.1',
-				autoConnect: false
-			}], { disableMultithreading })
-			expect(await threaded.host).toEqual('192.168.0.1')
+		// 	let threaded = await threadedClass<CasparCG, typeof CasparCG>('casparcg-connection', 'CasparCG', [{
+		// 		host: '192.168.0.1',
+		// 		autoConnect: false
+		// 	}], { disableMultithreading })
+		// 	expect(await threaded.host).toEqual('192.168.0.1')
 
-			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
+		// 	await ThreadedClassManager.destroy(threaded)
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
 
-		test('import native class', async () => {
+		// test('import native class', async () => {
 
-			let original = new StringDecoder('utf8')
+		// 	let original = new StringDecoder('utf8')
 
-			// €-sign:
-			let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
-			expect(euroSign).toEqual('€')
+		// 	// €-sign:
+		// 	let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
+		// 	expect(euroSign).toEqual('€')
 
-			let threaded = await threadedClass<StringDecoder, typeof StringDecoder>('string_decoder', 'StringDecoder', ['utf8'], { disableMultithreading })
+		// 	let threaded = await threadedClass<StringDecoder, typeof StringDecoder>('string_decoder', 'StringDecoder', ['utf8'], { disableMultithreading })
 
-			let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
+		// 	let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
 
-			expect(euroSign2).toEqual(euroSign)
+		// 	expect(euroSign2).toEqual(euroSign)
 
-			await ThreadedClassManager.destroy(threaded)
+		// 	await ThreadedClassManager.destroy(threaded)
 
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
-		if (doPerformanceTests) {
-			test('single-thread', async () => {
-				// let startTime = Date.now()
-				let results: Array<number> = []
-				for (let i = 0; i < 5; i++) {
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
+		// if (doPerformanceTests) {
+		// 	test('single-thread', async () => {
+		// 		// let startTime = Date.now()
+		// 		let results: Array<number> = []
+		// 		for (let i = 0; i < 5; i++) {
 
-					let myHouse = new House(['aa', 'bb'], [])
+		// 			let myHouse = new House(['aa', 'bb'], [])
 
-					results.push(myHouse.slowFib(37))
-				}
-				// let endTime = Date.now()
+		// 			results.push(myHouse.slowFib(37))
+		// 		}
+		// 		// let endTime = Date.now()
 
-				// console.log('Single-thread: ', results.length, endTime - startTime)
-				expect(results).toHaveLength(5)
-			})
-			test('multi-thread', async () => {
-				// let startTime = Date.now()
-				let threads: ThreadedClass<House>[] = []
-				let results: Array<number> = []
+		// 		// console.log('Single-thread: ', results.length, endTime - startTime)
+		// 		expect(results).toHaveLength(5)
+		// 	})
+		// 	test('multi-thread', async () => {
+		// 		// let startTime = Date.now()
+		// 		let threads: ThreadedClass<House>[] = []
+		// 		let results: Array<number> = []
 
-				let ps: any = []
+		// 		let ps: any = []
 
-				for (let i = 0; i < 5; i++) {
-					ps.push(
-						threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['aa', 'bb'], []], { disableMultithreading })
-						.then((myHouse) => {
-							threads.push(myHouse)
-							return myHouse.slowFib(37)
-						})
-						.then((result) => {
-							results.push(result)
-						})
-					)
-				}
-				await Promise.all(ps)
-				// let endTime = Date.now()
-				await Promise.all(threads.map((thread) => {
-					return ThreadedClassManager.destroy(thread)
-				}))
+		// 		for (let i = 0; i < 5; i++) {
+		// 			ps.push(
+		// 				threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['aa', 'bb'], []], { disableMultithreading })
+		// 				.then((myHouse) => {
+		// 					threads.push(myHouse)
+		// 					return myHouse.slowFib(37)
+		// 				})
+		// 				.then((result) => {
+		// 					results.push(result)
+		// 				})
+		// 			)
+		// 		}
+		// 		await Promise.all(ps)
+		// 		// let endTime = Date.now()
+		// 		await Promise.all(threads.map((thread) => {
+		// 			return ThreadedClassManager.destroy(thread)
+		// 		}))
 
-				// console.log('Multi-thread: ', results.length, endTime - startTime)
-				expect(results).toHaveLength(5)
-				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-			})
-		}
+		// 		// console.log('Multi-thread: ', results.length, endTime - startTime)
+		// 		expect(results).toHaveLength(5)
+		// 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// 	})
+		// }
 		test('properties', async () => {
 			let original = new House([], ['south'])
 			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [[], ['south']], { disableMultithreading })
@@ -486,15 +486,15 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
-		test('execute callback loaded via function', async () => {
-			let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		// test('execute callback loaded via function', async () => {
+		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
-			expect(await threaded.callParam1(40, 1)).toEqual(42)
+		// 	await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
+		// 	expect(await threaded.callParam1(40, 1)).toEqual(42)
 
-			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
+		// 	await ThreadedClassManager.destroy(threaded)
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
 		// test('execute wrapped callback loaded via setter', async () => {
 		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
@@ -504,136 +504,136 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
-		test('execute callback loaded via setter', async () => {
-			let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		// test('execute callback loaded via setter', async () => {
+		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			threaded.Param1 = (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1)
-			expect(await threaded.callParam1(40, 1)).toEqual(42)
+		// 	threaded.Param1 = (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1)
+		// 	expect(await threaded.callParam1(40, 1)).toEqual(42)
 
-			await ThreadedClassManager.destroy(threaded)
-			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		})
-		test('functions as arguments', async () => {
-			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		// 	await ThreadedClassManager.destroy(threaded)
+		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		// })
+		// test('functions as arguments', async () => {
+		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			let i = 0
-			const calledSecond = jest.fn((a,b) => {
-				expect(a).toEqual(3)
-				expect(b).toEqual(4)
+		// 	let i = 0
+		// 	const calledSecond = jest.fn((a,b) => {
+		// 		expect(a).toEqual(3)
+		// 		expect(b).toEqual(4)
 
-				expect(i++).toEqual(3)
+		// 		expect(i++).toEqual(3)
 
-				return 42
-			})
-			const calledFirst = jest.fn(async (a,b,c) => {
-				expect(a).toEqual(1)
-				expect(b).toEqual(2)
-				expect(c).toEqual(3)
-				expect(i++).toEqual(1)
+		// 		return 42
+		// 	})
+		// 	const calledFirst = jest.fn(async (a,b,c) => {
+		// 		expect(a).toEqual(1)
+		// 		expect(b).toEqual(2)
+		// 		expect(c).toEqual(3)
+		// 		expect(i++).toEqual(1)
 
-				// return calledSecond
-				return threaded.callFunction((a: number, b: number) => {
-					expect(a).toEqual(6)
-					expect(b).toEqual(7)
-					expect(i++).toEqual(2)
+		// 		// return calledSecond
+		// 		return threaded.callFunction((a: number, b: number) => {
+		// 			expect(a).toEqual(6)
+		// 			expect(b).toEqual(7)
+		// 			expect(i++).toEqual(2)
 
-					return calledSecond
-				}, 6,7)
-			})
+		// 			return calledSecond
+		// 		}, 6,7)
+		// 	})
 
-			expect(i++).toEqual(0)
-			const f0: any = await threaded.callFunction(calledFirst, 1, 2, 3)
-			expect(calledFirst).toHaveBeenCalledTimes(1)
+		// 	expect(i++).toEqual(0)
+		// 	const f0: any = await threaded.callFunction(calledFirst, 1, 2, 3)
+		// 	expect(calledFirst).toHaveBeenCalledTimes(1)
 
-			expect(
-				await f0(3,4) // will cause calledSecond to be called
-			).toEqual(42)
+		// 	expect(
+		// 		await f0(3,4) // will cause calledSecond to be called
+		// 	).toEqual(42)
 
-			expect(calledSecond).toHaveBeenCalledTimes(1)
+		// 	expect(calledSecond).toHaveBeenCalledTimes(1)
 
-			/*
-				What happened in detail:
-				* threaded.callFunction was executed on parent
-					* TestFunction.callFunction was executed on worker
-						* calledFirst was executed on parent
-							* TestFunction.callFunction was executed on worker
-								* unnamed arrow function was executed on parent
-									-> returns a reference to calledSecond
-				v ------------------
-				-> returns the reference to calledSecond
+		// 	/*
+		// 		What happened in detail:
+		// 		* threaded.callFunction was executed on parent
+		// 			* TestFunction.callFunction was executed on worker
+		// 				* calledFirst was executed on parent
+		// 					* TestFunction.callFunction was executed on worker
+		// 						* unnamed arrow function was executed on parent
+		// 							-> returns a reference to calledSecond
+		// 		v ------------------
+		// 		-> returns the reference to calledSecond
 
-				* f0 was executed
-			*/
-		})
+		// 		* f0 was executed
+		// 	*/
+		// })
 
-		test('error handling', async () => {
-			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		// test('error handling', async () => {
+		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			let error: any = null
+		// 	let error: any = null
 
-			try {
-				await threaded.throwError()
-			} catch (e) {
-				error = e
-			}
-			expect(error.toString()).toMatch(/Error thrown/)
-			error = null
-			try {
-				await threaded.throwErrorString()
-			} catch (e) {
-				error = e
-			}
-			expect(error.toString()).toMatch(/Error string thrown/)
+		// 	try {
+		// 		await threaded.throwError()
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error.toString()).toMatch(/Error thrown/)
+		// 	error = null
+		// 	try {
+		// 		await threaded.throwErrorString()
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error.toString()).toMatch(/Error string thrown/)
 
-			error = null
-			try {
-				await threaded.callFunction(() => {
-					throw new Error('Error thrown in callback')
-				})
-			} catch (e) {
-				error = e
-			}
-			expect(error.toString()).toMatch(/Error thrown in callback/)
+		// 	error = null
+		// 	try {
+		// 		await threaded.callFunction(() => {
+		// 			throw new Error('Error thrown in callback')
+		// 		})
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error.toString()).toMatch(/Error thrown in callback/)
 
-			error = null
-			try {
-				await threaded.callFunction(() => {
-					return Promise.reject('Reject in callback')
-				})
-			} catch (e) {
-				error = e
-			}
-			expect(error.toString()).toMatch(/Reject in callback/)
+		// 	error = null
+		// 	try {
+		// 		await threaded.callFunction(() => {
+		// 			return Promise.reject('Reject in callback')
+		// 		})
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error.toString()).toMatch(/Reject in callback/)
 
-			error = null
-			const secondaryFunction = () => {
-				throw new Error('Error thrown in secondary')
-			}
-			try {
-				let second: any = await threaded.callFunction(() => {
-					return secondaryFunction
-				})
-				await second('second')
-			} catch (e) {
-				error = e
-			}
-			expect(error && error.toString()).toMatch(/Error thrown in secondary/)
+		// 	error = null
+		// 	const secondaryFunction = () => {
+		// 		throw new Error('Error thrown in secondary')
+		// 	}
+		// 	try {
+		// 		let second: any = await threaded.callFunction(() => {
+		// 			return secondaryFunction
+		// 		})
+		// 		await second('second')
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error && error.toString()).toMatch(/Error thrown in secondary/)
 
-			error = null
-			const secondaryFunctionReject = () => {
-				return Promise.reject('Reject in secondary')
-			}
-			try {
-				let second: any = await threaded.callFunction(() => {
-					return secondaryFunctionReject
-				})
-				await second('second')
-			} catch (e) {
-				error = e
-			}
-			expect(error && error.toString()).toMatch(/Reject in secondary/)
+		// 	error = null
+		// 	const secondaryFunctionReject = () => {
+		// 		return Promise.reject('Reject in secondary')
+		// 	}
+		// 	try {
+		// 		let second: any = await threaded.callFunction(() => {
+		// 			return secondaryFunctionReject
+		// 		})
+		// 		await second('second')
+		// 	} catch (e) {
+		// 		error = e
+		// 	}
+		// 	expect(error && error.toString()).toMatch(/Reject in secondary/)
 
-		})
+		// })
 		test('logging', async () => {
 			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
@@ -652,27 +652,27 @@ const getTests = (disableMultithreading: boolean) => {
 				expect(mockLog.mock.calls[0]).toEqual(['', 'aa', 'bb'])
 			}
 		})
-		test('EventEmitter', async () => {
-			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		// test('EventEmitter', async () => {
+		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			const eventListener0 = jest.fn()
-			const eventListener1 = jest.fn()
-			await threaded.on('event0', eventListener0)
-			await threaded.on('event1', eventListener1)
+		// 	const eventListener0 = jest.fn()
+		// 	const eventListener1 = jest.fn()
+		// 	await threaded.on('event0', eventListener0)
+		// 	await threaded.on('event1', eventListener1)
 
-			await threaded.emitMessage('event0', 'a')
-			await threaded.emitMessage('event1', 'b')
+		// 	await threaded.emitMessage('event0', 'a')
+		// 	await threaded.emitMessage('event1', 'b')
 
-			expect(eventListener0).toHaveBeenCalledTimes(1)
-			expect(eventListener0).toHaveBeenCalledWith('a')
-			expect(eventListener1).toHaveBeenCalledTimes(1)
-			expect(eventListener1).toHaveBeenCalledWith('b')
+		// 	expect(eventListener0).toHaveBeenCalledTimes(1)
+		// 	expect(eventListener0).toHaveBeenCalledWith('a')
+		// 	expect(eventListener1).toHaveBeenCalledTimes(1)
+		// 	expect(eventListener1).toHaveBeenCalledWith('b')
 
-			let self = await threaded.getSelf()
+		// 	let self = await threaded.getSelf()
 
-			expect(self).toEqual(threaded)
+		// 	expect(self).toEqual(threaded)
 
-		})
+		// })
 		test('import typescript', async () => {
 			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH_UNSYNCED, 'TestClass', [], { disableMultithreading })
 
@@ -739,47 +739,47 @@ describe('threadedclass', getTests(false))
 // describe('threadedclass single thread', getTests(true))
 
 // Test on behaviour that differ bewteen Multi-threading vs none
-describe('single-thread tests', () => {
-	const disableMultithreading = true
-	test('Buffer', async () => {
-		let original = new TestClass()
+// describe('single-thread tests', () => {
+// 	const disableMultithreading = true
+// 	test('Buffer', async () => {
+// 		let original = new TestClass()
 
-		let bugString = '123456789abcfdef'
+// 		let bugString = '123456789abcfdef'
 
-		let buf = Buffer.from(bugString)
-		let buf2 = buf
-		let buf3 = Buffer.from(bugString)
+// 		let buf = Buffer.from(bugString)
+// 		let buf2 = buf
+// 		let buf3 = Buffer.from(bugString)
 
-		expect(buf === buf2).toEqual(true)
-		expect(buf === buf3).toEqual(false)
+// 		expect(buf === buf2).toEqual(true)
+// 		expect(buf === buf3).toEqual(false)
 
-		expect((original.returnValue(buf)) === buf2).toEqual(true)
-		expect((original.returnValue(buf)) === buf3).toEqual(false)
+// 		expect((original.returnValue(buf)) === buf2).toEqual(true)
+// 		expect((original.returnValue(buf)) === buf3).toEqual(false)
 
-		let singleThreaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
-		let onClosed = jest.fn()
-		ThreadedClassManager.onEvent(singleThreaded, 'thread_closed', onClosed)
+// 		let singleThreaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+// 		let onClosed = jest.fn()
+// 		ThreadedClassManager.onEvent(singleThreaded, 'thread_closed', onClosed)
 
-		let multiThreaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], {})
-		let onClosed2 = jest.fn()
-		ThreadedClassManager.onEvent(multiThreaded, 'thread_closed', onClosed2)
+// 		let multiThreaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], {})
+// 		let onClosed2 = jest.fn()
+// 		ThreadedClassManager.onEvent(multiThreaded, 'thread_closed', onClosed2)
 
-		// Handle buffers correctly in single threaded mode
-		expect((await singleThreaded.returnValue(buf)) === buf2).toEqual(true)
-		expect((await singleThreaded.returnValue(buf)) === buf3).toEqual(false)
+// 		// Handle buffers correctly in single threaded mode
+// 		expect((await singleThreaded.returnValue(buf)) === buf2).toEqual(true)
+// 		expect((await singleThreaded.returnValue(buf)) === buf3).toEqual(false)
 
-		// Not possible to handle buffers correctly in threaded mode
-		expect((await multiThreaded.returnValue(buf)) === buf2).toEqual(false)
-		expect((await multiThreaded.returnValue(buf)) === buf3).toEqual(false)
-		// However the values of the buffers should be correct:
-		expect((await multiThreaded.returnValue(buf) as any).toString() === buf2.toString()).toEqual(true)
-		expect((await multiThreaded.returnValue(buf) as any).toString() === buf3.toString()).toEqual(true)
+// 		// Not possible to handle buffers correctly in threaded mode
+// 		expect((await multiThreaded.returnValue(buf)) === buf2).toEqual(false)
+// 		expect((await multiThreaded.returnValue(buf)) === buf3).toEqual(false)
+// 		// However the values of the buffers should be correct:
+// 		expect((await multiThreaded.returnValue(buf) as any).toString() === buf2.toString()).toEqual(true)
+// 		expect((await multiThreaded.returnValue(buf) as any).toString() === buf3.toString()).toEqual(true)
 
-		await ThreadedClassManager.destroy(singleThreaded)
-		await ThreadedClassManager.destroy(multiThreaded)
-		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+// 		await ThreadedClassManager.destroy(singleThreaded)
+// 		await ThreadedClassManager.destroy(multiThreaded)
+// 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
-		expect(onClosed).toHaveBeenCalledTimes(1)
-		expect(onClosed2).toHaveBeenCalledTimes(1)
-	})
-})
+// 		expect(onClosed).toHaveBeenCalledTimes(1)
+// 		expect(onClosed2).toHaveBeenCalledTimes(1)
+// 	})
+// })

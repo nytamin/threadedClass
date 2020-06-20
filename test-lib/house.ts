@@ -1,14 +1,6 @@
-// import { EventEmitter } from 'events'
 import Emittery = require('emittery')
 import uuid = require('uuid')
-import { ValidatedClass } from '../src/api'
-
-// import { EventEmitter } from 'events'
-
-// TODO - deduplicate this
-export type BasicTypes = void | undefined | null | number | string | Buffer | boolean
-export type TransferableTypes = BasicTypes | { [key: string]: TransferableTypes } | Array<TransferableTypes> | Promise<TransferableTypes>
-export type TransferableParameters = TransferableTypes | ((...args: TransferableTypes[]) => Promise<TransferableTypes>)
+import type { ValidatedClass, TransferableTypes } from '../src/api'
 
 export type HandlerId = string
 export class EventEmitter2 {
