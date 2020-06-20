@@ -30,27 +30,27 @@ export class TestClass extends EventEmitter2 {
 	public async returnParam1 () {
 		return this.param1
 	}
-	// public async callFunction<T extends TransferableTypes> (fcn: (...args: TransferableTypes[]) => Promise<T>, ...args: TransferableTypes[]): Promise<T> {
-	// 	return fcn(...args)
-	// }
-	// public setParam1 (val: any) {
-	// 	return this.param1 = val
-	// }
-	public callParam1<T extends ReturnTypes> (...args: TransferableTypes[]): Promise<T> {
+	public async callFunction<T extends TransferableTypes> (fcn: (...args: TransferableTypes[]) => Promise<T>, ...args: TransferableTypes[]): Promise<T> {
+		return fcn(...args)
+	}
+	public async setParam1 (val: any) {
+		return this.param1 = val
+	}
+	public async callParam1<T extends ReturnTypes> (...args: TransferableTypes[]): Promise<T> {
 		return this.param1(...args)
 	}
-	// public callParam1Function<T> (...args: any[]): T {
-	// 	return this.param1.fcn(...args)
-	// }
+	public async callParam1Function<T extends ReturnTypes> (...args: any[]): Promise<T> {
+		return this.param1.fcn(...args)
+	}
 	// public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
 	// 	return obj.fcn(...args)
 	// }
-	// public throwError () {
-	// 	throw new Error('Error thrown')
-	// }
-	// public throwErrorString () {
-	// 	throw 'Error string thrown' // tslint:disable-line
-	// }
+	public async throwError () {
+		throw new Error('Error thrown')
+	}
+	public async throwErrorString () {
+		throw 'Error string thrown' // tslint:disable-line
+	}
 	public async exitProcess (time: number): Promise<void> {
 		if (!time) {
 			process.exit(1)
@@ -87,7 +87,7 @@ export class TestClass extends EventEmitter2 {
 	public emitMessage (name: string, val: any) {
 		return this.emit(name, val)
 	}
-	// public getSelf (): TestClass {
-	// 	return this
-	// }
+	public async getSelf (): Promise<any> {
+		return this
+	}
 }

@@ -40,15 +40,15 @@ export class EventEmitter2 {
 // type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T]
 // export type tstsdf = FunctionPropertyNames<EventEmitter2>
 
-// function fib (num: number) {
-// 	let result = 0
-// 	if (num < 2) {
-// 		result = num
-// 	} else {
-// 		result = fib(num - 1) + fib(num - 2)
-// 	}
-// 	return result
-// }
+function fib (num: number) {
+	let result = 0
+	if (num < 2) {
+		result = num
+	} else {
+		result = fib(num - 1) + fib(num - 2)
+	}
+	return result
+}
 export class House extends EventEmitter2 {
 
 	private windows: Array<string> = []
@@ -92,9 +92,9 @@ export class House extends EventEmitter2 {
 	// 	this._writeonly = this._writeonly
 	// 	this._writeonly = value
 	// }
-	// public slowFib (num: number) {
-	// 	return fib(num)
-	// }
+	public async slowFib (num: number) {
+		return fib(num)
+	}
 	public doEmit (str: string) {
 		return this.emit(str)
 	}

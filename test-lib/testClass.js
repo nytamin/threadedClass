@@ -22,27 +22,27 @@ class TestClass extends house_1.EventEmitter2 {
     async returnParam1() {
         return this.param1;
     }
-    // public async callFunction<T extends TransferableTypes> (fcn: (...args: TransferableTypes[]) => Promise<T>, ...args: TransferableTypes[]): Promise<T> {
-    // 	return fcn(...args)
-    // }
-    // public setParam1 (val: any) {
-    // 	return this.param1 = val
-    // }
-    callParam1(...args) {
+    async callFunction(fcn, ...args) {
+        return fcn(...args);
+    }
+    async setParam1(val) {
+        return this.param1 = val;
+    }
+    async callParam1(...args) {
         return this.param1(...args);
     }
-    // public callParam1Function<T> (...args: any[]): T {
-    // 	return this.param1.fcn(...args)
-    // }
+    async callParam1Function(...args) {
+        return this.param1.fcn(...args);
+    }
     // public callChildFunction<T> (obj: { fcn: (...args: any[]) => T }, ...args: any[]): T {
     // 	return obj.fcn(...args)
     // }
-    // public throwError () {
-    // 	throw new Error('Error thrown')
-    // }
-    // public throwErrorString () {
-    // 	throw 'Error string thrown' // tslint:disable-line
-    // }
+    async throwError() {
+        throw new Error('Error thrown');
+    }
+    async throwErrorString() {
+        throw 'Error string thrown'; // tslint:disable-line
+    }
     async exitProcess(time) {
         if (!time) {
             process.exit(1);
@@ -79,6 +79,9 @@ class TestClass extends house_1.EventEmitter2 {
     }
     emitMessage(name, val) {
         return this.emit(name, val);
+    }
+    async getSelf() {
+        return this;
     }
 }
 exports.TestClass = TestClass;

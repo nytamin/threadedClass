@@ -1,7 +1,7 @@
 import {
 	threadedClass,
 	ThreadedClassManager,
-	// ThreadedClass
+	ThreadedClass
 } from '../index'
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
@@ -19,7 +19,7 @@ const TESTCLASS_PATH = '../../test-lib/testClass.js'
 // 	})
 // }
 
-// const doPerformanceTests = false
+const doPerformanceTests = false
 
 const getTests = (disableMultithreading: boolean) => {
 	return () => {
@@ -79,93 +79,93 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(error).toMatch(/Cannot find module/)
 
 		})
-		// test('eventEmitter', async () => {
+		test('eventEmitter', async () => {
 
-		// 	let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
+			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
 
-		// 	let onEvent = jest.fn()
-		// 	await threaded.on('test', onEvent)
+			let onEvent = jest.fn()
+			await threaded.on('test', onEvent)
 
-		// 	await threaded.doEmit('test')
+			await threaded.doEmit('test')
 
-		// 	await new Promise((resolve) => { setTimeout(resolve, 200) })
-		// 	expect(onEvent).toHaveBeenCalledTimes(1)
+			await new Promise((resolve) => { setTimeout(resolve, 200) })
+			expect(onEvent).toHaveBeenCalledTimes(1)
 
-		// 	await ThreadedClassManager.destroy(threaded)
-		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// })
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
 
-		// test('method with callback', async () => {
+		test('method with callback', async () => {
 
-		// 	let original = new House(['north', 'west'], ['south'])
+			let original = new House(['north', 'west'], ['south'])
 
-		// 	let result = await original.callCallback('parent', (str) => {
-		// 		return Promise.resolve(str + ',parent2')
-		// 	})
+			let result = await original.callCallback('parent', (str) => {
+				return Promise.resolve(str + ',parent2')
+			})
 
-		// 	expect(result).toEqual('parent,child,parent2,child2')
+			expect(result).toEqual('parent,child,parent2,child2')
 
-		// 	let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
+			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['north', 'west'], ['south']], { disableMultithreading })
 
-		// 	let onEvent = jest.fn()
-		// 	await threaded.on('test', onEvent)
+			let onEvent = jest.fn()
+			await threaded.on('test', onEvent)
 
-		// 	result = await threaded.callCallback('parent', (str: any) => {
-		// 		return str + ',parent2'
-		// 	})
+			result = await threaded.callCallback('parent', async (str: any) => {
+				return str + ',parent2'
+			})
 
-		// 	// await new Promise((resolve) => { setTimeout(resolve, 200) })
-		// 	expect(result).toEqual('parent,child,parent2,child2')
+			// await new Promise((resolve) => { setTimeout(resolve, 200) })
+			expect(result).toEqual('parent,child,parent2,child2')
 
-		// 	await ThreadedClassManager.destroy(threaded)
-		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// })
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
 
-		// if (doPerformanceTests) {
-		// 	test('single-thread', async () => {
-		// 		// let startTime = Date.now()
-		// 		let results: Array<number> = []
-		// 		for (let i = 0; i < 5; i++) {
+		if (doPerformanceTests) {
+			test('single-thread', async () => {
+				// let startTime = Date.now()
+				let results: Array<number> = []
+				for (let i = 0; i < 5; i++) {
 
-		// 			let myHouse = new House(['aa', 'bb'], [])
+					let myHouse = new House(['aa', 'bb'], [])
 
-		// 			results.push(myHouse.slowFib(37))
-		// 		}
-		// 		// let endTime = Date.now()
+					results.push(await myHouse.slowFib(37))
+				}
+				// let endTime = Date.now()
 
-		// 		// console.log('Single-thread: ', results.length, endTime - startTime)
-		// 		expect(results).toHaveLength(5)
-		// 	})
-		// 	test('multi-thread', async () => {
-		// 		// let startTime = Date.now()
-		// 		let threads: ThreadedClass<House>[] = []
-		// 		let results: Array<number> = []
+				// console.log('Single-thread: ', results.length, endTime - startTime)
+				expect(results).toHaveLength(5)
+			})
+			test('multi-thread', async () => {
+				// let startTime = Date.now()
+				let threads: ThreadedClass<House>[] = []
+				let results: Array<number> = []
 
-		// 		let ps: any = []
+				let ps: any = []
 
-		// 		for (let i = 0; i < 5; i++) {
-		// 			ps.push(
-		// 				threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['aa', 'bb'], []], { disableMultithreading })
-		// 				.then((myHouse) => {
-		// 					threads.push(myHouse)
-		// 					return myHouse.slowFib(37)
-		// 				})
-		// 				.then((result) => {
-		// 					results.push(result)
-		// 				})
-		// 			)
-		// 		}
-		// 		await Promise.all(ps)
-		// 		// let endTime = Date.now()
-		// 		await Promise.all(threads.map((thread) => {
-		// 			return ThreadedClassManager.destroy(thread)
-		// 		}))
+				for (let i = 0; i < 5; i++) {
+					ps.push(
+						threadedClass<House, typeof House>(HOUSE_PATH, 'House', [['aa', 'bb'], []], { disableMultithreading })
+						.then((myHouse) => {
+							threads.push(myHouse)
+							return myHouse.slowFib(37)
+						})
+						.then((result) => {
+							results.push(result)
+						})
+					)
+				}
+				await Promise.all(ps)
+				// let endTime = Date.now()
+				await Promise.all(threads.map((thread) => {
+					return ThreadedClassManager.destroy(thread)
+				}))
 
-		// 		// console.log('Multi-thread: ', results.length, endTime - startTime)
-		// 		expect(results).toHaveLength(5)
-		// 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// 	})
-		// }
+				// console.log('Multi-thread: ', results.length, endTime - startTime)
+				expect(results).toHaveLength(5)
+				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+			})
+		}
 		test('properties', async () => {
 			let original = new House([], ['south'])
 			let threaded = await threadedClass<House, typeof House>(HOUSE_PATH, 'House', [[], ['south']], { disableMultithreading })
@@ -446,15 +446,15 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
-		// test('execute callback loaded via function', async () => {
-		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		test('execute callback loaded via function', async () => {
+			let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-		// 	await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
-		// 	expect(await threaded.callParam1(40, 1)).toEqual(42)
+			await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
+			expect(await threaded.callParam1(40, 1)).toEqual(42)
 
-		// 	await ThreadedClassManager.destroy(threaded)
-		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// })
+			await ThreadedClassManager.destroy(threaded)
+			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
+		})
 		// test('execute wrapped callback loaded via setter', async () => {
 		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
@@ -526,73 +526,73 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	*/
 		// })
 
-		// test('error handling', async () => {
-		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		test('error handling', async () => {
+			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-		// 	let error: any = null
+			let error: any = null
 
-		// 	try {
-		// 		await threaded.throwError()
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error.toString()).toMatch(/Error thrown/)
-		// 	error = null
-		// 	try {
-		// 		await threaded.throwErrorString()
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error.toString()).toMatch(/Error string thrown/)
+			try {
+				await threaded.throwError()
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error thrown/)
+			error = null
+			try {
+				await threaded.throwErrorString()
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error string thrown/)
 
-		// 	error = null
-		// 	try {
-		// 		await threaded.callFunction(() => {
-		// 			throw new Error('Error thrown in callback')
-		// 		})
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error.toString()).toMatch(/Error thrown in callback/)
+			error = null
+			try {
+				await threaded.callFunction(async () => {
+					throw new Error('Error thrown in callback')
+				})
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Error thrown in callback/)
 
-		// 	error = null
-		// 	try {
-		// 		await threaded.callFunction(() => {
-		// 			return Promise.reject('Reject in callback')
-		// 		})
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error.toString()).toMatch(/Reject in callback/)
+			error = null
+			try {
+				await threaded.callFunction(async () => {
+					return Promise.reject('Reject in callback')
+				})
+			} catch (e) {
+				error = e
+			}
+			expect(error.toString()).toMatch(/Reject in callback/)
 
-		// 	error = null
-		// 	const secondaryFunction = () => {
-		// 		throw new Error('Error thrown in secondary')
-		// 	}
-		// 	try {
-		// 		let second: any = await threaded.callFunction(() => {
-		// 			return secondaryFunction
-		// 		})
-		// 		await second('second')
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error && error.toString()).toMatch(/Error thrown in secondary/)
+			// error = null
+			// const secondaryFunction = () => {
+			// 	throw new Error('Error thrown in secondary')
+			// }
+			// try {
+			// 	let second: any = await threaded.callFunction(() => {
+			// 		return secondaryFunction
+			// 	})
+			// 	await second('second')
+			// } catch (e) {
+			// 	error = e
+			// }
+			// expect(error && error.toString()).toMatch(/Error thrown in secondary/)
 
-		// 	error = null
-		// 	const secondaryFunctionReject = () => {
-		// 		return Promise.reject('Reject in secondary')
-		// 	}
-		// 	try {
-		// 		let second: any = await threaded.callFunction(() => {
-		// 			return secondaryFunctionReject
-		// 		})
-		// 		await second('second')
-		// 	} catch (e) {
-		// 		error = e
-		// 	}
-		// 	expect(error && error.toString()).toMatch(/Reject in secondary/)
-		// })
+			// error = null
+			// const secondaryFunctionReject = async () => {
+			// 	return Promise.reject('Reject in secondary')
+			// }
+			// try {
+			// 	let second: any = await threaded.callFunction(async () => {
+			// 		return secondaryFunctionReject
+			// 	})
+			// 	await second('second')
+			// } catch (e) {
+			// 	error = e
+			// }
+			// expect(error && error.toString()).toMatch(/Reject in secondary/)
+		})
 		test('logging', async () => {
 			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
@@ -611,27 +611,26 @@ const getTests = (disableMultithreading: boolean) => {
 				expect(mockLog.mock.calls[0]).toEqual(['', 'aa', 'bb'])
 			}
 		})
-		// test('EventEmitter', async () => {
-		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+		test('EventEmitter', async () => {
+			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-		// 	const eventListener0 = jest.fn()
-		// 	const eventListener1 = jest.fn()
-		// 	await threaded.on('event0', eventListener0)
-		// 	await threaded.on('event1', eventListener1)
+			const eventListener0 = jest.fn()
+			const eventListener1 = jest.fn()
+			await threaded.on('event0', eventListener0)
+			await threaded.on('event1', eventListener1)
 
-		// 	await threaded.emitMessage('event0', 'a')
-		// 	await threaded.emitMessage('event1', 'b')
+			await threaded.emitMessage('event0', 'a')
+			await threaded.emitMessage('event1', 'b')
 
-		// 	expect(eventListener0).toHaveBeenCalledTimes(1)
-		// 	expect(eventListener0).toHaveBeenCalledWith('a')
-		// 	expect(eventListener1).toHaveBeenCalledTimes(1)
-		// 	expect(eventListener1).toHaveBeenCalledWith('b')
+			expect(eventListener0).toHaveBeenCalledTimes(1)
+			expect(eventListener0).toHaveBeenCalledWith('a')
+			expect(eventListener1).toHaveBeenCalledTimes(1)
+			expect(eventListener1).toHaveBeenCalledWith('b')
 
-		// 	let self = await threaded.getSelf()
+			let self = await threaded.getSelf()
+			expect(self).toEqual(threaded)
 
-		// 	expect(self).toEqual(threaded)
-
-		// })
+		})
 		// test('import typescript', async () => {
 		// 	let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH_UNSYNCED, 'TestClass', [], { disableMultithreading })
 

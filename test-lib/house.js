@@ -32,15 +32,16 @@ exports.EventEmitter2 = EventEmitter2;
 // export type TS = ValidatedClass<EventEmitter2>
 // type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T]
 // export type tstsdf = FunctionPropertyNames<EventEmitter2>
-// function fib (num: number) {
-// 	let result = 0
-// 	if (num < 2) {
-// 		result = num
-// 	} else {
-// 		result = fib(num - 1) + fib(num - 2)
-// 	}
-// 	return result
-// }
+function fib(num) {
+    let result = 0;
+    if (num < 2) {
+        result = num;
+    }
+    else {
+        result = fib(num - 1) + fib(num - 2);
+    }
+    return result;
+}
 class House extends EventEmitter2 {
     // private _lamps: number = 0
     // private _readonly: number = 42
@@ -83,9 +84,9 @@ class House extends EventEmitter2 {
     // 	this._writeonly = this._writeonly
     // 	this._writeonly = value
     // }
-    // public slowFib (num: number) {
-    // 	return fib(num)
-    // }
+    async slowFib(num) {
+        return fib(num);
+    }
     doEmit(str) {
         return this.emit(str);
     }
