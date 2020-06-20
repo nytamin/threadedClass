@@ -1,6 +1,37 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = require("events");
+exports.House = exports.EventEmitter2 = void 0;
+const Emittery = require("emittery");
+const uuid = require("uuid");
+class EventEmitter2 {
+    constructor() {
+        this.emittery = new Emittery();
+        this.unubscribeFunctions = {};
+    }
+    // addListener(event: string | symbol, listener: (...args: any[]) => void): this;
+    on(event, listener) {
+        const unsubId = uuid.v4();
+        this.unubscribeFunctions[unsubId] = this.emittery.on(event, listener);
+        return Promise.resolve(unsubId);
+    }
+    // once(event: string | symbol, listener: (...args: any[]) => void): this;
+    // prependListener(event: string | symbol, listener: (...args: any[]) => void): this;
+    // prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): this;
+    // removeListener(event: string | symbol, listener: (...args: any[]) => void): this;
+    // off(event: string | symbol, listener: (...args: any[]) => void): this;
+    // removeAllListeners(event?: string | symbol): this;
+    // setMaxListeners(n: number): this;
+    // getMaxListeners(): number;
+    // listeners(event: string | symbol): Function[];
+    // rawListeners(event: string | symbol): Function[];
+    emit(event, ...args) {
+        return this.emittery.emit(event, ...args);
+    }
+}
+exports.EventEmitter2 = EventEmitter2;
+// export type TS = ValidatedClass<EventEmitter2>
+// type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T]
+// export type tstsdf = FunctionPropertyNames<EventEmitter2>
 function fib(num) {
     let result = 0;
     if (num < 2) {
@@ -11,53 +42,34 @@ function fib(num) {
     }
     return result;
 }
-class House extends events_1.EventEmitter {
+class House extends EventEmitter2 {
     constructor(windows, rooms) {
         super();
         this.windows = [];
         this._rooms = [];
-        this._lamps = 0;
-        this._readonly = 42;
-        this._writeonly = 0;
         this.windows = windows;
         this._rooms = rooms;
     }
-    returnValue(value) {
+    async returnValue(value) {
         return value;
     }
-    getWindows(_a) {
+    async getWindows(_a) {
         if (_a) {
             return [_a, ...this.windows];
         }
         return this.windows;
     }
-    setWindows(windows) {
+    async setWindows(windows) {
         return this.windows = windows;
     }
-    getRooms() {
+    async getRooms() {
         return this._rooms;
     }
-    get getterRooms() {
-        return this._rooms;
-    }
-    set lamps(l) {
-        this._lamps = l;
-    }
-    get lamps() {
-        return this._lamps;
-    }
-    get readonly() {
-        return this._readonly;
-    }
-    set writeonly(value) {
-        this._writeonly = this._writeonly;
-        this._writeonly = value;
-    }
-    slowFib(num) {
+    async slowFib(num) {
         return fib(num);
     }
     doEmit(str) {
-        this.emit(str);
+        return this.emit(str);
     }
     callCallback(d, cb) {
         return new Promise((resolve, reject) => {

@@ -18,8 +18,9 @@ import {
 	MessageCallbackConstr
 } from './internalApi'
 import {
+	ThreadedClassConfig,
 	ThreadedClass,
-	ThreadedClassConfig
+	ValidatedClass
 } from './api'
 import { ThreadedClassManagerInternal, ChildInstance, Child } from './manager'
 import { isBrowser, browserSupportsWebWorkers } from './lib'
@@ -33,7 +34,7 @@ type CtorArgs<CtorT extends new (...args: any) => any> = CtorT extends new (...a
  * @param orgExport Name of export in module
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-export function threadedClass<T, TCtor extends new (...args: any) => T> (
+export function threadedClass<T extends ValidatedClass<T>, TCtor extends new (...args: any) => T> (
 	orgModule: string,
 	orgExport: string,
 	constructorArgs: CtorArgs<TCtor>,

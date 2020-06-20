@@ -17,6 +17,7 @@ describe('test-lib', () => {
 		// @ts-ignore
 		process.exit = orgProcessExit
 	})
+	test('one', () => {})
 	test('House', async () => {
 		let houses = [
 			new HouseTS(['window0', 'window1', 'window2'], ['room0', 'room1']),
@@ -25,23 +26,18 @@ describe('test-lib', () => {
 		for (let house of houses) {
 
 			const onEvent = jest.fn()
-			house.on('evt', onEvent)
+			await house.on('evt', onEvent)
 
-			expect(house.returnValue(12)).toEqual(12)
-			expect(house.getWindows('aa')).toEqual(['aa', 'window0', 'window1', 'window2'])
-			expect(house.getWindows('')).toEqual(['window0', 'window1', 'window2'])
-			house.setWindows(['window0', 'window1'])
-			expect(house.getWindows('bb')).toEqual(['bb', 'window0', 'window1'])
-			expect(house.getRooms()).toEqual(['room0', 'room1'])
-			expect(house.getterRooms).toEqual(['room0', 'room1'])
-			house.lamps = 15
-			expect(house.lamps).toEqual(15)
-			expect(house.readonly).toEqual(42)
-			house.writeonly = 32
-			expect(house.slowFib(6)).toEqual(8)
+			expect(await house.returnValue(12)).toEqual(12)
+			expect(await house.getWindows('aa')).toEqual(['aa', 'window0', 'window1', 'window2'])
+			expect(await house.getWindows('')).toEqual(['window0', 'window1', 'window2'])
+			await house.setWindows(['window0', 'window1'])
+			expect(await house.getWindows('bb')).toEqual(['bb', 'window0', 'window1'])
+			expect(await house.getRooms()).toEqual(['room0', 'room1'])
+			expect(await house.slowFib(6)).toEqual(8)
 
 			expect(onEvent).toHaveBeenCalledTimes(0)
-			house.doEmit('evt')
+			await house.doEmit('evt')
 			expect(onEvent).toHaveBeenCalledTimes(1)
 			const cb = jest.fn((name: string) => {
 				return Promise.resolve('cb' + name)
@@ -68,22 +64,19 @@ describe('test-lib', () => {
 		for (let testClass of testClasses) {
 			mockExit.mockClear()
 
-			expect(testClass.returnValue('123')).toEqual('123')
+			expect(await testClass.returnValue('123')).toEqual('123')
 			const cb = jest.fn((name: string, name2: string) => {
-				return 'cb' + name + name2
+				return Promise.resolve('cb' + name + name2)
 			})
-			expect(testClass.callFunction(cb, 'a', 'b')).toEqual('cbab')
-			expect(() => {
-				testClass.throwError()
-			}).toThrowError()
-			expect(() => {
-				testClass.throwErrorString()
-			}).toThrowError()
+			expect(await testClass.callFunction(cb, 'a', 'b')).toEqual('cbab')
 
-			testClass.exitProcess(0)
+			await expect(testClass.throwError()).rejects.toEqual(new Error('Error thrown'))
+			await expect(testClass.throwErrorString()).rejects.toEqual('Error string thrown')
+
+			await testClass.exitProcess(0)
 			expect(mockExit).toHaveBeenCalledTimes(1)
 
-			testClass.exitProcess(20)
+			await testClass.exitProcess(20)
 			await wait(30)
 			expect(mockExit).toHaveBeenCalledTimes(2)
 
@@ -91,7 +84,7 @@ describe('test-lib', () => {
 			let orgConsoleLog = console.log
 			console.log = mockLog
 
-			testClass.logSomething('aa', 'bb')
+			await testClass.logSomething('aa', 'bb')
 
 			console.log = orgConsoleLog
 
