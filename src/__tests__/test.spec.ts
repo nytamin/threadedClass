@@ -1,5 +1,3 @@
-// import { StringDecoder } from 'string_decoder'
-// import { CasparCG } from 'casparcg-connection'
 import {
 	threadedClass,
 	ThreadedClassManager,
@@ -123,42 +121,6 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
 
-		// test('import library class', async () => {
-
-		// 	let original = new CasparCG({
-		// 		host: '192.168.0.1',
-		// 		autoConnect: false
-		// 	})
-		// 	expect(original.host).toEqual('192.168.0.1')
-
-		// 	let threaded = await threadedClass<CasparCG, typeof CasparCG>('casparcg-connection', 'CasparCG', [{
-		// 		host: '192.168.0.1',
-		// 		autoConnect: false
-		// 	}], { disableMultithreading })
-		// 	expect(await threaded.host).toEqual('192.168.0.1')
-
-		// 	await ThreadedClassManager.destroy(threaded)
-		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// })
-
-		// test('import native class', async () => {
-
-		// 	let original = new StringDecoder('utf8')
-
-		// 	// €-sign:
-		// 	let euroSign = original.end(Buffer.from([0xE2, 0x82, 0xAC]))
-		// 	expect(euroSign).toEqual('€')
-
-		// 	let threaded = await threadedClass<StringDecoder, typeof StringDecoder>('string_decoder', 'StringDecoder', ['utf8'], { disableMultithreading })
-
-		// 	let euroSign2 = await threaded.end(Buffer.from([0xE2, 0x82, 0xAC]))
-
-		// 	expect(euroSign2).toEqual(euroSign)
-
-		// 	await ThreadedClassManager.destroy(threaded)
-
-		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
-		// })
 		// if (doPerformanceTests) {
 		// 	test('single-thread', async () => {
 		// 		// let startTime = Date.now()
