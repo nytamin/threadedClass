@@ -40,18 +40,18 @@ class FakeWorker extends internalApi_1.Worker {
     }
     sendMessageToParent(handle, msg, cb) {
         if (msg.cmd === internalApi_1.MessageType.LOG) {
-            const message = { ...msg, ...{
-                    cmdId: 0,
-                    instanceId: ''
-                } };
+            const message = Object.assign(Object.assign({}, msg), {
+                cmdId: 0,
+                instanceId: ''
+            });
             // Send message to Parent:
             this.mockProcessSend(message);
         }
         else {
-            const message = { ...msg, ...{
-                    cmdId: handle.cmdId++,
-                    instanceId: handle.id
-                } };
+            const message = Object.assign(Object.assign({}, msg), {
+                cmdId: handle.cmdId++,
+                instanceId: handle.id
+            });
             if (cb)
                 handle.queue[message.cmdId + ''] = cb;
             // Send message to Parent:
@@ -85,11 +85,12 @@ const manager_1 = require("./manager");
 exports.ThreadedClassManager = manager_1.ThreadedClassManager;
 tslib_1.__exportStar(require("./threadedClass"), exports);
 
-},{"./manager":6,"./threadedClass":7,"tslib":20}],4:[function(require,module,exports){
+},{"./manager":6,"./threadedClass":7,"tslib":21}],4:[function(require,module,exports){
 (function (process,Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("./lib");
+const isRunning = require("is-running");
 exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
 var InitPropType;
 (function (InitPropType) {
@@ -123,7 +124,7 @@ class Worker {
         this.instanceHandles = {};
         this.callbacks = {};
         this.disabledMultithreading = false;
-        this._pingCount = 0;
+        this._parentPid = 0;
         this.log = (...data) => {
             this.sendLog(data);
         };
@@ -212,6 +213,7 @@ class Worker {
             if (m.cmd === MessageType.INIT) {
                 const msg = m;
                 this._config = m.config;
+                this._parentPid = m.parentPid;
                 let pModuleClass;
                 // Load in the class:
                 if (lib_1.isBrowser()) {
@@ -339,7 +341,6 @@ class Worker {
                 }
             }
             else if (m.cmd === MessageType.PING) {
-                this._pingCount++;
                 this.reply(handle, m, null);
             }
             else if (m.cmd === MessageType.REPLY) {
@@ -418,25 +419,11 @@ class Worker {
         }
     }
     startOrphanMonitoring() {
-        // expect our parent process to PING us now every and then
-        // otherwise we consider ourselves to be orphaned
-        // then we should exit the process
         if (this._config) {
-            const pingTime = Math.max(500, this._config.freezeLimit || exports.DEFAULT_CHILD_FREEZE_TIME);
-            let missed = 0;
-            let previousPingCount = 0;
+            const pingTime = 5000;
             setInterval(() => {
-                if (this._pingCount === previousPingCount) {
-                    // no ping has been received since last time
-                    missed++;
-                }
-                else {
-                    missed = 0;
-                }
-                previousPingCount = this._pingCount;
-                if (missed > 2) {
-                    // We've missed too many pings
-                    console.log(`Child missed ${missed} pings, exiting process!`);
+                if (this._parentPid && !isRunning(this._parentPid)) {
+                    console.log(`Parent pid ${this._parentPid} missing, exiting process!`);
                     setTimeout(() => {
                         process.exit(27);
                     }, 100);
@@ -527,7 +514,7 @@ exports.decodeArguments = decodeArguments;
 
 }).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":5,"_process":19,"buffer":13}],5:[function(require,module,exports){
+},{"./lib":5,"_process":20,"buffer":13,"is-running":18}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -561,10 +548,11 @@ exports.getWorkerThreads = getWorkerThreads;
 
 }).call(this,require('_process'))
 
-},{"_process":19,"worker_threads":undefined}],6:[function(require,module,exports){
+},{"_process":20,"worker_threads":undefined}],6:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const fakeProcess_1 = require("./fakeProcess");
 const internalApi_1 = require("./internalApi");
 const events_1 = require("events");
@@ -761,10 +749,10 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 throw new Error(`Child process of instance ${instance.id} has been closed`);
             if (instance.child.isClosing)
                 throw new Error(`Child process of instance ${instance.id} is closing`);
-            const message = { ...messageConstr, ...{
-                    cmdId: instance.child.cmdId++,
-                    instanceId: instance.id
-                } };
+            const message = Object.assign(Object.assign({}, messageConstr), {
+                cmdId: instance.child.cmdId++,
+                instanceId: instance.id
+            });
             if (message.cmd !== internalApi_1.MessageType.INIT &&
                 !instance.initialized)
                 throw Error(`Child instance ${instance.id} is not initialized`);
@@ -800,83 +788,87 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             return;
         });
     }
-    async restart(proxy, forceRestart) {
-        let foundInstance;
-        let foundChild;
-        Object.keys(this._children).find((childId) => {
-            const child = this._children[childId];
-            const found = Object.keys(child.instances).find((instanceId) => {
-                const instance = child.instances[instanceId];
-                if (instance.proxy === proxy) {
-                    foundInstance = instance;
+    restart(proxy, forceRestart) {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            let foundInstance;
+            let foundChild;
+            Object.keys(this._children).find((childId) => {
+                const child = this._children[childId];
+                const found = Object.keys(child.instances).find((instanceId) => {
+                    const instance = child.instances[instanceId];
+                    if (instance.proxy === proxy) {
+                        foundInstance = instance;
+                        return true;
+                    }
+                    return false;
+                });
+                if (found) {
+                    foundChild = child;
                     return true;
                 }
                 return false;
             });
-            if (found) {
-                foundChild = child;
-                return true;
-            }
-            return false;
+            if (!foundChild)
+                throw Error(`Child of proxy not found`);
+            if (!foundInstance)
+                throw Error(`Instance of proxy not found`);
+            yield this.restartChild(foundChild, [foundInstance], forceRestart);
         });
-        if (!foundChild)
-            throw Error(`Child of proxy not found`);
-        if (!foundInstance)
-            throw Error(`Instance of proxy not found`);
-        await this.restartChild(foundChild, [foundInstance], forceRestart);
     }
-    async restartChild(child, onlyInstances, forceRestart) {
-        if (child.alive && forceRestart) {
-            await this.killChild(child, true);
-        }
-        if (!child.alive) {
-            // clear old process:
-            child.process.removeAllListeners();
-            delete child.process;
-            Object.keys(child.instances).forEach((instanceId) => {
-                const instance = child.instances[instanceId];
-                instance.initialized = false;
-            });
-            // start new process
-            child.alive = true;
-            child.isClosing = false;
-            child.process = this._createFork(child.config, child.pathToWorker);
-            this._setupChildProcess(child);
-        }
-        let p = new Promise((resolve, reject) => {
-            const onInit = (child) => {
-                if (child === child) {
-                    resolve();
-                    this.removeListener('initialized', onInit);
-                }
-            };
-            this.on('initialized', onInit);
-            setTimeout(() => {
-                reject('Timeout when trying to restart');
-                this.removeListener('initialized', onInit);
-            }, 1000);
-        });
-        const promises = [];
-        let instances = (onlyInstances ||
-            Object.keys(child.instances).map((instanceId) => {
-                return child.instances[instanceId];
-            }));
-        instances.forEach((instance) => {
-            promises.push(new Promise((resolve, reject) => {
-                this.sendInit(child, instance, instance.config, (_instance, err) => {
-                    // no need to do anything, the proxy is already initialized from earlier
-                    if (err) {
-                        reject(err);
-                    }
-                    else {
-                        resolve();
-                    }
-                    return true;
+    restartChild(child, onlyInstances, forceRestart) {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            if (child.alive && forceRestart) {
+                yield this.killChild(child, true);
+            }
+            if (!child.alive) {
+                // clear old process:
+                child.process.removeAllListeners();
+                delete child.process;
+                Object.keys(child.instances).forEach((instanceId) => {
+                    const instance = child.instances[instanceId];
+                    instance.initialized = false;
                 });
-            }));
+                // start new process
+                child.alive = true;
+                child.isClosing = false;
+                child.process = this._createFork(child.config, child.pathToWorker);
+                this._setupChildProcess(child);
+            }
+            let p = new Promise((resolve, reject) => {
+                const onInit = (child) => {
+                    if (child === child) {
+                        resolve();
+                        this.removeListener('initialized', onInit);
+                    }
+                };
+                this.on('initialized', onInit);
+                setTimeout(() => {
+                    reject('Timeout when trying to restart');
+                    this.removeListener('initialized', onInit);
+                }, 1000);
+            });
+            const promises = [];
+            let instances = (onlyInstances ||
+                Object.keys(child.instances).map((instanceId) => {
+                    return child.instances[instanceId];
+                }));
+            instances.forEach((instance) => {
+                promises.push(new Promise((resolve, reject) => {
+                    this.sendInit(child, instance, instance.config, (_instance, err) => {
+                        // no need to do anything, the proxy is already initialized from earlier
+                        if (err) {
+                            reject(err);
+                        }
+                        else {
+                            resolve();
+                        }
+                        return true;
+                    });
+                }));
+            });
+            yield Promise.all(promises);
+            yield p;
         });
-        await Promise.all(promises);
-        await p;
     }
     sendInit(child, instance, config, cb) {
         let encodedArgs = internalApi_1.encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading);
@@ -885,7 +877,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             modulePath: instance.pathToModule,
             exportName: instance.exportName,
             args: encodedArgs,
-            config: config
+            config: config,
+            parentPid: process.pid
         };
         instance.initialized = true;
         exports.ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (instance, e, initProps) => {
@@ -1155,7 +1148,7 @@ exports.ThreadedClassManager = new ThreadedClassManagerClass(exports.ThreadedCla
 
 }).call(this,require('_process'))
 
-},{"./childProcess":1,"./fakeProcess":2,"./internalApi":4,"./lib":5,"./webWorkers":8,"./workerThreads":10,"_process":19,"events":16}],7:[function(require,module,exports){
+},{"./childProcess":1,"./fakeProcess":2,"./internalApi":4,"./lib":5,"./webWorkers":8,"./workerThreads":10,"_process":20,"events":16,"tslib":21}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
@@ -1396,7 +1389,7 @@ function threadedClass(orgModule, orgExport, constructorArgs, config = {}) {
 }
 exports.threadedClass = threadedClass;
 
-},{"./internalApi":4,"./lib":5,"./manager":6,"callsites":14,"path":18}],8:[function(require,module,exports){
+},{"./internalApi":4,"./lib":5,"./manager":6,"callsites":14,"path":19}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const workerPlatformBase_1 = require("./workerPlatformBase");
@@ -1681,6 +1674,10 @@ function fromByteArray (uint8) {
 
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
+var customInspectSymbol =
+  (typeof Symbol === 'function' && typeof Symbol.for === 'function')
+    ? Symbol.for('nodejs.util.inspect.custom')
+    : null
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -1717,7 +1714,9 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
+    var proto = { foo: function () { return 42 } }
+    Object.setPrototypeOf(proto, Uint8Array.prototype)
+    Object.setPrototypeOf(arr, proto)
     return arr.foo() === 42
   } catch (e) {
     return false
@@ -1746,7 +1745,7 @@ function createBuffer (length) {
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
-  buf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(buf, Buffer.prototype)
   return buf
 }
 
@@ -1796,7 +1795,7 @@ function from (value, encodingOrOffset, length) {
   }
 
   if (value == null) {
-    throw TypeError(
+    throw new TypeError(
       'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
       'or Array-like Object. Received type ' + (typeof value)
     )
@@ -1804,6 +1803,12 @@ function from (value, encodingOrOffset, length) {
 
   if (isInstance(value, ArrayBuffer) ||
       (value && isInstance(value.buffer, ArrayBuffer))) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof SharedArrayBuffer !== 'undefined' &&
+      (isInstance(value, SharedArrayBuffer) ||
+      (value && isInstance(value.buffer, SharedArrayBuffer)))) {
     return fromArrayBuffer(value, encodingOrOffset, length)
   }
 
@@ -1848,8 +1853,8 @@ Buffer.from = function (value, encodingOrOffset, length) {
 
 // Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
 // https://github.com/feross/buffer/pull/148
-Buffer.prototype.__proto__ = Uint8Array.prototype
-Buffer.__proto__ = Uint8Array
+Object.setPrototypeOf(Buffer.prototype, Uint8Array.prototype)
+Object.setPrototypeOf(Buffer, Uint8Array)
 
 function assertSize (size) {
   if (typeof size !== 'number') {
@@ -1953,7 +1958,8 @@ function fromArrayBuffer (array, byteOffset, length) {
   }
 
   // Return an augmented `Uint8Array` instance
-  buf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(buf, Buffer.prototype)
+
   return buf
 }
 
@@ -2275,6 +2281,9 @@ Buffer.prototype.inspect = function inspect () {
   if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
+if (customInspectSymbol) {
+  Buffer.prototype[customInspectSymbol] = Buffer.prototype.inspect
+}
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
   if (isInstance(target, Uint8Array)) {
@@ -2400,7 +2409,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
         return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
       }
     }
-    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+    return arrayIndexOf(buffer, [val], byteOffset, encoding, dir)
   }
 
   throw new TypeError('val must be string, number or Buffer')
@@ -2729,7 +2738,7 @@ function hexSlice (buf, start, end) {
 
   var out = ''
   for (var i = start; i < end; ++i) {
-    out += toHex(buf[i])
+    out += hexSliceLookupTable[buf[i]]
   }
   return out
 }
@@ -2766,7 +2775,8 @@ Buffer.prototype.slice = function slice (start, end) {
 
   var newBuf = this.subarray(start, end)
   // Return an augmented `Uint8Array` instance
-  newBuf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(newBuf, Buffer.prototype)
+
   return newBuf
 }
 
@@ -3255,6 +3265,8 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
     }
   } else if (typeof val === 'number') {
     val = val & 255
+  } else if (typeof val === 'boolean') {
+    val = Number(val)
   }
 
   // Invalid ranges are not set to a default, so can range check early.
@@ -3310,11 +3322,6 @@ function base64clean (str) {
     str = str + '='
   }
   return str
-}
-
-function toHex (n) {
-  if (n < 16) return '0' + n.toString(16)
-  return n.toString(16)
 }
 
 function utf8ToBytes (string, units) {
@@ -3446,6 +3453,20 @@ function numberIsNaN (obj) {
   // For IE11 support
   return obj !== obj // eslint-disable-line no-self-compare
 }
+
+// Create lookup table for `toString('hex')`
+// See: https://github.com/feross/buffer/issues/219
+var hexSliceLookupTable = (function () {
+  var alphabet = '0123456789abcdef'
+  var table = new Array(256)
+  for (var i = 0; i < 16; ++i) {
+    var i16 = i * 16
+    for (var j = 0; j < 16; ++j) {
+      table[i16 + j] = alphabet[i] + alphabet[j]
+    }
+  }
+  return table
+})()
 
 }).call(this,require("buffer").Buffer)
 
@@ -4415,6 +4436,23 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
 },{}],18:[function(require,module,exports){
 (function (process){
+module.exports = function (pid) {
+  if (module.exports.stub !== module.exports) {
+      return module.exports.stub.apply(this, arguments);
+  }
+  try {
+    return process.kill(pid,0)
+  }
+  catch (e) {
+    return e.code === 'EPERM'
+  }
+}
+module.exports.stub = module.exports;
+
+}).call(this,require('_process'))
+
+},{"_process":20}],19:[function(require,module,exports){
+(function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
 
@@ -4720,7 +4758,7 @@ var substr = 'ab'.substr(-1) === 'b'
 
 }).call(this,require('_process'))
 
-},{"_process":19}],19:[function(require,module,exports){
+},{"_process":20}],20:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4906,7 +4944,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 (function (global){
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation.

@@ -3,6 +3,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("./lib");
+const isRunning = require("is-running");
 exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
 var InitPropType;
 (function (InitPropType) {
@@ -36,7 +37,7 @@ class Worker {
         this.instanceHandles = {};
         this.callbacks = {};
         this.disabledMultithreading = false;
-        this._pingCount = 0;
+        this._parentPid = 0;
         this.log = (...data) => {
             this.sendLog(data);
         };
@@ -125,6 +126,7 @@ class Worker {
             if (m.cmd === MessageType.INIT) {
                 const msg = m;
                 this._config = m.config;
+                this._parentPid = m.parentPid;
                 let pModuleClass;
                 // Load in the class:
                 if (lib_1.isBrowser()) {
@@ -252,7 +254,6 @@ class Worker {
                 }
             }
             else if (m.cmd === MessageType.PING) {
-                this._pingCount++;
                 this.reply(handle, m, null);
             }
             else if (m.cmd === MessageType.REPLY) {
@@ -331,25 +332,11 @@ class Worker {
         }
     }
     startOrphanMonitoring() {
-        // expect our parent process to PING us now every and then
-        // otherwise we consider ourselves to be orphaned
-        // then we should exit the process
         if (this._config) {
-            const pingTime = Math.max(500, this._config.freezeLimit || exports.DEFAULT_CHILD_FREEZE_TIME);
-            let missed = 0;
-            let previousPingCount = 0;
+            const pingTime = 5000;
             setInterval(() => {
-                if (this._pingCount === previousPingCount) {
-                    // no ping has been received since last time
-                    missed++;
-                }
-                else {
-                    missed = 0;
-                }
-                previousPingCount = this._pingCount;
-                if (missed > 2) {
-                    // We've missed too many pings
-                    console.log(`Child missed ${missed} pings, exiting process!`);
+                if (this._parentPid && !isRunning(this._parentPid)) {
+                    console.log(`Parent pid ${this._parentPid} missing, exiting process!`);
                     setTimeout(() => {
                         process.exit(27);
                     }, 100);
@@ -440,7 +427,7 @@ exports.decodeArguments = decodeArguments;
 
 }).call(this,require('_process'),require("buffer").Buffer)
 
-},{"./lib":2,"_process":7,"buffer":5}],2:[function(require,module,exports){
+},{"./lib":2,"_process":8,"buffer":5,"is-running":7}],2:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -474,7 +461,7 @@ exports.getWorkerThreads = getWorkerThreads;
 
 }).call(this,require('_process'))
 
-},{"_process":7,"worker_threads":undefined}],3:[function(require,module,exports){
+},{"_process":8,"worker_threads":undefined}],3:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -509,17 +496,17 @@ class ThreadedWorker extends internalApi_1.Worker {
     }
     sendMessageToParent(handle, msg, cb) {
         if (msg.cmd === internalApi_1.MessageType.LOG) {
-            const message = { ...msg, ...{
-                    cmdId: 0,
-                    instanceId: ''
-                } };
+            const message = Object.assign(Object.assign({}, msg), {
+                cmdId: 0,
+                instanceId: ''
+            });
             send(message);
         }
         else {
-            const message = { ...msg, ...{
-                    cmdId: handle.cmdId++,
-                    instanceId: handle.id
-                } };
+            const message = Object.assign(Object.assign({}, msg), {
+                cmdId: handle.cmdId++,
+                instanceId: handle.id
+            });
             if (cb)
                 handle.queue[message.cmdId + ''] = cb;
             send(message);
@@ -578,7 +565,7 @@ else {
 
 }).call(this,require('_process'))
 
-},{"./internalApi":1,"./lib":2,"_process":7}],4:[function(require,module,exports){
+},{"./internalApi":1,"./lib":2,"_process":8}],4:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -746,6 +733,10 @@ function fromByteArray (uint8) {
 
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
+var customInspectSymbol =
+  (typeof Symbol === 'function' && typeof Symbol.for === 'function')
+    ? Symbol.for('nodejs.util.inspect.custom')
+    : null
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -782,7 +773,9 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
+    var proto = { foo: function () { return 42 } }
+    Object.setPrototypeOf(proto, Uint8Array.prototype)
+    Object.setPrototypeOf(arr, proto)
     return arr.foo() === 42
   } catch (e) {
     return false
@@ -811,7 +804,7 @@ function createBuffer (length) {
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
-  buf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(buf, Buffer.prototype)
   return buf
 }
 
@@ -861,7 +854,7 @@ function from (value, encodingOrOffset, length) {
   }
 
   if (value == null) {
-    throw TypeError(
+    throw new TypeError(
       'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
       'or Array-like Object. Received type ' + (typeof value)
     )
@@ -869,6 +862,12 @@ function from (value, encodingOrOffset, length) {
 
   if (isInstance(value, ArrayBuffer) ||
       (value && isInstance(value.buffer, ArrayBuffer))) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof SharedArrayBuffer !== 'undefined' &&
+      (isInstance(value, SharedArrayBuffer) ||
+      (value && isInstance(value.buffer, SharedArrayBuffer)))) {
     return fromArrayBuffer(value, encodingOrOffset, length)
   }
 
@@ -913,8 +912,8 @@ Buffer.from = function (value, encodingOrOffset, length) {
 
 // Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
 // https://github.com/feross/buffer/pull/148
-Buffer.prototype.__proto__ = Uint8Array.prototype
-Buffer.__proto__ = Uint8Array
+Object.setPrototypeOf(Buffer.prototype, Uint8Array.prototype)
+Object.setPrototypeOf(Buffer, Uint8Array)
 
 function assertSize (size) {
   if (typeof size !== 'number') {
@@ -1018,7 +1017,8 @@ function fromArrayBuffer (array, byteOffset, length) {
   }
 
   // Return an augmented `Uint8Array` instance
-  buf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(buf, Buffer.prototype)
+
   return buf
 }
 
@@ -1340,6 +1340,9 @@ Buffer.prototype.inspect = function inspect () {
   if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
+if (customInspectSymbol) {
+  Buffer.prototype[customInspectSymbol] = Buffer.prototype.inspect
+}
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
   if (isInstance(target, Uint8Array)) {
@@ -1465,7 +1468,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
         return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
       }
     }
-    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+    return arrayIndexOf(buffer, [val], byteOffset, encoding, dir)
   }
 
   throw new TypeError('val must be string, number or Buffer')
@@ -1794,7 +1797,7 @@ function hexSlice (buf, start, end) {
 
   var out = ''
   for (var i = start; i < end; ++i) {
-    out += toHex(buf[i])
+    out += hexSliceLookupTable[buf[i]]
   }
   return out
 }
@@ -1831,7 +1834,8 @@ Buffer.prototype.slice = function slice (start, end) {
 
   var newBuf = this.subarray(start, end)
   // Return an augmented `Uint8Array` instance
-  newBuf.__proto__ = Buffer.prototype
+  Object.setPrototypeOf(newBuf, Buffer.prototype)
+
   return newBuf
 }
 
@@ -2320,6 +2324,8 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
     }
   } else if (typeof val === 'number') {
     val = val & 255
+  } else if (typeof val === 'boolean') {
+    val = Number(val)
   }
 
   // Invalid ranges are not set to a default, so can range check early.
@@ -2375,11 +2381,6 @@ function base64clean (str) {
     str = str + '='
   }
   return str
-}
-
-function toHex (n) {
-  if (n < 16) return '0' + n.toString(16)
-  return n.toString(16)
 }
 
 function utf8ToBytes (string, units) {
@@ -2512,6 +2513,20 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
+// Create lookup table for `toString('hex')`
+// See: https://github.com/feross/buffer/issues/219
+var hexSliceLookupTable = (function () {
+  var alphabet = '0123456789abcdef'
+  var table = new Array(256)
+  for (var i = 0; i < 16; ++i) {
+    var i16 = i * 16
+    for (var j = 0; j < 16; ++j) {
+      table[i16 + j] = alphabet[i] + alphabet[j]
+    }
+  }
+  return table
+})()
+
 }).call(this,require("buffer").Buffer)
 
 },{"base64-js":4,"buffer":5,"ieee754":6}],6:[function(require,module,exports){
@@ -2601,6 +2616,23 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 }
 
 },{}],7:[function(require,module,exports){
+(function (process){
+module.exports = function (pid) {
+  if (module.exports.stub !== module.exports) {
+      return module.exports.stub.apply(this, arguments);
+  }
+  try {
+    return process.kill(pid,0)
+  }
+  catch (e) {
+    return e.code === 'EPERM'
+  }
+}
+module.exports.stub = module.exports;
+
+}).call(this,require('_process'))
+
+},{"_process":8}],8:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
