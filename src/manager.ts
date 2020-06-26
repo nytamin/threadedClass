@@ -405,7 +405,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			modulePath: instance.pathToModule,
 			exportName: instance.exportName,
 			args: encodedArgs,
-			config: config
+			config: config,
+			parentPid: process.pid
 		}
 		instance.initialized = true
 		ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {

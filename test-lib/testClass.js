@@ -12,6 +12,9 @@ class TestClass extends events_1.EventEmitter {
     set Param1(val) {
         this.param1 = val;
     }
+    getPid() {
+        return process.pid;
+    }
     getId() {
         return 'abc';
     }
