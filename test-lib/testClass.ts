@@ -19,6 +19,9 @@ export class TestClass extends EventEmitter {
 
 		this.param1 = param1
 	}
+	public getPid (): number {
+		return process.pid
+	}
 	public getId (): string {
 		return 'abc'
 	}
