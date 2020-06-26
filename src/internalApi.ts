@@ -1,6 +1,6 @@
 import { ThreadedClassConfig } from './api'
 import { ChildInstance } from './manager'
-import { isBrowser } from './lib'
+import { isBrowser, nodeSupportsWorkerThreads } from './lib'
 import isRunning = require('is-running')
 
 export const DEFAULT_CHILD_FREEZE_TIME = 1000 // how long to wait before considering a child to be unresponsive
@@ -381,7 +381,7 @@ export abstract class Worker {
 					console.log('INIT error', e)
 				})
 
-				if (!m.config.disableMultithreading) {
+				if (!m.config.disableMultithreading && !nodeSupportsWorkerThreads()) {
 					this.startOrphanMonitoring()
 				}
 
