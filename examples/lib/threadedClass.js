@@ -336,7 +336,7 @@ class Worker {
                     .catch((e) => {
                     console.log('INIT error', e);
                 });
-                if (!m.config.disableMultithreading) {
+                if (!m.config.disableMultithreading && !lib_1.nodeSupportsWorkerThreads()) {
                     this.startOrphanMonitoring();
                 }
             }
