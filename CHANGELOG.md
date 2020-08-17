@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.8.0](https://github.com/nytamin/threadedClass/compare/0.7.0...0.8.0) (2020-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* drop node 8 support
+* remove class constructor from main function. When single-threaded it gets loaded the same way as multithreaded would
+* drop node 8 support
+* remove class constructor from main function. When single-threaded it gets loaded the same way as multithreaded would
+
+### Features
+
+* add support for exports not named the same as the class ([1cce227](https://github.com/nytamin/threadedClass/commit/1cce2271c567e232ce612e784432dec07cb3ac38))
+* add support for exports not named the same as the class ([1cce227](https://github.com/nytamin/threadedClass/commit/1cce2271c567e232ce612e784432dec07cb3ac38))
+* drop node 8 support ([a4e3c49](https://github.com/nytamin/threadedClass/commit/a4e3c49e46f1c525ac2d544c0c3dbc7e3e95e0b9))
+* drop node 8 support ([a4e3c49](https://github.com/nytamin/threadedClass/commit/a4e3c49e46f1c525ac2d544c0c3dbc7e3e95e0b9))
+* monitor parent pid for orphan check ([#33](https://github.com/nytamin/threadedClass/issues/33)) ([597bdf9](https://github.com/nytamin/threadedClass/commit/597bdf9d514019f7b32aa53574c886756a146067))
+* monitor parent pid for orphan check ([#33](https://github.com/nytamin/threadedClass/issues/33)) ([597bdf9](https://github.com/nytamin/threadedClass/commit/597bdf9d514019f7b32aa53574c886756a146067))
+* refactor workers for better types ([c6aabb0](https://github.com/nytamin/threadedClass/commit/c6aabb008959cf252a0a307a24fb6a1a9d859c44))
+* refactor workers for better types ([c6aabb0](https://github.com/nytamin/threadedClass/commit/c6aabb008959cf252a0a307a24fb6a1a9d859c44))
+* remove class constructor from main function. When single-threaded it gets loaded the same way as multithreaded would ([f0c0e3f](https://github.com/nytamin/threadedClass/commit/f0c0e3f2c244b50f4a25c61cf8914b142101013d))
+* **ci:** prerelease flow & optionally skip audit [skip ci] ([adf1927](https://github.com/nytamin/threadedClass/commit/adf1927f20ddc1308295ff27604692dfc583eac8))
+* remove class constructor from main function. When single-threaded it gets loaded the same way as multithreaded would ([f0c0e3f](https://github.com/nytamin/threadedClass/commit/f0c0e3f2c244b50f4a25c61cf8914b142101013d))
+* **ci:** prerelease flow & optionally skip audit [skip ci] ([adf1927](https://github.com/nytamin/threadedClass/commit/adf1927f20ddc1308295ff27604692dfc583eac8))
+
+
+### Bug Fixes
+
+* indentation ([5355f3e](https://github.com/nytamin/threadedClass/commit/5355f3e01e6e0ff3d210dd9ff14c567e6ca6fdff))
+* indentation ([5355f3e](https://github.com/nytamin/threadedClass/commit/5355f3e01e6e0ff3d210dd9ff14c567e6ca6fdff))
+* use worker_threads typings from @types/node, and don't pass callback to worker.terminate ([34a1614](https://github.com/nytamin/threadedClass/commit/34a16145abf686a9fa9008b07cc0b1d6c5cc0d05))
+* use worker_threads typings from @types/node, and don't pass callback to worker.terminate ([34a1614](https://github.com/nytamin/threadedClass/commit/34a16145abf686a9fa9008b07cc0b1d6c5cc0d05))
+
 ## [0.7.0](https://github.com/nytamin/threadedClass/compare/0.6.8...0.7.0) (2019-12-12)
 
 
