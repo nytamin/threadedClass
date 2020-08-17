@@ -87,7 +87,7 @@
     "jest": "^24.9.0",
     "npm-scripts-info": "^0.3.9",
     "open-cli": "^5.0.0",
-    "standard-version": "^7.0.0",
+    "standard-version": "^8.0.1",
     "trash-cli": "^3.0.0",
     "ts-jest": "^24.0.2",
     "tslint": "^5.19.0",
