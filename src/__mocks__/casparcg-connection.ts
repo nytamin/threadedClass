@@ -1,7 +1,8 @@
 
 export class CasparCG {
-	constructor () {
-		// Nothing
+	public host: string
+	constructor (options?: any) {
+		this.host = options && options.host
 	}
 	isMock () {
 		return true
