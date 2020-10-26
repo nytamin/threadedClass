@@ -299,6 +299,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	public killAllChildren (): Promise<void> {
 		return Promise.all(
 			Object.keys(this._children).map((id) => {
+				const child = this._children[id]
+				console.log(`ThreadedClass: Killing child "${this.getChildDescriptor(child)}"`)
 				return this.killChild(id)
 			})
 		).then(() => {
@@ -487,25 +489,37 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				// Close the child processes upon exit:
 				process.stdin.resume() // so the program will not close instantly
 
-				const exitHandler = (options: any, err: Error) => {
+				// Read about Node signals here:
+				// https://nodejs.org/api/process.html#process_signal_events
+
+				const onSignal = (signal: string, message?: string) => {
+					let msg = `ThreadedClass: Signal "${signal}" event`
+					if (message) msg += ', ' + message
+					console.log(msg)
+
 					this.killAllChildren()
 					.catch(console.log)
-					if (err) console.log(err.stack)
-					if (options.exit) process.exit()
+
+					process.exit()
 				}
 
-				// do something when app is closing
-				process.on('exit', exitHandler.bind(null, { cleanup: true }))
+				// Do something when app is closing:
+				process.on('exit', (code: number) => onSignal('process.exit', `exit code: ${code}`))
 
 				// catches ctrl+c event
-				process.on('SIGINT', exitHandler.bind(null, { exit: true }))
+				process.on('SIGINT', () => onSignal('SIGINT'))
+				// Terminal windows closed
+				process.on('SIGHUP', () => onSignal('SIGHUP'))
+				process.on('SIGTERM', () => onSignal('SIGTERM'))
+				// SIGKILL cannot have a listener attached
+				// SIGSTOP cannot have a listener attached
 
 				// catches "kill pid" (for example: nodemon restart)
-				process.on('SIGUSR1', exitHandler.bind(null, { exit: true }))
-				process.on('SIGUSR2', exitHandler.bind(null, { exit: true }))
+				process.on('SIGUSR1', () => onSignal('SIGUSR1'))
+				process.on('SIGUSR2', () => onSignal('SIGUSR2'))
 
 				// catches uncaught exceptions
-				process.on('uncaughtException', exitHandler.bind(null, { exit: true }))
+				process.on('uncaughtException', (message) => onSignal('uncaughtException', message.toString()))
 			}
 		}
 		this.isInitialized = true
