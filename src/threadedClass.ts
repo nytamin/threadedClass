@@ -172,14 +172,14 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
 			}
 
-			const child: Child = ThreadedClassManagerInternal.getChild(
+			const child: Child = ThreadedClassManagerInternal.findNextAvailableChild(
 				config,
 				pathToWorker
 			)
 
 			const proxy = {} as ThreadedClass<T>
 
-			let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstance(
+			let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstanceToChild(
 				config,
 				child,
 				proxy,

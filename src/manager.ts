@@ -138,7 +138,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _children: {[id: string]: Child} = {}
 	private _pinging: boolean = true // for testing only
 
-	public getChild (
+	public findNextAvailableChild (
 		config: ThreadedClassConfig,
 		pathToWorker: string
 	): Child {
@@ -183,7 +183,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	 * @param proxy
 	 * @param onMessage
 	 */
-	public attachInstance (
+	public attachInstanceToChild (
 		config: ThreadedClassConfig,
 		child: Child,
 		proxy: ThreadedClass<any>,
