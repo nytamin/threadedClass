@@ -441,7 +441,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						!instance.child.isClosing
 					) {
 						// console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
-						this._childHasCrashed(instance.child, `Child process of instance ${instance.id} ping timeout`)
+						this._childHasCrashed(instance.child, `Child process ("${this.getChildDescriptor(instance.child)}") of instance ${instance.id} ping timeout`)
 					}
 				})
 
@@ -471,6 +471,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 
 		return p
+	}
+	public getChildDescriptor (child: Child): string {
+		return `${child.id} (${Object.keys(child.instances).join(', ')})`
 	}
 	/** Called before using internally */
 	private _init () {

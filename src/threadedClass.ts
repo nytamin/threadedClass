@@ -37,9 +37,14 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 	orgModule: string,
 	orgExport: string,
 	constructorArgs: CtorArgs<TCtor>,
-	config: ThreadedClassConfig = {}
+	configOrg: ThreadedClassConfig = {}
 ): Promise<ThreadedClass<T>> {
 	let exportName: string = orgExport
+
+	const config: ThreadedClassConfig = {
+		...configOrg,
+		instanceName: configOrg.instanceName || orgExport // Default to the export class name
+	}
 
 	if (isBrowser()) {
 		if (!config.pathToWorker) {
