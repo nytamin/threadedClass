@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.1](https://github.com/nytamin/threadedClass/compare/0.8.0...0.8.1) (2020-10-27)
+
+
+### Bug Fixes
+
+* be more verbose when describing child processes. Default instanceName to the name of the Export. ([830cfbd](https://github.com/nytamin/threadedClass/commit/830cfbdb9d91906280a71a6ebf16383541d3abd7))
+* on exit handlers: made the on exit/signal handlers be more verbose ([a050c3b](https://github.com/nytamin/threadedClass/commit/a050c3b295fe0fd00859f8f035014859a30caa08))
+
 ## [0.8.0](https://github.com/nytamin/threadedClass/compare/0.7.0...0.8.0) (2020-08-17)
 
 
