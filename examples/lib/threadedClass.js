@@ -639,7 +639,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         this._children = {};
         this._pinging = true; // for testing only
     }
-    getChild(config, pathToWorker) {
+    findNextAvailableChild(config, pathToWorker) {
         this._init();
         let child = null;
         if (config.threadId) {
@@ -678,7 +678,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
      * @param proxy
      * @param onMessage
      */
-    attachInstance(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage) {
+    attachInstanceToChild(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage) {
         const instance = {
             id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
             child: child,
@@ -783,6 +783,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     }
     killAllChildren() {
         return Promise.all(Object.keys(this._children).map((id) => {
+            const child = this._children[id];
+            console.log(`ThreadedClass: Killing child "${this.getChildDescriptor(child)}"`);
             return this.killChild(id);
         })).then(() => {
             return;
@@ -906,7 +908,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                         instance.child.alive &&
                         !instance.child.isClosing) {
                         // console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
-                        this._childHasCrashed(instance.child, `Child process of instance ${instance.id} ping timeout`);
+                        this._childHasCrashed(instance.child, `Child process ("${this.getChildDescriptor(instance.child)}") of instance ${instance.id} ping timeout`);
                     }
                 });
             }
@@ -934,6 +936,9 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         });
         return p;
     }
+    getChildDescriptor(child) {
+        return `${child.id} (${Object.keys(child.instances).join(', ')})`;
+    }
     /** Called before using internally */
     _init() {
         if (!this.isInitialized &&
@@ -941,23 +946,31 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             if (!lib_1.isBrowser()) { // in NodeJS
                 // Close the child processes upon exit:
                 process.stdin.resume(); // so the program will not close instantly
-                const exitHandler = (options, err) => {
+                // Read about Node signals here:
+                // https://nodejs.org/api/process.html#process_signal_events
+                const onSignal = (signal, message) => {
+                    let msg = `ThreadedClass: Signal "${signal}" event`;
+                    if (message)
+                        msg += ', ' + message;
+                    console.log(msg);
                     this.killAllChildren()
                         .catch(console.log);
-                    if (err)
-                        console.log(err.stack);
-                    if (options.exit)
-                        process.exit();
+                    process.exit();
                 };
-                // do something when app is closing
-                process.on('exit', exitHandler.bind(null, { cleanup: true }));
+                // Do something when app is closing:
+                process.on('exit', (code) => onSignal('process.exit', `exit code: ${code}`));
                 // catches ctrl+c event
-                process.on('SIGINT', exitHandler.bind(null, { exit: true }));
+                process.on('SIGINT', () => onSignal('SIGINT'));
+                // Terminal windows closed
+                process.on('SIGHUP', () => onSignal('SIGHUP'));
+                process.on('SIGTERM', () => onSignal('SIGTERM'));
+                // SIGKILL cannot have a listener attached
+                // SIGSTOP cannot have a listener attached
                 // catches "kill pid" (for example: nodemon restart)
-                process.on('SIGUSR1', exitHandler.bind(null, { exit: true }));
-                process.on('SIGUSR2', exitHandler.bind(null, { exit: true }));
+                process.on('SIGUSR1', () => onSignal('SIGUSR1'));
+                process.on('SIGUSR2', () => onSignal('SIGUSR2'));
                 // catches uncaught exceptions
-                process.on('uncaughtException', exitHandler.bind(null, { exit: true }));
+                process.on('uncaughtException', (message) => onSignal('uncaughtException', message.toString()));
             }
         }
         this.isInitialized = true;
@@ -1162,8 +1175,10 @@ const lib_1 = require("./lib");
  * @param orgExport Name of export in module
  * @param constructorArgs An array of arguments to be fed into the class constructor
  */
-function threadedClass(orgModule, orgExport, constructorArgs, config = {}) {
+function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
     let exportName = orgExport;
+    const config = Object.assign(Object.assign({}, configOrg), { instanceName: configOrg.instanceName || orgExport // Default to the export class name
+     });
     if (lib_1.isBrowser()) {
         if (!config.pathToWorker) {
             throw Error('config.pathToWorker is required in browser');
@@ -1289,9 +1304,9 @@ function threadedClass(orgModule, orgExport, constructorArgs, config = {}) {
                     .replace(/threadedClass(\.[tj]s)$/, 'threadedclass-worker.js')
                     .replace(/src([\\\/])threadedclass-worker/, 'dist$1threadedclass-worker');
             }
-            const child = manager_1.ThreadedClassManagerInternal.getChild(config, pathToWorker);
+            const child = manager_1.ThreadedClassManagerInternal.findNextAvailableChild(config, pathToWorker);
             const proxy = {};
-            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstance(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage);
+            let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstanceToChild(config, child, proxy, pathToModule, exportName, constructorArgs, onMessage);
             manager_1.ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance, err, props) => {
                 // This callback is called from the worker process, with a list of supported properties of the c
                 if (err) {
