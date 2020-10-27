@@ -37,9 +37,14 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 	orgModule: string,
 	orgExport: string,
 	constructorArgs: CtorArgs<TCtor>,
-	config: ThreadedClassConfig = {}
+	configOrg: ThreadedClassConfig = {}
 ): Promise<ThreadedClass<T>> {
 	let exportName: string = orgExport
+
+	const config: ThreadedClassConfig = {
+		...configOrg,
+		instanceName: configOrg.instanceName || orgExport // Default to the export class name
+	}
 
 	if (isBrowser()) {
 		if (!config.pathToWorker) {
@@ -172,14 +177,14 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
 			}
 
-			const child: Child = ThreadedClassManagerInternal.getChild(
+			const child: Child = ThreadedClassManagerInternal.findNextAvailableChild(
 				config,
 				pathToWorker
 			)
 
 			const proxy = {} as ThreadedClass<T>
 
-			let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstance(
+			let instanceInChild: ChildInstance = ThreadedClassManagerInternal.attachInstanceToChild(
 				config,
 				child,
 				proxy,
