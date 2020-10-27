@@ -29,7 +29,7 @@
     "test": "yarn lint && yarn unit",
     "test:integration": "yarn lint && jest --config=jest-integration.config.js",
     "watch": "jest --watch",
-    "cov": "jest; open-cli coverage/lcov-report/index.html",
+    "cov": "yarn test && yarn cov-open",
     "cov-open": "open-cli coverage/lcov-report/index.html",
     "send-coverage": "codecov",
     "docs": "yarn docs:html && open-cli docs/index.html",
