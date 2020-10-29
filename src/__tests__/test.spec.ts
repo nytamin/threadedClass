@@ -669,8 +669,8 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(keys).toHaveLength(2)
 
+			// Since this test is always run in node, we don't have to test for the web-workers data structure.
 			expect(result[keys[0]]).toMatchObject({
-				arrayBuffers: expect.any(Number),
 				external: expect.any(Number),
 				heapTotal: expect.any(Number),
 				heapUsed: expect.any(Number),
