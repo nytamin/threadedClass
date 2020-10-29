@@ -113,14 +113,14 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 			if (m.cmd === Message.From.Instance.CommandType.REPLY) {
 				let msg: Message.From.Instance.Reply = m
 				const child = instance.child
-				let cb: InstanceCallbackFunction = child.queue[msg.replyTo + '']
+				let cb: InstanceCallbackFunction = child.instanceMessageQueue[msg.replyTo + '']
 				if (!cb) return
 				if (msg.error) {
 					cb(instance, msg.error)
 				} else {
 					cb(instance, null, msg.reply)
 				}
-				delete child.queue[msg.replyTo + '']
+				delete child.instanceMessageQueue[msg.replyTo + '']
 			} else if (m.cmd === Message.From.Instance.CommandType.CALLBACK) {
 				// Callback function is called by worker
 				let msg: Message.From.Instance.Callback = m
@@ -168,8 +168,6 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 					.replace(/parent-process/,'child-process')
 					.replace(/threadedClass(\.[tj]s)$/,'threadedclass-worker.js')
 					.replace(/src([\\\/])child-process([\\\/])threadedclass-worker/,'dist$1child-process$2threadedclass-worker')
-
-				console.log('pathToWorker', pathToWorker)
 			}
 
 			const child: Child = ThreadedClassManagerInternal.findNextAvailableChild(

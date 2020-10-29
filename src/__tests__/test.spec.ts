@@ -649,7 +649,13 @@ const getTests = (disableMultithreading: boolean) => {
 			if (disableMultithreading) {
 				expect(mockLog.mock.calls[0]).toEqual(['aa', 'bb'])
 			} else {
-				expect(mockLog.mock.calls[0]).toEqual(['', 'aa', 'bb'])
+				expect(mockLog.mock.calls[0]).toEqual(
+					[
+						expect.stringMatching(/process_/),
+						'aa',
+						'bb'
+					]
+				)
 			}
 		})
 		test('EventEmitter', async () => {

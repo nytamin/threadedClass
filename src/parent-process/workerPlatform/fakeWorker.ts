@@ -7,6 +7,7 @@ export class FakeProcess extends WorkerPlatformBase {
 
 	constructor () {
 		super()
+		this._isFakeProcess = true
 		this.worker = new FakeWorker((m: Message.From.Any) => {
 			this.emit('message', m)
 		})

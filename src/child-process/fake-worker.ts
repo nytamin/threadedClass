@@ -3,6 +3,7 @@ import {
 	Message
 } from '../shared/sharedApi'
 import {
+	ChildHandle,
 	InstanceHandle,
 	Worker
 } from './worker'
@@ -34,5 +35,15 @@ export class FakeWorker extends Worker {
 		if (cb) handle.queue[message.cmdId + ''] = cb
 		// Send message to Parent:
 		this.mockProcessSend(message)
+	}
+	protected sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction) {
+		const message: Message.From.Child.Any = {...msg, ...{
+			messageType: 'child',
+			cmdId: handle.cmdId++
+		}}
+		if (cb) handle.queue[message.cmdId + ''] = cb
+		// Send message to Parent:
+		this.mockProcessSend(message)
+
 	}
 }

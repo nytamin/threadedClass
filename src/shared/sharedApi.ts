@@ -45,8 +45,8 @@ export namespace Message {
 	}
 	/** Defines messages from the child ot the parent process */
 	export namespace To {
-		export type Any = Instance.Any
-		export type AnyConstr = Instance.AnyConstr
+		export type Any = Instance.Any | Child.Any
+		export type AnyConstr = Instance.AnyConstr | Child.AnyConstr
 
 		export namespace Instance {
 
@@ -111,11 +111,33 @@ export namespace Message {
 			}
 			export type Callback = CallbackConstr & InstanceBase
 		}
+		export namespace Child {
+			export type AnyConstr	= ReplyConstr 	| GetMemUsageConstr
+			export type Any			= Reply 		| GetMemUsage
+
+			export enum CommandType {
+				GET_MEM_USAGE = 'get_mem_usage',
+				REPLY = 'reply'
+			}
+
+			export interface GetMemUsageConstr {
+				cmd: CommandType.GET_MEM_USAGE
+			}
+			export type GetMemUsage = GetMemUsageConstr & ChildBase
+
+			export interface ReplyConstr {
+				cmd: CommandType.REPLY
+				replyTo: number
+				reply?: any
+				error?: Error | string
+			}
+			export type Reply = ReplyConstr & ChildBase
+		}
 	}
 	/** Defines messages from the parent process to the child */
 	export namespace From {
-		export type Any = Instance.Any
-		export type AnyConstr = Instance.AnyConstr
+		export type Any = Instance.Any | Child.Any
+		export type AnyConstr = Instance.AnyConstr | Child.AnyConstr
 		export namespace Instance {
 			export enum CommandType {
 				CALLBACK = 'callback',
@@ -139,6 +161,37 @@ export namespace Message {
 
 			export type AnyConstr 	= ReplyConstr 	| CallbackConstr
 			export type Any 		= Reply 		| Callback
+		}
+		export namespace Child {
+			export enum CommandType {
+				LOG = 'log',
+				REPLY = 'reply',
+				CALLBACK = 'callback'
+			}
+
+			export interface LogConstr {
+				cmd: CommandType.LOG
+				log: Array<any>
+			}
+			export type Log = LogConstr & ChildBase
+
+			export interface ReplyConstr {
+				cmd: CommandType.REPLY
+				replyTo: number
+				reply?: any
+				error?: Error | string
+			}
+			export type Reply = ReplyConstr & ChildBase
+
+			export interface CallbackConstr {
+				cmd: CommandType.CALLBACK
+				callbackId: string
+				args: Array<any>
+			}
+			export type Callback = CallbackConstr & ChildBase
+
+			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr
+			export type Any 		= Reply			| Callback			| Log
 		}
 	}
 }

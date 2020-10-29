@@ -3,10 +3,12 @@ import {
 	InitProps,
 	DEFAULT_CHILD_FREEZE_TIME,
 	encodeArguments,
+	CallbackFunction,
 	Message,
-	ArgDefinition
+	ArgDefinition,
+	decodeArguments
 } from '../shared/sharedApi'
-import { ThreadedClassConfig, ThreadedClass } from '../api'
+import { ThreadedClassConfig, ThreadedClass, MemUsageReport } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
@@ -95,7 +97,8 @@ export interface Child {
 	config: ThreadedClassConfig
 
 	cmdId: number
-	queue: {[cmdId: string]: InstanceCallbackFunction}
+	instanceMessageQueue: {[cmdId: string]: InstanceCallbackFunction }
+	childMessageQueue: {[cmdId: string]: CallbackFunction }
 
 	callbackId: number
 	callbacks: {[key: string]: Function}
@@ -161,7 +164,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				config,
 
 				cmdId: 0,
-				queue: {},
+				instanceMessageQueue: {},
+				childMessageQueue: {},
 				callbackId: 0,
 				callbacks: {}
 			}
@@ -176,7 +180,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	 * Attach a proxy-instance to a child
 	 * @param child
 	 * @param proxy
-	 * @param onMessage
+	 * @param onInstanceMessage
 	 */
 	public attachInstanceToChild (
 		config: ThreadedClassConfig,
@@ -185,7 +189,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		pathToModule: string,
 		exportName: string,
 		constructorArgs: any[],
-		onMessage: (instance: ChildInstance, message: Message.From.Instance.Any) => void
+		onInstanceMessage: (instance: ChildInstance, message: Message.From.Instance.Any) => void
 	): ChildInstance {
 		const instance: ChildInstance = {
 
@@ -194,7 +198,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			proxy: proxy,
 			usage: config.threadUsage,
 			freezeLimit: config.freezeLimit,
-			onMessageCallback: onMessage,
+			onMessageCallback: onInstanceMessage,
 			pathToModule: pathToModule,
 			exportName: exportName,
 			constructorArgs: constructorArgs,
@@ -273,11 +277,11 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				!instance.initialized
 			) throw Error(`Child instance ${instance.id} is not initialized`)
 
-			if (cb) instance.child.queue[message.cmdId + ''] = cb
+			if (cb) instance.child.instanceMessageQueue[message.cmdId + ''] = cb
 			try {
 				instance.child.process.send(message)
 			} catch (e) {
-				delete instance.child.queue[message.cmdId + '']
+				delete instance.child.instanceMessageQueue[message.cmdId + '']
 				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
 					throw new Error(`Unsupported attribute (circular structure) in instance ${instance.id}: ` + e.toString())
 				} else {
@@ -286,6 +290,32 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		} catch (e) {
 			if (cb) cb(instance, (e.stack || e).toString())
+			else throw e
+		}
+	}
+	public sendMessageToChild (child: Child, messageConstr: Message.To.Child.AnyConstr, cb?: CallbackFunction) {
+		try {
+			if (!child.alive) throw new Error(`Child process ${child.id} has been closed`)
+			if (child.isClosing) throw new Error(`Child process  ${child.id} is closing`)
+
+			const message: Message.To.Child.Any = {...messageConstr, ...{
+				messageType: 'child',
+				cmdId: child.cmdId++
+			}}
+
+			if (cb) child.childMessageQueue[message.cmdId + ''] = cb
+			try {
+				child.process.send(message)
+			} catch (e) {
+				delete child.childMessageQueue[message.cmdId + '']
+				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
+					throw new Error(`Unsupported attribute (circular structure) in child ${child.id}: ` + e.toString())
+				} else {
+					throw e
+				}
+			}
+		} catch (e) {
+			if (cb) cb((e.stack || e).toString())
 			else throw e
 		}
 	}
@@ -598,7 +628,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			console.error('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
-
+			if (message.messageType === 'child') {
+				try {
+					this._onMessageFromChild(child, message)
+				} catch (e) {
+					console.error(`Error in onMessageCallback in child ${child.id}`, message)
+					console.error(e)
+					throw e
+				}
+			} else if (message.messageType === 'instance') {
 				const instance = child.instances[message.instanceId]
 				if (instance) {
 					try {
@@ -611,8 +649,61 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				} else {
 					console.error(`Instance "${message.instanceId}" not found`)
 				}
-
+			} else {
+				console.error(`Unknown messageType "${message['messageType']}"!`)
+			}
 		})
+	}
+	private _onMessageFromChild (child: Child, message: Message.From.Child.Any) {
+		if (message.cmd === Message.From.Child.CommandType.LOG) {
+			console.log(child.id, ...message.log)
+		} else if (message.cmd === Message.From.Child.CommandType.REPLY) {
+			let msg: Message.From.Child.Reply = message
+
+			let cb: CallbackFunction = child.childMessageQueue[msg.replyTo + '']
+			if (!cb) return
+			if (msg.error) {
+				cb(msg.error)
+			} else {
+				cb(null, msg.reply)
+			}
+			delete child.instanceMessageQueue[msg.replyTo + '']
+		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK) {
+			// Callback function is called by worker
+			let msg: Message.From.Child.Callback = message
+			let callback = child.callbacks[msg.callbackId]
+			if (callback) {
+				try {
+					Promise.resolve(callback(...msg.args))
+					.then((result: any) => {
+						let encodedResult = encodeArguments({}, child.callbacks, [result], !!child.process.isFakeProcess)
+						this._sendReplyToChild(
+							child,
+							msg.cmdId,
+							undefined,
+							encodedResult[0]
+						)
+					})
+					.catch((err: Error) => {
+						this._replyErrorToChild(child, msg, err)
+					})
+				} catch (err) {
+					this._replyErrorToChild(child, msg, err)
+				}
+			} else throw Error(`callback "${msg.callbackId}" not found in child ${child.id}`)
+		}
+	}
+	private _replyErrorToChild (child: Child, messageToReplyTo: Message.From.Child.Callback, error: Error) {
+		this._sendReplyToChild(child, messageToReplyTo.cmdId, error)
+	}
+	private _sendReplyToChild (child: Child, replyTo: number, error?: Error, reply?: any, cb?: CallbackFunction) {
+		let msg: Message.To.Child.ReplyConstr = {
+			cmd: Message.To.Child.CommandType.REPLY,
+			replyTo: replyTo,
+			reply: reply,
+			error: error ? (error.stack || error).toString() : error
+		}
+		this.sendMessageToChild(child, msg, cb)
 	}
 	private _findFreeChild (threadUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {

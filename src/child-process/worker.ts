@@ -14,6 +14,10 @@ import {
 
 /** In a child process, there is running one (1) Worker, which handles the communication with the parent process. */
 export abstract class Worker {
+	protected childHandler: ChildHandle = {
+		cmdId: 0,
+		queue: {}
+	}
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
 	private callbacks: {[key: string]: Function} = {}
@@ -24,7 +28,8 @@ export abstract class Worker {
 	private _config?: ThreadedClassConfig
 
 	protected abstract killInstance (handle: InstanceHandle): void
-	protected abstract sendInstanceMessageToParent (handle: InstanceHandle | null, msg: Message.From.Instance.AnyConstr, cb?: CallbackFunction): void
+	protected abstract sendInstanceMessageToParent (handle: InstanceHandle, msg: Message.From.Instance.AnyConstr, cb?: CallbackFunction): void
+	protected abstract sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction): void
 
 	public onMessageFromParent (m: Message.To.Any) {
 		// A message was received from Parent
@@ -45,10 +50,20 @@ export abstract class Worker {
 				}
 			}
 			try {
-				this.handleMessageFromParent(m, handle)
+				this.handleInstanceMessageFromParent(m, handle)
 			} catch (e) {
 				if (m.cmdId) {
-					this.replyError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`)
+					this.replyInstanceError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`)
+				} else this.log('Error: ' + e.toString(), e.stack)
+			}
+		} else if (m.messageType === 'child') {
+			let handle: ChildHandle = this.childHandler
+
+			try {
+				this.handleChildMessageFromParent(m, handle)
+			} catch (e) {
+				if (m.cmdId) {
+					this.replyChildError(handle, m, `Error: ${e.toString()} ${e.stack}"`)
 				} else this.log('Error: ' + e.toString(), e.stack)
 			}
 		}
@@ -61,7 +76,7 @@ export abstract class Worker {
 		this.sendLog(['Error', ...data])
 	}
 
-	protected decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
+	private decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
 		// Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
 		return decodeArguments(() => handle.instance, args, (a: ArgDefinition) => {
 			return ((...args: any[]) => {
@@ -84,16 +99,22 @@ export abstract class Worker {
 			})
 		})
 	}
-	protected encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {
+	private encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {
 		return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading)
 	}
-	protected reply (handle: InstanceHandle, m: Message.To.Instance.Any, reply: any) {
-		this.sendReplyToParent(handle, m.cmdId, undefined, reply)
+	private replyToInstanceMessage (handle: InstanceHandle, messageToReplyTo: Message.To.Instance.Any, reply: any) {
+		this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply)
 	}
-	protected replyError (handle: InstanceHandle, m: Message.To.Instance.Any, error: any) {
-		this.sendReplyToParent(handle, m.cmdId, error)
+	private replyToChildMessage (handle: ChildHandle, messageToReplyTo: Message.To.Child.Any, reply: any) {
+		this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply)
 	}
-	protected sendReplyToParent (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
+	private replyInstanceError (handle: InstanceHandle, messageToReplyTo: Message.To.Instance.Any, error: any) {
+		this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, error)
+	}
+	private replyChildError (handle: ChildHandle, messageToReplyTo: Message.To.Child.Any, error: any) {
+		this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, error)
+	}
+	private sendInstanceReplyToParent (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
 		let msg: Message.From.Instance.ReplyConstr = {
 			cmd: Message.From.Instance.CommandType.REPLY,
 			replyTo: replyTo,
@@ -102,14 +123,23 @@ export abstract class Worker {
 		}
 		this.sendInstanceMessageToParent(handle, msg)
 	}
-	protected sendLog (log: any[]) {
-		let msg: Message.From.Instance.LogConstr = {
-			cmd: Message.From.Instance.CommandType.LOG,
+	private sendChildReplyToParent (handle: ChildHandle, replyTo: number, error?: Error, reply?: any) {
+		let msg: Message.From.Child.ReplyConstr = {
+			cmd: Message.From.Child.CommandType.REPLY,
+			replyTo: replyTo,
+			error: error ? (error.stack || error).toString() : error,
+			reply: reply
+		}
+		this.sendChildMessageToParent(handle, msg)
+	}
+	private sendLog (log: any[]) {
+		let msg: Message.From.Child.LogConstr = {
+			cmd: Message.From.Child.CommandType.LOG,
 			log: log
 		}
-		this.sendInstanceMessageToParent(null, msg)
+		this.sendChildMessageToParent(this.childHandler, msg)
 	}
-	protected sendCallback (handle: InstanceHandle, callbackId: string, args: any[], cb: CallbackFunction) {
+	private sendCallback (handle: InstanceHandle, callbackId: string, args: any[], cb: CallbackFunction) {
 		let msg: Message.From.Instance.CallbackConstr = {
 			cmd: Message.From.Instance.CommandType.CALLBACK,
 			callbackId: callbackId,
@@ -117,7 +147,7 @@ export abstract class Worker {
 		}
 		this.sendInstanceMessageToParent(handle, msg, cb)
 	}
-	protected getAllProperties (obj: Object) {
+	private getAllProperties (obj: Object) {
 		let props: Array<string> = []
 
 		do {
@@ -126,7 +156,7 @@ export abstract class Worker {
 		} while (obj)
 		return props
 	}
-	protected handleMessageFromParent (m: Message.To.Instance.Any, handle: InstanceHandle) {
+	private handleInstanceMessageFromParent (m: Message.To.Instance.Any, handle: InstanceHandle) {
 		const instance = handle.instance
 		if (m.cmd === Message.To.Instance.CommandType.INIT) {
 			const msg: Message.To.Instance.Init = m
@@ -257,7 +287,7 @@ export abstract class Worker {
 						})
 					}
 				})
-				this.reply(handle, msg, props)
+				this.replyToInstanceMessage(handle, msg, props)
 				return
 			})
 			.catch((e: any) => {
@@ -269,7 +299,7 @@ export abstract class Worker {
 			}
 
 		} else if (m.cmd === Message.To.Instance.CommandType.PING) {
-			this.reply(handle, m, null)
+			this.replyToInstanceMessage(handle, m, null)
 		} else if (m.cmd === Message.To.Instance.CommandType.REPLY) {
 			const msg: Message.To.Instance.Reply = m
 			let cb = handle.queue[msg.replyTo + '']
@@ -293,12 +323,12 @@ export abstract class Worker {
 			Promise.resolve(p)
 			.then((result) => {
 				const encodedResult = this.encodeArgumentsToParent(instance, [result])
-				this.reply(handle, msg, encodedResult[0])
+				this.replyToInstanceMessage(handle, msg, encodedResult[0])
 			})
 			.catch((err) => {
 
 				let errorResponse: string = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
-				this.replyError(handle, msg, errorResponse)
+				this.replyInstanceError(handle, msg, errorResponse)
 			})
 		} else if (m.cmd === Message.To.Instance.CommandType.SET) {
 			let msg: Message.To.Instance.Set = m
@@ -306,13 +336,13 @@ export abstract class Worker {
 			const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
 			instance[msg.property] = fixedValue
 
-			this.reply(handle, msg, fixedValue)
+			this.replyToInstanceMessage(handle, msg, fixedValue)
 		} else if (m.cmd === Message.To.Instance.CommandType.KILL) {
 			let msg: Message.To.Instance.Kill = m
 			// kill off instance
 			this.killInstance(handle)
 
-			this.reply(handle, msg, null)
+			this.replyToInstanceMessage(handle, msg, null)
 		} else if (m.cmd === Message.To.Instance.CommandType.CALLBACK) {
 			let msg: Message.To.Instance.Callback = m
 			let callback = this.callbacks[msg.callbackId]
@@ -321,20 +351,23 @@ export abstract class Worker {
 					Promise.resolve(callback(...msg.args))
 					.then((result: any) => {
 						const encodedResult = this.encodeArgumentsToParent(instance, [result])
-						this.reply(handle, msg, encodedResult[0])
+						this.replyToInstanceMessage(handle, msg, encodedResult[0])
 					})
 					.catch((err: Error) => {
 						let errorResponse: string = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`
-						this.replyError(handle, msg, errorResponse)
+						this.replyInstanceError(handle, msg, errorResponse)
 					})
 				} catch (err) {
 					let errorResponse: string = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`
-					this.replyError(handle, msg, errorResponse)
+					this.replyInstanceError(handle, msg, errorResponse)
 				}
 			} else {
-				this.replyError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`)
+				this.replyInstanceError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`)
 			}
 		}
+	}
+	private handleChildMessageFromParent (m: Message.To.Child.Any, handle: ChildHandle) {
+		// Todo
 	}
 	private startOrphanMonitoring () {
 		if (this._config) {
@@ -352,9 +385,13 @@ export abstract class Worker {
 	}
 }
 
-export interface InstanceHandle {
+export interface MessageHandle {
 	cmdId: number
 	queue: {[cmdId: string]: CallbackFunction}
+}
+export interface InstanceHandle extends MessageHandle {
 	id: string
 	instance: any
+}
+export interface ChildHandle extends MessageHandle {
 }

@@ -7,7 +7,7 @@ import {
 	nodeSupportsWorkerThreads,
 	getWorkerThreads
 } from '../shared/lib'
-import { InstanceHandle, Worker } from './worker'
+import { ChildHandle, InstanceHandle, Worker } from './worker'
 
 const WorkerThreads = getWorkerThreads()
 
@@ -39,6 +39,14 @@ class ThreadedWorker extends Worker {
 			messageType: 'instance',
 			cmdId: handle.cmdId++,
 			instanceId: handle.id
+		}}
+		if (cb) handle.queue[message.cmdId + ''] = cb
+		send(message)
+	}
+	protected sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction) {
+		const message: Message.From.Child.Any = {...msg, ...{
+			messageType: 'child',
+			cmdId: handle.cmdId++
 		}}
 		if (cb) handle.queue[message.cmdId + ''] = cb
 		send(message)
