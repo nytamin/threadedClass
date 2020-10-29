@@ -390,7 +390,7 @@ class Worker {
                 window ?
                     // @ts-ignore web-worker global window
                     window.performance.memory :
-                    'N/A');
+                    { error: 'N/A' });
             const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0];
             this.replyToChildMessage(handle, m, encodedResult);
         }
@@ -701,12 +701,14 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     const child = this._children[childId];
                     this.sendMessageToChild(child, {
                         cmd: sharedApi_1.Message.To.Child.CommandType.GET_MEM_USAGE
-                    }, (err, result) => {
-                        memUsage[childId] = (err ?
-                            err.toString() :
+                    }, (err, result0) => {
+                        const result = result0 && sharedApi_1.decodeArguments(() => null, [result0], () => (() => Promise.resolve()))[0];
+                        const o = Object.assign(Object.assign({}, (err ?
+                            { error: err.toString() } :
                             result ?
-                                sharedApi_1.decodeArguments(() => null, [result], () => (() => Promise.resolve()))[0] :
-                                'unknown');
+                                result :
+                                { error: 'unknown' })), { description: this.getChildDescriptor(child) });
+                        memUsage[childId] = o;
                         resolve();
                     });
                 });

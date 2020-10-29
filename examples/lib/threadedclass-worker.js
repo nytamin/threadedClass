@@ -464,7 +464,7 @@ class Worker {
                 window ?
                     // @ts-ignore web-worker global window
                     window.performance.memory :
-                    'N/A');
+                    { error: 'N/A' });
             const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0];
             this.replyToChildMessage(handle, m, encodedResult);
         }
