@@ -1,7 +1,7 @@
-import { ThreadedClassManager } from './manager'
+import { ThreadedClassManager } from './parent-process/manager'
 
 export * from './api'
-export * from './threadedClass'
+export * from './parent-process/threadedClass'
 export {
 	ThreadedClassManager
 }

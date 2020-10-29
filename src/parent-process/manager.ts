@@ -1,25 +1,20 @@
-import { FakeProcess } from './fakeProcess'
-import { ThreadedClassConfig, ThreadedClass } from './api'
-import {
-	MessageFromChild,
-	MessageToChildConstr,
-	MessageToChild,
-	InstanceCallbackFunction,
-	MessageType,
-	MessageKillConstr,
-	MessageInitConstr,
-	InstanceCallbackInitFunction,
-	InitProps,
-	MessagePingConstr,
-	DEFAULT_CHILD_FREEZE_TIME,
-	encodeArguments
-} from './internalApi'
 import { EventEmitter } from 'events'
-import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from './lib'
-import { forkWebWorker } from './webWorkers'
-import { forkWorkerThread } from './workerThreads'
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { forkChildProcess } from './childProcess'
+import {
+	InitProps,
+	DEFAULT_CHILD_FREEZE_TIME,
+	encodeArguments,
+	CallbackFunction,
+	Message,
+	ArgDefinition,
+	decodeArguments
+} from '../shared/sharedApi'
+import { ThreadedClassConfig, ThreadedClass, MemUsageReport } from '../api'
+import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
+import { forkWebWorker } from './workerPlatform/webWorkers'
+import { forkWorkerThread } from './workerPlatform/workerThreads'
+import { WorkerPlatformBase } from './workerPlatform/_base'
+import { forkChildProcess } from './workerPlatform/childProcess'
+import { FakeProcess } from './workerPlatform/fakeWorker'
 
 export class ThreadedClassManagerClass {
 
@@ -35,8 +30,13 @@ export class ThreadedClassManagerClass {
 	public destroyAll (): Promise<void> {
 		return this._internal.killAllChildren()
 	}
+	/** Returns the number of threads */
 	public getThreadCount (): number {
 		return this._internal.getChildrenCount()
+	}
+	/** Returns memory usage for all threads */
+	public getThreadsMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
+		return this._internal.getMemoryUsage()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
 		const onEvent = (child: Child) => {
@@ -102,7 +102,8 @@ export interface Child {
 	config: ThreadedClassConfig
 
 	cmdId: number
-	queue: {[cmdId: string]: InstanceCallbackFunction}
+	instanceMessageQueue: {[cmdId: string]: InstanceCallbackFunction }
+	childMessageQueue: {[cmdId: string]: CallbackFunction }
 
 	callbackId: number
 	callbacks: {[key: string]: Function}
@@ -110,6 +111,8 @@ export interface Child {
 export function childName (child: Child) {
 	return `Child_ ${Object.keys(child.instances).join(',')}`
 }
+export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | string | null, encodedResult?: ArgDefinition) => void
+export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | string | null, initProps?: InitProps) => boolean
 /**
  * The ChildInstance represents a proxy-instance of a class, running in a child process
  */
@@ -119,7 +122,7 @@ export interface ChildInstance {
 	readonly usage?: number
 	/** When to consider the process is frozen */
 	readonly freezeLimit?: number
-	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
+	readonly onMessageCallback: (instance: ChildInstance, message: Message.From.Instance.Any) => void
 	readonly pathToModule: string
 	readonly exportName: string
 	readonly constructorArgs: any[]
@@ -166,7 +169,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				config,
 
 				cmdId: 0,
-				queue: {},
+				instanceMessageQueue: {},
+				childMessageQueue: {},
 				callbackId: 0,
 				callbacks: {}
 			}
@@ -181,7 +185,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	 * Attach a proxy-instance to a child
 	 * @param child
 	 * @param proxy
-	 * @param onMessage
+	 * @param onInstanceMessage
 	 */
 	public attachInstanceToChild (
 		config: ThreadedClassConfig,
@@ -190,7 +194,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		pathToModule: string,
 		exportName: string,
 		constructorArgs: any[],
-		onMessage: (instance: ChildInstance, message: MessageFromChild) => void
+		onInstanceMessage: (instance: ChildInstance, message: Message.From.Instance.Any) => void
 	): ChildInstance {
 		const instance: ChildInstance = {
 
@@ -199,7 +203,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			proxy: proxy,
 			usage: config.threadUsage,
 			freezeLimit: config.freezeLimit,
-			onMessageCallback: onMessage,
+			onMessageCallback: onInstanceMessage,
 			pathToModule: pathToModule,
 			exportName: exportName,
 			constructorArgs: constructorArgs,
@@ -237,9 +241,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 							delete instance.child
 							delete child.instances[instanceId]
 						}
-						this.sendMessageToChild(instance, {
-							cmd: MessageType.KILL
-						} as MessageKillConstr, () => {
+						this.sendMessageToInstance(instance, {
+							cmd: Message.To.Instance.CommandType.KILL
+						} as Message.To.Instance.KillConstr, () => {
 							cleanup()
 							resolve()
 						})
@@ -261,27 +265,28 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 	}
-	public sendMessageToChild (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
+	public sendMessageToInstance (instance: ChildInstance, messageConstr: Message.To.Instance.AnyConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
 			if (!instance.child) throw new Error(`Instance ${instance.id} has been detached from child process`)
 			if (!instance.child.alive) throw new Error(`Child process of instance ${instance.id} has been closed`)
 			if (instance.child.isClosing) throw new Error(`Child process of instance ${instance.id} is closing`)
-			const message: MessageToChild = {...messageConstr, ...{
+			const message: Message.To.Instance.Any = {...messageConstr, ...{
+				messageType: 'instance',
 				cmdId: instance.child.cmdId++,
 				instanceId: instance.id
 			}}
 
 			if (
-				message.cmd !== MessageType.INIT &&
+				message.cmd !== Message.To.Instance.CommandType.INIT &&
 				!instance.initialized
 			) throw Error(`Child instance ${instance.id} is not initialized`)
 
-			if (cb) instance.child.queue[message.cmdId + ''] = cb
+			if (cb) instance.child.instanceMessageQueue[message.cmdId + ''] = cb
 			try {
 				instance.child.process.send(message)
 			} catch (e) {
-				delete instance.child.queue[message.cmdId + '']
+				delete instance.child.instanceMessageQueue[message.cmdId + '']
 				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
 					throw new Error(`Unsupported attribute (circular structure) in instance ${instance.id}: ` + e.toString())
 				} else {
@@ -293,8 +298,59 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			else throw e
 		}
 	}
+	public sendMessageToChild (child: Child, messageConstr: Message.To.Child.AnyConstr, cb?: CallbackFunction) {
+		try {
+			if (!child.alive) throw new Error(`Child process ${child.id} has been closed`)
+			if (child.isClosing) throw new Error(`Child process  ${child.id} is closing`)
+
+			const message: Message.To.Child.Any = {...messageConstr, ...{
+				messageType: 'child',
+				cmdId: child.cmdId++
+			}}
+
+			if (cb) child.childMessageQueue[message.cmdId + ''] = cb
+			try {
+				child.process.send(message)
+			} catch (e) {
+				delete child.childMessageQueue[message.cmdId + '']
+				if ((e.toString() || '').match(/circular structure/)) { // TypeError: Converting circular structure to JSON
+					throw new Error(`Unsupported attribute (circular structure) in child ${child.id}: ` + e.toString())
+				} else {
+					throw e
+				}
+			}
+		} catch (e) {
+			if (cb) cb((e.stack || e).toString())
+			else throw e
+		}
+	}
 	public getChildrenCount (): number {
 		return Object.keys(this._children).length
+	}
+	public async getMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
+
+		const memUsage: {[childId: string]: MemUsageReport} = {}
+
+		await Promise.all(
+			Object.keys(this._children).map((childId) => {
+				return new Promise((resolve) => {
+					const child = this._children[childId]
+					this.sendMessageToChild(child, {
+						cmd: Message.To.Child.CommandType.GET_MEM_USAGE
+					}, (err, result) => {
+						memUsage[childId] = (
+							err ?
+							err.toString() :
+							result ?
+							decodeArguments(() => null, [result], () => (() => Promise.resolve()))[0] :
+							'unknown'
+						)
+						resolve()
+					})
+				})
+			})
+		)
+		return memUsage
 	}
 	public killAllChildren (): Promise<void> {
 		return Promise.all(
@@ -402,8 +458,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	) {
 		let encodedArgs = encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading)
 
-		let msg: MessageInitConstr = {
-			cmd: MessageType.INIT,
+		let msg: Message.To.Instance.InitConstr = {
+			cmd: Message.To.Instance.CommandType.INIT,
 			modulePath: instance.pathToModule,
 			exportName: instance.exportName,
 			args: encodedArgs,
@@ -411,7 +467,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			parentPid: process.pid
 		}
 		instance.initialized = true
-		ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
+		ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
 			if (
 				!cb ||
 				cb(instance, e, initProps)
@@ -526,10 +582,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	private _pingChild (instance: ChildInstance): Promise<void> {
 		return new Promise((resolve, reject) => {
-			let msg: MessagePingConstr = {
-				cmd: MessageType.PING
+			let msg: Message.To.Instance.PingConstr = {
+				cmd: Message.To.Instance.CommandType.PING
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (_instance: ChildInstance, err: Error | null) => {
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (_instance: ChildInstance, err: Error | null) => {
 				if (!err) {
 					resolve()
 				} else {
@@ -601,10 +657,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.process.on('error', (err) => {
 			console.error('Error from child ' + child.id, err)
 		})
-		child.process.on('message', (message: MessageFromChild) => {
-			if (message.cmd === MessageType.LOG) {
-				console.log(message.instanceId, ...message.log)
-			} else {
+		child.process.on('message', (message: Message.From.Any) => {
+			if (message.messageType === 'child') {
+				try {
+					this._onMessageFromChild(child, message)
+				} catch (e) {
+					console.error(`Error in onMessageCallback in child ${child.id}`, message)
+					console.error(e)
+					throw e
+				}
+			} else if (message.messageType === 'instance') {
 				const instance = child.instances[message.instanceId]
 				if (instance) {
 					try {
@@ -617,8 +679,61 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				} else {
 					console.error(`Instance "${message.instanceId}" not found`)
 				}
+			} else {
+				console.error(`Unknown messageType "${message['messageType']}"!`)
 			}
 		})
+	}
+	private _onMessageFromChild (child: Child, message: Message.From.Child.Any) {
+		if (message.cmd === Message.From.Child.CommandType.LOG) {
+			console.log(child.id, ...message.log)
+		} else if (message.cmd === Message.From.Child.CommandType.REPLY) {
+			let msg: Message.From.Child.Reply = message
+
+			let cb: CallbackFunction = child.childMessageQueue[msg.replyTo + '']
+			if (!cb) return
+			if (msg.error) {
+				cb(msg.error)
+			} else {
+				cb(null, msg.reply)
+			}
+			delete child.instanceMessageQueue[msg.replyTo + '']
+		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK) {
+			// Callback function is called by worker
+			let msg: Message.From.Child.Callback = message
+			let callback = child.callbacks[msg.callbackId]
+			if (callback) {
+				try {
+					Promise.resolve(callback(...msg.args))
+					.then((result: any) => {
+						let encodedResult = encodeArguments({}, child.callbacks, [result], !!child.process.isFakeProcess)
+						this._sendReplyToChild(
+							child,
+							msg.cmdId,
+							undefined,
+							encodedResult[0]
+						)
+					})
+					.catch((err: Error) => {
+						this._replyErrorToChild(child, msg, err)
+					})
+				} catch (err) {
+					this._replyErrorToChild(child, msg, err)
+				}
+			} else throw Error(`callback "${msg.callbackId}" not found in child ${child.id}`)
+		}
+	}
+	private _replyErrorToChild (child: Child, messageToReplyTo: Message.From.Child.Callback, error: Error) {
+		this._sendReplyToChild(child, messageToReplyTo.cmdId, error)
+	}
+	private _sendReplyToChild (child: Child, replyTo: number, error?: Error, reply?: any, cb?: CallbackFunction) {
+		let msg: Message.To.Child.ReplyConstr = {
+			cmd: Message.To.Child.CommandType.REPLY,
+			replyTo: replyTo,
+			reply: reply,
+			error: error ? (error.stack || error).toString() : error
+		}
+		this.sendMessageToChild(child, msg, cb)
 	}
 	private _findFreeChild (threadUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {

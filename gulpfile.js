@@ -28,7 +28,7 @@ gulp.task('browserify-main', function () {
 gulp.task('browserify-worker', function () {
 
 	var b = browserify({
-		entries: './dist/threadedclass-worker.js',
+		entries: './dist/child-process/threadedclass-worker.js',
 		debug: true
 	}).exclude('worker_threads')
 	return b.bundle()
@@ -60,7 +60,7 @@ gulp.task('minify-main', function () {
 gulp.task('minify-worker', function () {
 
 	var b = browserify({
-		entries: './dist/threadedclass-worker.js',
+		entries: './dist/child-process/threadedclass-worker.js',
 		debug: true
 	}).exclude('worker_threads')
 	return b.bundle()

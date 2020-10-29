@@ -1,28 +1,20 @@
 import * as path from 'path'
 import * as callsites from 'callsites'
+import { isBrowser, browserSupportsWebWorkers } from '../shared/lib'
 import {
 	InitProps,
 	InitProp,
 	InitPropType,
-	MessageType,
-	InstanceCallbackFunction,
-	MessageFcnConstr,
-	MessageSetConstr,
-	MessageReplyConstr,
-	MessageFromChildCallback,
-	MessageFromChild,
-	MessageFromChildReply,
 	ArgDefinition,
 	decodeArguments,
 	encodeArguments,
-	MessageCallbackConstr
-} from './internalApi'
+	Message
+} from '../shared/sharedApi'
 import {
 	ThreadedClass,
 	ThreadedClassConfig
-} from './api'
-import { ThreadedClassManagerInternal, ChildInstance, Child } from './manager'
-import { isBrowser, browserSupportsWebWorkers } from './lib'
+} from '../api'
+import { ThreadedClassManagerInternal, ChildInstance, Child, InstanceCallbackFunction } from './manager'
 
 // From: https://github.com/Morglod/tsargs/blob/master/lib/ctor-args.ts
 type CtorArgs<CtorT extends new (...args: any) => any> = CtorT extends new (...args: infer K) => any ? K : never
@@ -60,40 +52,40 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 
 	return new Promise<ThreadedClass<T>>((resolve, reject) => {
 		function sendFcn (instance: ChildInstance, fcn: string, args: any[], cb?: InstanceCallbackFunction) {
-			let msg: MessageFcnConstr = {
-				cmd: MessageType.FUNCTION,
+			let msg: Message.To.Instance.FcnConstr = {
+				cmd: Message.To.Instance.CommandType.FUNCTION,
 				fcn: fcn,
 				args: args
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, cb)
 		}
 		function sendSet (instance: ChildInstance, property: string, value: ArgDefinition, cb?: InstanceCallbackFunction) {
-			let msg: MessageSetConstr = {
-				cmd: MessageType.SET,
+			let msg: Message.To.Instance.SetConstr = {
+				cmd: Message.To.Instance.CommandType.SET,
 				property: property,
 				value: value
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, cb)
 		}
-		function sendReply (instance: ChildInstance, replyTo: number, error?: Error, reply?: any, cb?: InstanceCallbackFunction) {
-			let msg: MessageReplyConstr = {
-				cmd: MessageType.REPLY,
+		function sendReplyToInstance (instance: ChildInstance, replyTo: number, error?: Error, reply?: any, cb?: InstanceCallbackFunction) {
+			let msg: Message.To.Instance.ReplyConstr = {
+				cmd: Message.To.Instance.CommandType.REPLY,
 				replyTo: replyTo,
 				reply: reply,
 				error: error ? (error.stack || error).toString() : error
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, cb)
 		}
-		function replyError (instance: ChildInstance, msg: MessageFromChildCallback, error: Error) {
-			sendReply(instance, msg.cmdId, error)
+		function replyError (instance: ChildInstance, msg: Message.From.Instance.Callback, error: Error) {
+			sendReplyToInstance(instance, msg.cmdId, error)
 		}
 		function sendCallback (instance: ChildInstance, callbackId: string, args: any[], cb?: InstanceCallbackFunction) {
-			let msg: MessageCallbackConstr = {
-				cmd: MessageType.CALLBACK,
+			let msg: Message.To.Instance.CallbackConstr = {
+				cmd: Message.To.Instance.CommandType.CALLBACK,
 				callbackId: callbackId,
 				args: args
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, cb)
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, cb)
 		}
 		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
 			return decodeArguments(() => instance.proxy, [encodedResult], (a: ArgDefinition) => {
@@ -117,28 +109,28 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				}
 			})[0]
 		}
-		function onMessage (instance: ChildInstance, m: MessageFromChild) {
-			if (m.cmd === MessageType.REPLY) {
-				let msg: MessageFromChildReply = m
+		function onMessageFromInstance (instance: ChildInstance, m: Message.From.Instance.Any) {
+			if (m.cmd === Message.From.Instance.CommandType.REPLY) {
+				let msg: Message.From.Instance.Reply = m
 				const child = instance.child
-				let cb: InstanceCallbackFunction = child.queue[msg.replyTo + '']
+				let cb: InstanceCallbackFunction = child.instanceMessageQueue[msg.replyTo + '']
 				if (!cb) return
 				if (msg.error) {
 					cb(instance, msg.error)
 				} else {
 					cb(instance, null, msg.reply)
 				}
-				delete child.queue[msg.replyTo + '']
-			} else if (m.cmd === MessageType.CALLBACK) {
+				delete child.instanceMessageQueue[msg.replyTo + '']
+			} else if (m.cmd === Message.From.Instance.CommandType.CALLBACK) {
 				// Callback function is called by worker
-				let msg: MessageFromChildCallback = m
+				let msg: Message.From.Instance.Callback = m
 				let callback = instance.child.callbacks[msg.callbackId]
 				if (callback) {
 					try {
 						Promise.resolve(callback(...msg.args))
 						.then((result: any) => {
 							let encodedResult = encodeArguments(instance, instance.child.callbacks, [result], !!config.disableMultithreading)
-							sendReply(
+							sendReplyToInstance(
 								instance,
 								msg.cmdId,
 								undefined,
@@ -173,8 +165,9 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				pathToModule = require.resolve(absPathToModule)
 
 				pathToWorker = thisCallPath
+					.replace(/parent-process/,'child-process')
 					.replace(/threadedClass(\.[tj]s)$/,'threadedclass-worker.js')
-					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
+					.replace(/src([\\\/])child-process([\\\/])threadedclass-worker/,'dist$1child-process$2threadedclass-worker')
 			}
 
 			const child: Child = ThreadedClassManagerInternal.findNextAvailableChild(
@@ -191,7 +184,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				pathToModule,
 				exportName,
 				constructorArgs,
-				onMessage
+				onMessageFromInstance
 			)
 
 			ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance: ChildInstance, err: Error | null, props: InitProps) => {

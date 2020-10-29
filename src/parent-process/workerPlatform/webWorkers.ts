@@ -1,13 +1,7 @@
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { MessageToChild } from './internalApi'
+import { Message } from '../../shared/sharedApi'
+import { WorkerPlatformBase } from './_base'
 
 /** Functions for emulating child-process in web-workers */
-
-export function forkWebWorker (pathToWorker: string): WebWorkerProcess {
-	return new WebWorkerProcess(pathToWorker)
-
-}
-type WebWorker = any
 
 export class WebWorkerProcess extends WorkerPlatformBase {
 	private worker: WebWorker
@@ -51,7 +45,12 @@ export class WebWorkerProcess extends WorkerPlatformBase {
 		this.emit('close')
 	}
 
-	send (message: MessageToChild): void {
+	send (message: Message.To.Any): void {
 		this.worker.postMessage(message)
 	}
+}
+type WebWorker = any
+export function forkWebWorker (pathToWorker: string): WebWorkerProcess {
+	return new WebWorkerProcess(pathToWorker)
+
 }

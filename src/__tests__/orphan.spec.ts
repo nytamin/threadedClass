@@ -1,4 +1,4 @@
-import { nodeSupportsWorkerThreads } from '../lib'
+import { nodeSupportsWorkerThreads } from '../shared/lib'
 import isRunning = require('is-running')
 import { fork } from 'child_process'
 

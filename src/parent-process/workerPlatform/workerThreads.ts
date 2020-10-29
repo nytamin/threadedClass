@@ -1,15 +1,11 @@
 import { Worker as IWorker } from 'worker_threads'
-import { getWorkerThreads } from './lib'
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { MessageToChild } from './internalApi'
+import { Message } from '../../shared/sharedApi'
+import { getWorkerThreads } from '../../shared/lib'
+import { WorkerPlatformBase } from './_base'
 
 const WorkerThreads = getWorkerThreads()
 
 /** Functions for spawning worker-threads in NodeJS */
-
-export function forkWorkerThread (pathToWorker: string): WorkerThread {
-	return new WorkerThread(pathToWorker)
-}
 
 export class WorkerThread extends WorkerPlatformBase {
 	private worker: IWorker
@@ -53,7 +49,10 @@ export class WorkerThread extends WorkerPlatformBase {
 		}
 	}
 
-	send (message: MessageToChild): void {
+	send (message: Message.To.Any): void {
 		this.worker.postMessage(message)
 	}
+}
+export function forkWorkerThread (pathToWorker: string): WorkerThread {
+	return new WorkerThread(pathToWorker)
 }
