@@ -27,9 +27,11 @@ export interface ThreadedClassConfig {
 	instanceName?: string
 
 }
-
-export type MemUsageReport = string | NodeJS.MemoryUsage | {
+export interface WebWorkerMemoryUsage {
 	jsHeapSizeLimit: number
 	totalJSHeapSize: number
 	usedJSHeapSize: number
 }
+export type MemUsageReportInner = NodeJS.MemoryUsage | WebWorkerMemoryUsage | { error: string }
+
+export type MemUsageReport = MemUsageReportInner & { description: string }

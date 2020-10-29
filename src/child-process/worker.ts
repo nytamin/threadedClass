@@ -1,5 +1,9 @@
 import isRunning = require('is-running')
-import { MemUsageReport, ThreadedClassConfig } from '../api'
+import {
+	MemUsageReportInner,
+	ThreadedClassConfig,
+	WebWorkerMemoryUsage
+} from '../api'
 import { isBrowser, nodeSupportsWorkerThreads } from '../shared/lib'
 import {
 	ArgDefinition,
@@ -369,18 +373,14 @@ export abstract class Worker {
 	private handleChildMessageFromParent (m: Message.To.Child.Any, handle: ChildHandle) {
 		if (m.cmd === Message.To.Child.CommandType.GET_MEM_USAGE) {
 
-			let memUsage: MemUsageReport = (
+			let memUsage: MemUsageReportInner = (
 				process ?
 				process.memoryUsage() :
 				// @ts-ignore web-worker global window
 				window ?
 				// @ts-ignore web-worker global window
-				window.performance.memory as {
-					jsHeapSizeLimit: number
-					totalJSHeapSize: number
-					usedJSHeapSize: number
-				} :
-				'N/A'
+				window.performance.memory as WebWorkerMemoryUsage :
+				{ error: 'N/A' }
 			)
 			const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0]
 			this.replyToChildMessage(handle, m, encodedResult)

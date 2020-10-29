@@ -674,7 +674,8 @@ const getTests = (disableMultithreading: boolean) => {
 				external: expect.any(Number),
 				heapTotal: expect.any(Number),
 				heapUsed: expect.any(Number),
-				rss: expect.any(Number)
+				rss: expect.any(Number),
+				description: expect.any(String)
 			})
 
 			await ThreadedClassManager.destroyAll()

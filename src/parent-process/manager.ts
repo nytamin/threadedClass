@@ -8,7 +8,7 @@ import {
 	ArgDefinition,
 	decodeArguments
 } from '../shared/sharedApi'
-import { ThreadedClassConfig, ThreadedClass, MemUsageReport } from '../api'
+import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
@@ -337,14 +337,20 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					const child = this._children[childId]
 					this.sendMessageToChild(child, {
 						cmd: Message.To.Child.CommandType.GET_MEM_USAGE
-					}, (err, result) => {
-						memUsage[childId] = (
-							err ?
-							err.toString() :
-							result ?
-							decodeArguments(() => null, [result], () => (() => Promise.resolve()))[0] :
-							'unknown'
-						)
+					}, (err, result0) => {
+						const result = result0 && decodeArguments(() => null, [result0], () => (() => Promise.resolve()))[0] as MemUsageReportInner
+
+						const o: MemUsageReport = {
+							...(
+								err ?
+								{ error: err.toString() } :
+								result ?
+								result :
+								{ error: 'unknown' }
+							),
+							description: this.getChildDescriptor(child)
+						}
+						memUsage[childId] = o
 						resolve()
 					})
 				})
