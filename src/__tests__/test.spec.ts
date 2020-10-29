@@ -742,7 +742,7 @@ const getTests = (disableMultithreading: boolean) => {
 }
 
 describe('threadedclass', getTests(false))
-// describe('threadedclass single thread', getTests(true))
+describe('threadedclass single thread', getTests(true))
 
 // Test on behaviour that differ bewteen Multi-threading vs none
 describe('single-thread tests', () => {
