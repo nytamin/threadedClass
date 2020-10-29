@@ -27,3 +27,9 @@ export interface ThreadedClassConfig {
 	instanceName?: string
 
 }
+
+export type MemUsageReport = string | NodeJS.MemoryUsage | {
+	jsHeapSizeLimit: number
+	totalJSHeapSize: number
+	usedJSHeapSize: number
+}

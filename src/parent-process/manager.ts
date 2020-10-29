@@ -30,8 +30,13 @@ export class ThreadedClassManagerClass {
 	public destroyAll (): Promise<void> {
 		return this._internal.killAllChildren()
 	}
+	/** Returns the number of threads */
 	public getThreadCount (): number {
 		return this._internal.getChildrenCount()
+	}
+	/** Returns memory usage for all threads */
+	public getThreadsMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
+		return this._internal.getMemoryUsage()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
 		const onEvent = (child: Child) => {
@@ -321,6 +326,31 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public getChildrenCount (): number {
 		return Object.keys(this._children).length
+	}
+	public async getMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
+
+		const memUsage: {[childId: string]: MemUsageReport} = {}
+
+		await Promise.all(
+			Object.keys(this._children).map((childId) => {
+				return new Promise((resolve) => {
+					const child = this._children[childId]
+					this.sendMessageToChild(child, {
+						cmd: Message.To.Child.CommandType.GET_MEM_USAGE
+					}, (err, result) => {
+						memUsage[childId] = (
+							err ?
+							err.toString() :
+							result ?
+							decodeArguments(() => null, [result], () => (() => Promise.resolve()))[0] :
+							'unknown'
+						)
+						resolve()
+					})
+				})
+			})
+		)
+		return memUsage
 	}
 	public killAllChildren (): Promise<void> {
 		return Promise.all(

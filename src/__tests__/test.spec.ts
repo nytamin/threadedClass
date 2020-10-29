@@ -658,6 +658,28 @@ const getTests = (disableMultithreading: boolean) => {
 				)
 			}
 		})
+		test('getThreadsMemoryUsage', async () => {
+			expect(await ThreadedClassManager.getThreadsMemoryUsage()).toEqual({})
+
+			await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+			await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
+
+			const result = await ThreadedClassManager.getThreadsMemoryUsage()
+			const keys = Object.keys(result)
+
+			expect(keys).toHaveLength(2)
+
+			expect(result[keys[0]]).toMatchObject({
+				arrayBuffers: expect.any(Number),
+				external: expect.any(Number),
+				heapTotal: expect.any(Number),
+				heapUsed: expect.any(Number),
+				rss: expect.any(Number)
+			})
+
+			await ThreadedClassManager.destroyAll()
+			expect(await ThreadedClassManager.getThreadsMemoryUsage()).toEqual({})
+		})
 		test('EventEmitter', async () => {
 			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
