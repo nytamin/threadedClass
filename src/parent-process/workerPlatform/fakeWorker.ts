@@ -1,13 +1,13 @@
-
-import { FakeWorker } from '../../child-process/fake-worker'
+import { Message } from '../../shared/sharedApi'
 import { WorkerPlatformBase } from './_base'
+import { FakeWorker } from '../../child-process/fake-worker'
 
 export class FakeProcess extends WorkerPlatformBase {
 	private worker: FakeWorker
 
 	constructor () {
 		super()
-		this.worker = new FakeWorker((m) => {
+		this.worker = new FakeWorker((m: Message.From.Any) => {
 			this.emit('message', m)
 		})
 	}
@@ -17,7 +17,7 @@ export class FakeProcess extends WorkerPlatformBase {
 		this.emit('close')
 	}
 
-	send (m: any): void {
+	send (m: Message.To.Any): void {
 		this.worker.onMessageFromParent(m)
 	}
 }

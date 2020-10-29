@@ -1,10 +1,6 @@
-import { WorkerPlatformBase } from './_base'
 import { ChildProcess, fork } from 'child_process'
-import { MessageToChild } from '../../shared/sharedApi'
-
-export function forkChildProcess (pathToWorker: string): ChildProcessWorker {
-	return new ChildProcessWorker(pathToWorker)
-}
+import { WorkerPlatformBase } from './_base'
+import { Message } from '../../shared/sharedApi'
 
 export class ChildProcessWorker extends WorkerPlatformBase {
 	private worker: ChildProcess
@@ -20,7 +16,11 @@ export class ChildProcessWorker extends WorkerPlatformBase {
 	kill (): void {
 		this.worker.kill()
 	}
-	send (m: MessageToChild): void {
+	send (m: Message.To.Any): void {
 		this.worker.send(m)
 	}
+}
+
+export function forkChildProcess (pathToWorker: string): ChildProcessWorker {
+	return new ChildProcessWorker(pathToWorker)
 }

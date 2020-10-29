@@ -1,5 +1,6 @@
 import { ThreadedClassConfig } from '../api'
-import { ChildInstance } from '../parent-process/manager'
+
+// This file contains definitions for the API between the child and parent process.
 
 export const DEFAULT_CHILD_FREEZE_TIME = 1000 // how long to wait before considering a child to be unresponsive
 
@@ -27,91 +28,121 @@ export interface InitProp {
 	key: string
 	descriptor: InitPropDescriptor
 }
+// Messages to/from child instances ------------------------------------------------
 
-export enum MessageType {
-	INIT = 'init',
-	PING = 'ping',
-	FUNCTION = 'fcn',
-	REPLY = 'reply',
-	LOG = 'log',
-	SET = 'set',
-	KILL = 'kill',
-	CALLBACK = 'callback'
+/** Definitions of all messages between the child and parent */
+export namespace Message {
+	interface Base {
+		messageType: 'instance' | 'child'
+		cmdId: number
+	}
+	export interface InstanceBase extends Base {
+		messageType: 'instance'
+		instanceId: string
+	}
+	export interface ChildBase extends Base {
+		messageType: 'child'
+	}
+	/** Defines messages from the child ot the parent process */
+	export namespace To {
+		export type Any = Instance.Any
+		export type AnyConstr = Instance.AnyConstr
+
+		export namespace Instance {
+
+			export type AnyConstr 	= InitConstr 	| FcnConstr 	| ReplyConstr 	| SetConstr | KillConstr 	| CallbackConstr 	| PingConstr
+			export type Any 		= Init 			| Fcn 			| Reply 		| Set 		| Kill			| Callback			| Ping
+
+			export enum CommandType {
+				INIT = 'init',
+				PING = 'ping',
+				FUNCTION = 'fcn',
+				REPLY = 'reply',
+				SET = 'set',
+				KILL = 'kill',
+				CALLBACK = 'callback'
+			}
+
+			export interface InitConstr {
+				cmd: CommandType.INIT
+				modulePath: string
+				exportName: string
+				args: Array<ArgDefinition>
+				config: ThreadedClassConfig
+				parentPid: number
+			}
+			export type Init = InitConstr & InstanceBase
+			export interface PingConstr {
+				cmd: CommandType.PING
+			}
+			export type Ping = PingConstr & InstanceBase
+
+			export interface FcnConstr {
+				cmd: CommandType.FUNCTION
+				fcn: string
+				args: Array<ArgDefinition>
+			}
+			export type Fcn = FcnConstr & InstanceBase
+
+			export interface SetConstr {
+				cmd: CommandType.SET
+				property: string
+				value: ArgDefinition
+			}
+			export type Set = SetConstr & InstanceBase
+
+			export interface ReplyConstr {
+				cmd: CommandType.REPLY
+				replyTo: number
+				reply?: any
+				error?: Error | string
+			}
+			export type Reply = ReplyConstr & InstanceBase
+
+			export interface KillConstr {
+				cmd: CommandType.KILL
+			}
+			export type Kill = KillConstr & InstanceBase
+
+			export interface CallbackConstr {
+				cmd: CommandType.CALLBACK
+				callbackId: string
+				args: Array<any>
+			}
+			export type Callback = CallbackConstr & InstanceBase
+		}
+	}
+	/** Defines messages from the parent process to the child */
+	export namespace From {
+		export type Any = Instance.Any
+		export type AnyConstr = Instance.AnyConstr
+		export namespace Instance {
+			export enum CommandType {
+				CALLBACK = 'callback',
+				REPLY = 'reply'
+			}
+
+			export interface CallbackConstr {
+				cmd: CommandType.CALLBACK
+				callbackId: string
+				args: Array<any>
+			}
+			export type Callback = CallbackConstr & InstanceBase
+
+			export interface ReplyConstr {
+				cmd: CommandType.REPLY
+				replyTo: number
+				reply?: any
+				error?: Error | string
+			}
+			export type Reply = ReplyConstr & InstanceBase
+
+			export type AnyConstr 	= ReplyConstr 	| CallbackConstr
+			export type Any 		= Reply 		| Callback
+		}
+	}
 }
-export interface MessageSent {
-	instanceId: string
-	cmdId: number
-}
-export interface MessageInitConstr {
-	cmd: MessageType.INIT
-	modulePath: string
-	exportName: string
-	args: Array<ArgDefinition>
-	config: ThreadedClassConfig
-	parentPid: number
-}
-export type MessageInit = MessageInitConstr & MessageSent
 
-export interface MessagePingConstr {
-	cmd: MessageType.PING
-}
-export type MessagePing = MessagePingConstr & MessageSent
-
-export interface MessageFcnConstr {
-	cmd: MessageType.FUNCTION
-	fcn: string
-	args: Array<ArgDefinition>
-}
-export type MessageFcn = MessageFcnConstr & MessageSent
-
-export interface MessageSetConstr {
-	cmd: MessageType.SET
-	property: string
-	value: ArgDefinition
-}
-export type MessageSet = MessageSetConstr & MessageSent
-
-export interface MessageReplyConstr {
-	cmd: MessageType.REPLY
-	replyTo: number
-	reply?: any
-	error?: Error | string
-}
-export type MessageReply = MessageReplyConstr & MessageSent
-
-export interface MessageKillConstr {
-	cmd: MessageType.KILL
-}
-export type MessageKill = MessageKillConstr & MessageSent
-
-export interface MessageCallbackConstr {
-	cmd: MessageType.CALLBACK
-	callbackId: string
-	args: Array<any>
-}
-export type MessageCallback = MessageCallbackConstr & MessageSent
-
-export type MessageToChildConstr 	= MessageInitConstr | MessageFcnConstr 	| MessageReplyConstr 	| MessageSetConstr 	| MessageKillConstr | MessageCallbackConstr | MessagePingConstr
-export type MessageToChild 			= MessageInit 		| MessageFcn 		| MessageReply 			| MessageSet 		| MessageKill		| MessageCallback		| MessagePing
-
-export type MessageFromChildReplyConstr = MessageReplyConstr
-
-export type MessageFromChildReply = MessageFromChildReplyConstr & MessageSent
-
-export interface MessageFromChildLogConstr {
-	cmd: MessageType.LOG
-	log: Array<any>
-}
-export type MessageFromChildLog = MessageFromChildLogConstr & MessageSent
-
-export type MessageFromChildCallbackConstr = MessageCallbackConstr
-export type MessageFromChildCallback = MessageCallback
-
-export type MessageFromChildConstr 	= MessageFromChildReplyConstr 	| MessageFromChildLogConstr | MessageFromChildCallbackConstr
-export type MessageFromChild 		= MessageFromChildReply 		| MessageFromChildLog 		| MessageFromChildCallback
-
-export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | string | null, encodedResult?: ArgDefinition) => void
-export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | string | null, initProps?: InitProps) => boolean
 export type CallbackFunction = (e: Error | string | null, res?: ArgDefinition) => void
 
 export interface ArgDefinition {
@@ -119,7 +150,7 @@ export interface ArgDefinition {
 	original?: any
 	value: any
 }
-export enum ArgumentType {
+enum ArgumentType {
 	STRING = 'string',
 	NUMBER = 'number',
 	UNDEFINED = 'undefined',
@@ -128,13 +159,6 @@ export enum ArgumentType {
 	FUNCTION = 'function',
 	BUFFER = 'buffer',
 	OTHER = 'other'
-}
-export interface InstanceHandle {
-	id: string
-	cmdId: number
-	queue: {[cmdId: string]: CallbackFunction}
-
-	instance: any
 }
 
 let argumentsCallbackId: number = 0

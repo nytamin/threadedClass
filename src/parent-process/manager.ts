@@ -1,25 +1,18 @@
-import { ThreadedClassConfig, ThreadedClass } from '../api'
-import {
-	MessageFromChild,
-	MessageToChildConstr,
-	MessageToChild,
-	InstanceCallbackFunction,
-	MessageType,
-	MessageKillConstr,
-	MessageInitConstr,
-	InstanceCallbackInitFunction,
-	InitProps,
-	MessagePingConstr,
-	DEFAULT_CHILD_FREEZE_TIME,
-	encodeArguments
-} from '../shared/sharedApi'
 import { EventEmitter } from 'events'
+import {
+	InitProps,
+	DEFAULT_CHILD_FREEZE_TIME,
+	encodeArguments,
+	Message,
+	ArgDefinition
+} from '../shared/sharedApi'
+import { ThreadedClassConfig, ThreadedClass } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
-import { WorkerPlatformBase } from './workerPlatform/_base'
-import { FakeProcess } from './workerPlatform/fakeWorker'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
+import { WorkerPlatformBase } from './workerPlatform/_base'
 import { forkChildProcess } from './workerPlatform/childProcess'
+import { FakeProcess } from './workerPlatform/fakeWorker'
 
 export class ThreadedClassManagerClass {
 
@@ -110,6 +103,8 @@ export interface Child {
 export function childName (child: Child) {
 	return `Child_ ${Object.keys(child.instances).join(',')}`
 }
+export type InstanceCallbackFunction = (instance: ChildInstance, e: Error | string | null, encodedResult?: ArgDefinition) => void
+export type InstanceCallbackInitFunction = (instance: ChildInstance, e: Error | string | null, initProps?: InitProps) => boolean
 /**
  * The ChildInstance represents a proxy-instance of a class, running in a child process
  */
@@ -119,7 +114,7 @@ export interface ChildInstance {
 	readonly usage?: number
 	/** When to consider the process is frozen */
 	readonly freezeLimit?: number
-	readonly onMessageCallback: (instance: ChildInstance, message: MessageFromChild) => void
+	readonly onMessageCallback: (instance: ChildInstance, message: Message.From.Instance.Any) => void
 	readonly pathToModule: string
 	readonly exportName: string
 	readonly constructorArgs: any[]
@@ -190,7 +185,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		pathToModule: string,
 		exportName: string,
 		constructorArgs: any[],
-		onMessage: (instance: ChildInstance, message: MessageFromChild) => void
+		onMessage: (instance: ChildInstance, message: Message.From.Instance.Any) => void
 	): ChildInstance {
 		const instance: ChildInstance = {
 
@@ -237,9 +232,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 							delete instance.child
 							delete child.instances[instanceId]
 						}
-						this.sendMessageToChild(instance, {
-							cmd: MessageType.KILL
-						} as MessageKillConstr, () => {
+						this.sendMessageToInstance(instance, {
+							cmd: Message.To.Instance.CommandType.KILL
+						} as Message.To.Instance.KillConstr, () => {
 							cleanup()
 							resolve()
 						})
@@ -261,19 +256,20 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 	}
-	public sendMessageToChild (instance: ChildInstance, messageConstr: MessageToChildConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
+	public sendMessageToInstance (instance: ChildInstance, messageConstr: Message.To.Instance.AnyConstr, cb?: any | InstanceCallbackFunction | InstanceCallbackInitFunction) {
 		try {
 
 			if (!instance.child) throw new Error(`Instance ${instance.id} has been detached from child process`)
 			if (!instance.child.alive) throw new Error(`Child process of instance ${instance.id} has been closed`)
 			if (instance.child.isClosing) throw new Error(`Child process of instance ${instance.id} is closing`)
-			const message: MessageToChild = {...messageConstr, ...{
+			const message: Message.To.Instance.Any = {...messageConstr, ...{
+				messageType: 'instance',
 				cmdId: instance.child.cmdId++,
 				instanceId: instance.id
 			}}
 
 			if (
-				message.cmd !== MessageType.INIT &&
+				message.cmd !== Message.To.Instance.CommandType.INIT &&
 				!instance.initialized
 			) throw Error(`Child instance ${instance.id} is not initialized`)
 
@@ -402,8 +398,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	) {
 		let encodedArgs = encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading)
 
-		let msg: MessageInitConstr = {
-			cmd: MessageType.INIT,
+		let msg: Message.To.Instance.InitConstr = {
+			cmd: Message.To.Instance.CommandType.INIT,
 			modulePath: instance.pathToModule,
 			exportName: instance.exportName,
 			args: encodedArgs,
@@ -411,7 +407,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			parentPid: process.pid
 		}
 		instance.initialized = true
-		ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
+		ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (instance: ChildInstance, e: Error | null, initProps?: InitProps) => {
 			if (
 				!cb ||
 				cb(instance, e, initProps)
@@ -526,10 +522,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	private _pingChild (instance: ChildInstance): Promise<void> {
 		return new Promise((resolve, reject) => {
-			let msg: MessagePingConstr = {
-				cmd: MessageType.PING
+			let msg: Message.To.Instance.PingConstr = {
+				cmd: Message.To.Instance.CommandType.PING
 			}
-			ThreadedClassManagerInternal.sendMessageToChild(instance, msg, (_instance: ChildInstance, err: Error | null) => {
+			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (_instance: ChildInstance, err: Error | null) => {
 				if (!err) {
 					resolve()
 				} else {
@@ -601,10 +597,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.process.on('error', (err) => {
 			console.error('Error from child ' + child.id, err)
 		})
-		child.process.on('message', (message: MessageFromChild) => {
-			if (message.cmd === MessageType.LOG) {
-				console.log(message.instanceId, ...message.log)
-			} else {
+		child.process.on('message', (message: Message.From.Any) => {
+
 				const instance = child.instances[message.instanceId]
 				if (instance) {
 					try {
@@ -617,7 +611,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				} else {
 					console.error(`Instance "${message.instanceId}" not found`)
 				}
-			}
+
 		})
 	}
 	private _findFreeChild (threadUsage: number): Child | null {
