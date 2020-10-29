@@ -2402,6 +2402,9 @@ img {
 					<a href="threadedclassmanagerclassinternal.html#getmaxlisteners" class="tsd-kind-icon">get<wbr>Max<wbr>Listeners</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclassinternal.html#getmemoryusage" class="tsd-kind-icon">get<wbr>Memory<wbr>Usage</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 					<a href="threadedclassmanagerclassinternal.html#killallchildren" class="tsd-kind-icon">kill<wbr>All<wbr>Children</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
@@ -2448,6 +2451,9 @@ img {
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 					<a href="threadedclassmanagerclassinternal.html#sendmessagetochild" class="tsd-kind-icon">send<wbr>Message<wbr>ToChild</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a href="threadedclassmanagerclassinternal.html#sendmessagetoinstance" class="tsd-kind-icon">send<wbr>Message<wbr>ToInstance</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited tsd-is-external">
 					<a href="threadedclassmanagerclassinternal.html#setmaxlisteners" class="tsd-kind-icon">set<wbr>Max<wbr>Listeners</a>
@@ -2500,6 +2506,7 @@ img {
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#getchilddescriptor" class="tsd-kind-icon">get<wbr>Child<wbr>Descriptor</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#getchildrencount" class="tsd-kind-icon">get<wbr>Children<wbr>Count</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited tsd-is-external"><a href="threadedclassmanagerclassinternal.html#getmaxlisteners" class="tsd-kind-icon">get<wbr>Max<wbr>Listeners</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#getmemoryusage" class="tsd-kind-icon">get<wbr>Memory<wbr>Usage</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#killallchildren" class="tsd-kind-icon">kill<wbr>All<wbr>Children</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#killproxy" class="tsd-kind-icon">kill<wbr>Proxy</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited tsd-is-external"><a href="threadedclassmanagerclassinternal.html#listenercount" class="tsd-kind-icon">listener<wbr>Count</a></li>
@@ -2516,6 +2523,7 @@ img {
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#restartchild" class="tsd-kind-icon">restart<wbr>Child</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#sendinit" class="tsd-kind-icon">send<wbr>Init</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#sendmessagetochild" class="tsd-kind-icon">send<wbr>Message<wbr>ToChild</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#sendmessagetoinstance" class="tsd-kind-icon">send<wbr>Message<wbr>ToInstance</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited tsd-is-external"><a href="threadedclassmanagerclassinternal.html#setmaxlisteners" class="tsd-kind-icon">set<wbr>Max<wbr>Listeners</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclassinternal.html#startmonitoringchild" class="tsd-kind-icon">start<wbr>Monitoring<wbr>Child</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static tsd-is-external"><a href="threadedclassmanagerclassinternal.html#listenercount-1" class="tsd-kind-icon">listener<wbr>Count</a></li>
@@ -2532,7 +2540,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">dont<wbr>Handle<wbr>Exit<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L133">src/manager.ts:133</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L136">src/parent-process/manager.ts:136</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-comment tsd-typography">
@@ -2605,13 +2613,13 @@ img {
 				<a name="attachinstancetochild" class="tsd-anchor"></a>
 				<h3>attach<wbr>Instance<wbr>ToChild</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-					<li class="tsd-signature tsd-kind-icon">attach<wbr>Instance<wbr>ToChild<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../interfaces/threadedclassconfig.html" class="tsd-signature-type">ThreadedClassConfig</a>, child<span class="tsd-signature-symbol">: </span><a href="../interfaces/child.html" class="tsd-signature-type">Child</a>, proxy<span class="tsd-signature-symbol">: </span><a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, pathToModule<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, exportName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, constructorArgs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, onMessage<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a></li>
+					<li class="tsd-signature tsd-kind-icon">attach<wbr>Instance<wbr>ToChild<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../interfaces/threadedclassconfig.html" class="tsd-signature-type">ThreadedClassConfig</a>, child<span class="tsd-signature-symbol">: </span><a href="../interfaces/child.html" class="tsd-signature-type">Child</a>, proxy<span class="tsd-signature-symbol">: </span><a href="../globals.html#threadedclass" class="tsd-signature-type">ThreadedClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, pathToModule<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, exportName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, constructorArgs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, onInstanceMessage<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../modules/message.from.instance.html#any" class="tsd-signature-type">Any</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L186">src/manager.ts:186</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L190">src/parent-process/manager.ts:190</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2640,13 +2648,13 @@ img {
 								<h5>constructorArgs: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
 							</li>
 							<li>
-								<h5>onMessage: <span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span></h5>
+								<h5>onInstanceMessage: <span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../modules/message.from.instance.html#any" class="tsd-signature-type">Any</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span></h5>
 								<div class="tsd-comment tsd-typography">
 								</div>
 								<ul class="tsd-parameters">
 									<li class="tsd-parameter-siganture">
 										<ul class="tsd-signatures tsd-kind-type-literal">
-											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, message<span class="tsd-signature-symbol">: </span><a href="../modules/message.from.instance.html#any" class="tsd-signature-type">Any</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 										</ul>
 										<ul class="tsd-descriptions">
 											<li class="tsd-description">
@@ -2656,7 +2664,7 @@ img {
 														<h5>instance: <a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a></h5>
 													</li>
 													<li>
-														<h5>message: <a href="../globals.html#messagefromchild" class="tsd-signature-type">MessageFromChild</a></h5>
+														<h5>message: <a href="../modules/message.from.instance.html#any" class="tsd-signature-type">Any</a></h5>
 													</li>
 												</ul>
 												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -2680,7 +2688,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L456">src/manager.ts:456</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L512">src/parent-process/manager.ts:512</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -2816,7 +2824,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L141">src/manager.ts:141</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L144">src/parent-process/manager.ts:144</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -2842,7 +2850,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L477">src/manager.ts:477</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L533">src/parent-process/manager.ts:533</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -2865,7 +2873,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L296">src/manager.ts:296</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L327">src/parent-process/manager.ts:327</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
@@ -2892,6 +2900,23 @@ img {
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="getmemoryusage" class="tsd-anchor"></a>
+				<h3>get<wbr>Memory<wbr>Usage</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">get<wbr>Memory<wbr>Usage<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">{}</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L330">src/parent-process/manager.ts:330</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">{}</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
 				<a name="killallchildren" class="tsd-anchor"></a>
 				<h3>kill<wbr>All<wbr>Children</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
@@ -2901,7 +2926,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L299">src/manager.ts:299</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L355">src/parent-process/manager.ts:355</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -2918,7 +2943,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L213">src/manager.ts:213</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L217">src/parent-process/manager.ts:217</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -3317,7 +3342,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L310">src/manager.ts:310</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L366">src/parent-process/manager.ts:366</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -3343,7 +3368,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L334">src/manager.ts:334</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L390">src/parent-process/manager.ts:390</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -3372,7 +3397,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L397">src/manager.ts:397</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L453">src/parent-process/manager.ts:453</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -3398,13 +3423,42 @@ img {
 				<a name="sendmessagetochild" class="tsd-anchor"></a>
 				<h3>send<wbr>Message<wbr>ToChild</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-					<li class="tsd-signature tsd-kind-icon">send<wbr>Message<wbr>ToChild<span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, messageConstr<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagetochildconstr" class="tsd-signature-type">MessageToChildConstr</a>, cb<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackfunction" class="tsd-signature-type">InstanceCallbackFunction</a><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackinitfunction" class="tsd-signature-type">InstanceCallbackInitFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Message<wbr>ToChild<span class="tsd-signature-symbol">(</span>child<span class="tsd-signature-symbol">: </span><a href="../interfaces/child.html" class="tsd-signature-type">Child</a>, messageConstr<span class="tsd-signature-symbol">: </span><a href="../modules/message.to.child.html#anyconstr" class="tsd-signature-type">AnyConstr</a>, cb<span class="tsd-signature-symbol">?: </span><a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L264">src/manager.ts:264</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L301">src/parent-process/manager.ts:301</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>child: <a href="../interfaces/child.html" class="tsd-signature-type">Child</a></h5>
+							</li>
+							<li>
+								<h5>messageConstr: <a href="../modules/message.to.child.html#anyconstr" class="tsd-signature-type">AnyConstr</a></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> cb: <a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<a name="sendmessagetoinstance" class="tsd-anchor"></a>
+				<h3>send<wbr>Message<wbr>ToInstance</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon">send<wbr>Message<wbr>ToInstance<span class="tsd-signature-symbol">(</span>instance<span class="tsd-signature-symbol">: </span><a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a>, messageConstr<span class="tsd-signature-symbol">: </span><a href="../modules/message.to.instance.html#anyconstr" class="tsd-signature-type">AnyConstr</a>, cb<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackfunction" class="tsd-signature-type">InstanceCallbackFunction</a><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackinitfunction" class="tsd-signature-type">InstanceCallbackInitFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L268">src/parent-process/manager.ts:268</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -3413,7 +3467,7 @@ img {
 								<h5>instance: <a href="../interfaces/childinstance.html" class="tsd-signature-type">ChildInstance</a></h5>
 							</li>
 							<li>
-								<h5>messageConstr: <a href="../globals.html#messagetochildconstr" class="tsd-signature-type">MessageToChildConstr</a></h5>
+								<h5>messageConstr: <a href="../modules/message.to.instance.html#anyconstr" class="tsd-signature-type">AnyConstr</a></h5>
 							</li>
 							<li>
 								<h5><span class="tsd-flag ts-flagOptional">Optional</span> cb: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackfunction" class="tsd-signature-type">InstanceCallbackFunction</a><span class="tsd-signature-symbol"> | </span><a href="../globals.html#instancecallbackinitfunction" class="tsd-signature-type">InstanceCallbackInitFunction</a></h5>
@@ -3458,7 +3512,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/manager.ts#L423">src/manager.ts:423</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/manager.ts#L479">src/parent-process/manager.ts:479</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>

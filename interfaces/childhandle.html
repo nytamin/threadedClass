@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MessageKillConstr | threadedclass</title>
+	<title>ChildHandle | threadedclass</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -2366,10 +2366,13 @@ img {
 <nav class="tsd-navigation secondary">
 	<ul>
 		<li class="current tsd-kind-interface tsd-is-external">
-			<a href="messagekillconstr.html" class="tsd-kind-icon">Message<wbr>Kill<wbr>Constr</a>
+			<a href="childhandle.html" class="tsd-kind-icon">Child<wbr>Handle</a>
 			<ul>
-				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagekillconstr.html#cmd" class="tsd-kind-icon">cmd</a>
+				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+					<a href="childhandle.html#cmdid" class="tsd-kind-icon">cmd<wbr>Id</a>
+				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+					<a href="childhandle.html#queue" class="tsd-kind-icon">queue</a>
 				</li>
 			</ul>
 		</li>
@@ -2381,7 +2384,12 @@ img {
 			<h3>Hierarchy</h3>
 			<ul class="tsd-hierarchy">
 				<li>
-					<span class="target">MessageKillConstr</span>
+					<a href="messagehandle.html" class="tsd-signature-type">MessageHandle</a>
+					<ul class="tsd-hierarchy">
+						<li>
+							<span class="target">ChildHandle</span>
+						</li>
+					</ul>
 				</li>
 			</ul>
 		</section>
@@ -2389,26 +2397,47 @@ img {
 			<h2>Index</h2>
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
-					<section class="tsd-index-section tsd-is-external">
+					<section class="tsd-index-section tsd-is-inherited tsd-is-external">
 						<h3>Properties</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagekillconstr.html#cmd" class="tsd-kind-icon">cmd</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="childhandle.html#cmdid" class="tsd-kind-icon">cmd<wbr>Id</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="childhandle.html#queue" class="tsd-kind-icon">queue</a></li>
 						</ul>
 					</section>
 				</div>
 			</section>
 		</section>
-		<section class="tsd-panel-group tsd-member-group tsd-is-external">
+		<section class="tsd-panel-group tsd-member-group tsd-is-inherited tsd-is-external">
 			<h2>Properties</h2>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="cmd" class="tsd-anchor"></a>
-				<h3>cmd</h3>
-				<div class="tsd-signature tsd-kind-icon">cmd<span class="tsd-signature-symbol">:</span> <a href="../enums/messagetype.html#kill" class="tsd-signature-type">KILL</a></div>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+				<a name="cmdid" class="tsd-anchor"></a>
+				<h3>cmd<wbr>Id</h3>
+				<div class="tsd-signature tsd-kind-icon">cmd<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 				<aside class="tsd-sources">
+					<p>Inherited from <a href="messagehandle.html">MessageHandle</a>.<a href="messagehandle.html#cmdid">cmdId</a></p>
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/internalApi.ts#L85">src/internalApi.ts:85</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/child-process/worker.ts#L406">src/child-process/worker.ts:406</a></li>
 					</ul>
 				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+				<a name="queue" class="tsd-anchor"></a>
+				<h3>queue</h3>
+				<div class="tsd-signature tsd-kind-icon">queue<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{}</span></div>
+				<aside class="tsd-sources">
+					<p>Inherited from <a href="messagehandle.html">MessageHandle</a>.<a href="messagehandle.html#queue">queue</a></p>
+					<ul>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/child-process/worker.ts#L407">src/child-process/worker.ts:407</a></li>
+					</ul>
+				</aside>
+				<div class="tsd-type-declaration">
+					<h4>Type declaration</h4>
+					<ul class="tsd-parameters">
+						<li class="tsd-parameter-index-signature">
+							<h5><span class="tsd-signature-symbol">[</span>cmdId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="../globals.html#callbackfunction" class="tsd-signature-type">CallbackFunction</a></h5>
+						</li>
+					</ul>
+				</div>
 			</section>
 		</section>
 		<footer class="with-border-bottom">

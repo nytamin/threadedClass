@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MessageFromChildLogConstr | threadedclass</title>
+	<title>CallbackConstr | threadedclass</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -2365,16 +2365,43 @@ img {
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
-		<li class="current tsd-kind-interface tsd-is-external">
-			<a href="messagefromchildlogconstr.html" class="tsd-kind-icon">Message<wbr>From<wbr>Child<wbr>Log<wbr>Constr</a>
+		<li class=" tsd-kind-enum tsd-parent-kind-module tsd-is-external">
+			<a href="../enums/message.from.child.commandtype.html" class="tsd-kind-icon">Command<wbr>Type</a>
+		</li>
+		<li class="current tsd-kind-interface tsd-parent-kind-module tsd-is-external">
+			<a href="message.from.child.callbackconstr.html" class="tsd-kind-icon">Callback<wbr>Constr</a>
 			<ul>
 				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefromchildlogconstr.html#cmd" class="tsd-kind-icon">cmd</a>
+					<a href="message.from.child.callbackconstr.html#args" class="tsd-kind-icon">args</a>
 				</li>
 				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a href="messagefromchildlogconstr.html#log" class="tsd-kind-icon">log</a>
+					<a href="message.from.child.callbackconstr.html#callbackid" class="tsd-kind-icon">callback<wbr>Id</a>
+				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a href="message.from.child.callbackconstr.html#cmd" class="tsd-kind-icon">cmd</a>
 				</li>
 			</ul>
+		</li>
+		<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-external">
+			<a href="message.from.child.logconstr.html" class="tsd-kind-icon">Log<wbr>Constr</a>
+		</li>
+		<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-external">
+			<a href="message.from.child.replyconstr.html" class="tsd-kind-icon">Reply<wbr>Constr</a>
+		</li>
+		<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-is-external">
+			<a href="../modules/message.from.child.html#any" class="tsd-kind-icon">Any</a>
+		</li>
+		<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-is-external">
+			<a href="../modules/message.from.child.html#anyconstr" class="tsd-kind-icon">Any<wbr>Constr</a>
+		</li>
+		<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-is-external">
+			<a href="../modules/message.from.child.html#callback" class="tsd-kind-icon">Callback</a>
+		</li>
+		<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-is-external">
+			<a href="../modules/message.from.child.html#log" class="tsd-kind-icon">Log</a>
+		</li>
+		<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-is-external">
+			<a href="../modules/message.from.child.html#reply" class="tsd-kind-icon">Reply</a>
 		</li>
 	</ul>
 </nav>
@@ -2384,7 +2411,7 @@ img {
 			<h3>Hierarchy</h3>
 			<ul class="tsd-hierarchy">
 				<li>
-					<span class="target">MessageFromChildLogConstr</span>
+					<span class="target">CallbackConstr</span>
 				</li>
 			</ul>
 		</section>
@@ -2395,8 +2422,9 @@ img {
 					<section class="tsd-index-section tsd-is-external">
 						<h3>Properties</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefromchildlogconstr.html#cmd" class="tsd-kind-icon">cmd</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="messagefromchildlogconstr.html#log" class="tsd-kind-icon">log</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="message.from.child.callbackconstr.html#args" class="tsd-kind-icon">args</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="message.from.child.callbackconstr.html#callbackid" class="tsd-kind-icon">callback<wbr>Id</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="message.from.child.callbackconstr.html#cmd" class="tsd-kind-icon">cmd</a></li>
 						</ul>
 					</section>
 				</div>
@@ -2405,22 +2433,32 @@ img {
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
 			<h2>Properties</h2>
 			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="cmd" class="tsd-anchor"></a>
-				<h3>cmd</h3>
-				<div class="tsd-signature tsd-kind-icon">cmd<span class="tsd-signature-symbol">:</span> <a href="../enums/messagetype.html#log" class="tsd-signature-type">LOG</a></div>
+				<a name="args" class="tsd-anchor"></a>
+				<h3>args</h3>
+				<div class="tsd-signature tsd-kind-icon">args<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/internalApi.ts#L104">src/internalApi.ts:104</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/shared/sharedApi.ts#L189">src/shared/sharedApi.ts:189</a></li>
 					</ul>
 				</aside>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-				<a name="log" class="tsd-anchor"></a>
-				<h3>log</h3>
-				<div class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
+				<a name="callbackid" class="tsd-anchor"></a>
+				<h3>callback<wbr>Id</h3>
+				<div class="tsd-signature tsd-kind-icon">callback<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/internalApi.ts#L105">src/internalApi.ts:105</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/shared/sharedApi.ts#L188">src/shared/sharedApi.ts:188</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<a name="cmd" class="tsd-anchor"></a>
+				<h3>cmd</h3>
+				<div class="tsd-signature tsd-kind-icon">cmd<span class="tsd-signature-symbol">:</span> <a href="../enums/message.from.child.commandtype.html#callback" class="tsd-signature-type">CALLBACK</a></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/shared/sharedApi.ts#L187">src/shared/sharedApi.ts:187</a></li>
 					</ul>
 				</aside>
 			</section>

@@ -2389,11 +2389,17 @@ img {
 				<li class=" tsd-kind-type-alias tsd-parent-kind-class tsd-is-static tsd-is-external">
 					<a href="workerplatformbase.html#valideventtypes" class="tsd-kind-icon">Valid<wbr>Event<wbr>Types</a>
 				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-external">
+					<a href="workerplatformbase.html#_isfakeprocess" class="tsd-kind-icon">_is<wbr>Fake<wbr>Process</a>
+				</li>
 				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external">
 					<a href="workerplatformbase.html#eventemitter" class="tsd-kind-icon">Event<wbr>Emitter</a>
 				</li>
 				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static tsd-is-external">
 					<a href="workerplatformbase.html#prefixed" class="tsd-kind-icon">prefixed</a>
+				</li>
+				<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
+					<a href="workerplatformbase.html#isfakeprocess" class="tsd-kind-icon">is<wbr>Fake<wbr>Process</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited tsd-is-external">
 					<a href="workerplatformbase.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a>
@@ -2437,6 +2443,13 @@ img {
 </nav>
 <div class="container container-main">
 	<div class="content-wrap">
+		<section class="tsd-panel tsd-comment">
+			<div class="tsd-comment tsd-typography">
+				<div class="lead">
+					<p>A sub-class of WorkerPlatformBase handles the communication with a child process</p>
+				</div>
+			</div>
+		</section>
 		<section class="tsd-panel tsd-type-parameters">
 			<h3>Type parameters</h3>
 			<ul class="tsd-type-parameters">
@@ -2455,9 +2468,6 @@ img {
 							<span class="target">WorkerPlatformBase</span>
 							<ul class="tsd-hierarchy">
 								<li>
-									<a href="fakeprocess.html" class="tsd-signature-type">FakeProcess</a>
-								</li>
-								<li>
 									<a href="webworkerprocess.html" class="tsd-signature-type">WebWorkerProcess</a>
 								</li>
 								<li>
@@ -2465,6 +2475,9 @@ img {
 								</li>
 								<li>
 									<a href="childprocessworker.html" class="tsd-signature-type">ChildProcessWorker</a>
+								</li>
+								<li>
+									<a href="fakeprocess.html" class="tsd-signature-type">FakeProcess</a>
 								</li>
 							</ul>
 						</li>
@@ -2496,8 +2509,15 @@ img {
 					<section class="tsd-index-section tsd-is-external">
 						<h3>Properties</h3>
 						<ul class="tsd-index-list">
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-external"><a href="workerplatformbase.html#_isfakeprocess" class="tsd-kind-icon">_is<wbr>Fake<wbr>Process</a></li>
 							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external"><a href="workerplatformbase.html#eventemitter" class="tsd-kind-icon">Event<wbr>Emitter</a></li>
 							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static tsd-is-external"><a href="workerplatformbase.html#prefixed" class="tsd-kind-icon">prefixed</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section tsd-is-external">
+						<h3>Accessors</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-external"><a href="workerplatformbase.html#isfakeprocess" class="tsd-kind-icon">is<wbr>Fake<wbr>Process</a></li>
 						</ul>
 					</section>
 					<section class="tsd-index-section tsd-is-external">
@@ -2610,6 +2630,16 @@ img {
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
 			<h2>Properties</h2>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-external">
+				<a name="_isfakeprocess" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> _is<wbr>Fake<wbr>Process</h3>
+				<div class="tsd-signature tsd-kind-icon">_is<wbr>Fake<wbr>Process<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/workerPlatform/_base.ts#L11">src/parent-process/workerPlatform/_base.ts:11</a></li>
+					</ul>
+				</aside>
+			</section>
 			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external">
 				<a name="eventemitter" class="tsd-anchor"></a>
 				<h3><span class="tsd-flag ts-flagStatic">Static</span> Event<wbr>Emitter</h3>
@@ -2630,6 +2660,26 @@ img {
 						<li>Defined in node_modules/eventemitter3/index.d.ts:9</li>
 					</ul>
 				</aside>
+			</section>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<h2>Accessors</h2>
+			<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
+				<a name="isfakeprocess" class="tsd-anchor"></a>
+				<h3>is<wbr>Fake<wbr>Process</h3>
+				<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
+					<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> isFakeProcess<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/workerPlatform/_base.ts#L12">src/parent-process/workerPlatform/_base.ts:12</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-external">
@@ -2742,7 +2792,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/workerPlatformBase.ts#L11">src/workerPlatformBase.ts:11</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/workerPlatform/_base.ts#L15">src/parent-process/workerPlatform/_base.ts:15</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -3011,19 +3061,19 @@ img {
 				<a name="send" class="tsd-anchor"></a>
 				<h3><span class="tsd-flag ts-flagAbstract">Abstract</span> send</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-					<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>m<span class="tsd-signature-symbol">: </span><a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>m<span class="tsd-signature-symbol">: </span><a href="../modules/message.to.html#any" class="tsd-signature-type">Any</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/0ec3635/src/workerPlatformBase.ts#L13">src/workerPlatformBase.ts:13</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/cb04ff4/src/parent-process/workerPlatform/_base.ts#L17">src/parent-process/workerPlatform/_base.ts:17</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>m: <a href="../globals.html#messagetochild" class="tsd-signature-type">MessageToChild</a></h5>
+								<h5>m: <a href="../modules/message.to.html#any" class="tsd-signature-type">Any</a></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>

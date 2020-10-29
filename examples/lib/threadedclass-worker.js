@@ -1,39 +1,131 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-(function (process,Buffer){
+(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const lib_1 = require("./lib");
+const lib_1 = require("../shared/lib");
+const worker_1 = require("./worker");
+const WorkerThreads = lib_1.getWorkerThreads();
+// This file is launched in the worker child process.
+// This means that all code in this file is considered to be sandboxed in the child process.
+function send(message) {
+    if (WorkerThreads) {
+        if (WorkerThreads.parentPort) {
+            WorkerThreads.parentPort.postMessage(message);
+        }
+        else {
+            throw Error('WorkerThreads.parentPort not set!');
+        }
+    }
+    else if (process.send) {
+        process.send(message);
+        // @ts-ignore global postMessage
+    }
+    else if (postMessage) {
+        // @ts-ignore
+        postMessage(message);
+    }
+    else
+        throw Error('process.send and postMessage are undefined!');
+}
+class ThreadedWorker extends worker_1.Worker {
+    sendInstanceMessageToParent(handle, msg, cb) {
+        const message = Object.assign(Object.assign({}, msg), {
+            messageType: 'instance',
+            cmdId: handle.cmdId++,
+            instanceId: handle.id
+        });
+        if (cb)
+            handle.queue[message.cmdId + ''] = cb;
+        send(message);
+    }
+    sendChildMessageToParent(handle, msg, cb) {
+        const message = Object.assign(Object.assign({}, msg), {
+            messageType: 'child',
+            cmdId: handle.cmdId++
+        });
+        if (cb)
+            handle.queue[message.cmdId + ''] = cb;
+        send(message);
+    }
+    killInstance(handle) {
+        delete this.instanceHandles[handle.id];
+    }
+}
+function isRunningInAWorkerThread() {
+    if (lib_1.nodeSupportsWorkerThreads()) {
+        const workerThreads = lib_1.getWorkerThreads();
+        if (workerThreads) {
+            if (!workerThreads.isMainThread) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+if (lib_1.isBrowser()) {
+    // Is running in a web-worker
+    const worker = new ThreadedWorker();
+    // @ts-ignore global onmessage
+    onmessage = (m) => {
+        // Received message from parent
+        if (m.type === 'message') {
+            worker.onMessageFromParent(m.data);
+        }
+        else {
+            console.log('child process: onMessage', m);
+        }
+    };
+}
+else if (isRunningInAWorkerThread()) {
+    // Is running in a worker-thread
+    if (WorkerThreads) {
+        const worker = new ThreadedWorker();
+        console.log = worker.log;
+        console.error = worker.logError;
+        if (WorkerThreads.parentPort) {
+            WorkerThreads.parentPort.on('message', (m) => {
+                // Received message from parent
+                worker.onMessageFromParent(m);
+            });
+        }
+        else {
+            throw Error('WorkerThreads.parentPort not set!');
+        }
+    }
+    else {
+        throw Error('WorkerThreads not available!');
+    }
+}
+else if (process.send) {
+    // Is running in a child process
+    const worker = new ThreadedWorker();
+    console.log = worker.log;
+    console.error = worker.logError;
+    process.on('message', (m) => {
+        // Received message from parent
+        worker.onMessageFromParent(m);
+    });
+}
+else {
+    throw Error('process.send and onmessage are undefined!');
+}
+
+}).call(this,require('_process'))
+
+},{"../shared/lib":3,"./worker":2,"_process":9}],2:[function(require,module,exports){
+(function (process){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const isRunning = require("is-running");
-exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
-var InitPropType;
-(function (InitPropType) {
-    InitPropType["FUNCTION"] = "function";
-    InitPropType["VALUE"] = "value";
-})(InitPropType = exports.InitPropType || (exports.InitPropType = {}));
-var MessageType;
-(function (MessageType) {
-    MessageType["INIT"] = "init";
-    MessageType["PING"] = "ping";
-    MessageType["FUNCTION"] = "fcn";
-    MessageType["REPLY"] = "reply";
-    MessageType["LOG"] = "log";
-    MessageType["SET"] = "set";
-    MessageType["KILL"] = "kill";
-    MessageType["CALLBACK"] = "callback";
-})(MessageType = exports.MessageType || (exports.MessageType = {}));
-var ArgumentType;
-(function (ArgumentType) {
-    ArgumentType["STRING"] = "string";
-    ArgumentType["NUMBER"] = "number";
-    ArgumentType["UNDEFINED"] = "undefined";
-    ArgumentType["NULL"] = "null";
-    ArgumentType["OBJECT"] = "object";
-    ArgumentType["FUNCTION"] = "function";
-    ArgumentType["BUFFER"] = "buffer";
-    ArgumentType["OTHER"] = "other";
-})(ArgumentType = exports.ArgumentType || (exports.ArgumentType = {}));
+const lib_1 = require("../shared/lib");
+const sharedApi_1 = require("../shared/sharedApi");
+/** In a child process, there is running one (1) Worker, which handles the communication with the parent process. */
 class Worker {
     constructor() {
+        this.childHandler = {
+            cmdId: 0,
+            queue: {}
+        };
         this.instanceHandles = {};
         this.callbacks = {};
         this.disabledMultithreading = false;
@@ -45,9 +137,51 @@ class Worker {
             this.sendLog(['Error', ...data]);
         };
     }
+    onMessageFromParent(m) {
+        // A message was received from Parent
+        if (m.messageType === 'instance') {
+            let handle = this.instanceHandles[m.instanceId];
+            if (!handle && m.cmd !== sharedApi_1.Message.To.Instance.CommandType.INIT) {
+                console.log(`Child process: Unknown instanceId: "${m.instanceId}"`);
+                return; // fail silently?
+            }
+            if (!handle) {
+                // create temporary handle:
+                handle = {
+                    id: m.instanceId,
+                    cmdId: 0,
+                    queue: {},
+                    instance: {}
+                };
+            }
+            try {
+                this.handleInstanceMessageFromParent(m, handle);
+            }
+            catch (e) {
+                if (m.cmdId) {
+                    this.replyInstanceError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`);
+                }
+                else
+                    this.log('Error: ' + e.toString(), e.stack);
+            }
+        }
+        else if (m.messageType === 'child') {
+            let handle = this.childHandler;
+            try {
+                this.handleChildMessageFromParent(m, handle);
+            }
+            catch (e) {
+                if (m.cmdId) {
+                    this.replyChildError(handle, m, `Error: ${e.toString()} ${e.stack}"`);
+                }
+                else
+                    this.log('Error: ' + e.toString(), e.stack);
+            }
+        }
+    }
     decodeArgumentsFromParent(handle, args) {
         // Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
-        return decodeArguments(() => handle.instance, args, (a) => {
+        return sharedApi_1.decodeArguments(() => handle.instance, args, (a) => {
             return ((...args) => {
                 return new Promise((resolve, reject) => {
                     const callbackId = a.value;
@@ -65,37 +199,52 @@ class Worker {
         });
     }
     encodeArgumentsToParent(instance, args) {
-        return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading);
+        return sharedApi_1.encodeArguments(instance, this.callbacks, args, this.disabledMultithreading);
     }
-    reply(handle, m, reply) {
-        this.sendReplyToParent(handle, m.cmdId, undefined, reply);
+    replyToInstanceMessage(handle, messageToReplyTo, reply) {
+        this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply);
     }
-    replyError(handle, m, error) {
-        this.sendReplyToParent(handle, m.cmdId, error);
+    replyToChildMessage(handle, messageToReplyTo, reply) {
+        this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply);
     }
-    sendReplyToParent(handle, replyTo, error, reply) {
+    replyInstanceError(handle, messageToReplyTo, error) {
+        this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, error);
+    }
+    replyChildError(handle, messageToReplyTo, error) {
+        this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, error);
+    }
+    sendInstanceReplyToParent(handle, replyTo, error, reply) {
         let msg = {
-            cmd: MessageType.REPLY,
+            cmd: sharedApi_1.Message.From.Instance.CommandType.REPLY,
             replyTo: replyTo,
             error: error ? (error.stack || error).toString() : error,
             reply: reply
         };
-        this.sendMessageToParent(handle, msg);
+        this.sendInstanceMessageToParent(handle, msg);
+    }
+    sendChildReplyToParent(handle, replyTo, error, reply) {
+        let msg = {
+            cmd: sharedApi_1.Message.From.Child.CommandType.REPLY,
+            replyTo: replyTo,
+            error: error ? (error.stack || error).toString() : error,
+            reply: reply
+        };
+        this.sendChildMessageToParent(handle, msg);
     }
     sendLog(log) {
         let msg = {
-            cmd: MessageType.LOG,
+            cmd: sharedApi_1.Message.From.Child.CommandType.LOG,
             log: log
         };
-        this.sendMessageToParent(null, msg);
+        this.sendChildMessageToParent(this.childHandler, msg);
     }
     sendCallback(handle, callbackId, args, cb) {
         let msg = {
-            cmd: MessageType.CALLBACK,
+            cmd: sharedApi_1.Message.From.Instance.CommandType.CALLBACK,
             callbackId: callbackId,
             args: args
         };
-        this.sendMessageToParent(handle, msg, cb);
+        this.sendInstanceMessageToParent(handle, msg, cb);
     }
     getAllProperties(obj) {
         let props = [];
@@ -105,230 +254,219 @@ class Worker {
         } while (obj);
         return props;
     }
-    onMessageFromParent(m) {
-        // A message was received from Parent
-        let handle = this.instanceHandles[m.instanceId];
-        if (!handle && m.cmd !== MessageType.INIT) {
-            console.log(`Child process: Unknown instanceId: "${m.instanceId}"`);
-            return; // fail silently?
-        }
-        if (!handle) {
-            // create temporary handle:
-            handle = {
-                id: m.instanceId,
-                cmdId: 0,
-                queue: {},
-                instance: {}
-            };
-        }
-        try {
-            const instance = handle.instance;
-            if (m.cmd === MessageType.INIT) {
-                const msg = m;
-                this._config = m.config;
-                this._parentPid = m.parentPid;
-                let pModuleClass;
-                // Load in the class:
-                if (lib_1.isBrowser()) {
-                    pModuleClass = new Promise((resolve, reject) => {
-                        // @ts-ignore
-                        let oReq = new XMLHttpRequest();
-                        oReq.open('GET', msg.modulePath, true);
-                        // oReq.responseType = 'blob'
-                        oReq.onload = () => {
-                            if (oReq.response) {
-                                resolve(oReq.response);
-                            }
-                            else {
-                                reject(Error(`Bad reply from ${msg.modulePath} in instance ${handle.id}`));
-                            }
-                        };
-                        oReq.send();
-                    })
-                        .then((bodyString) => {
-                        // This is a terrible hack, I'm ashamed of myself.
-                        // Better solutions are very much appreciated.
-                        // tslint:disable-next-line:no-var-keyword
-                        var f = null;
-                        let fcn = `
-							f = function() {
-								${bodyString}
-								;
-								return ${msg.exportName}
-							}
-						`;
-                        // tslint:disable-next-line:no-eval
-                        let moduleClass = eval(fcn)();
-                        f = f;
-                        if (!moduleClass) {
-                            throw Error(`${msg.exportName} not found in ${msg.modulePath}`);
-                        }
-                        return moduleClass;
-                    });
-                }
-                else {
-                    pModuleClass = Promise.resolve(require(msg.modulePath))
-                        .then((module) => {
-                        return module[msg.exportName];
-                    });
-                }
-                pModuleClass
-                    .then((moduleClass) => {
-                    if (!moduleClass) {
-                        return Promise.reject('Failed to find class');
-                    }
-                    const handle = {
-                        id: msg.instanceId,
-                        cmdId: 0,
-                        queue: {},
-                        instance: null // Note: This is dangerous, but gets set right after.
-                    };
-                    const decodedArgs = this.decodeArgumentsFromParent(handle, msg.args);
-                    handle.instance = ((...args) => {
-                        return new moduleClass(...args);
-                    }).apply(null, decodedArgs);
-                    this.instanceHandles[handle.id] = handle;
-                    const instance = handle.instance;
-                    const allProps = this.getAllProperties(instance);
-                    const props = [];
-                    allProps.forEach((prop) => {
-                        if ([
-                            'constructor',
-                            '__defineGetter__',
-                            '__defineSetter__',
-                            'hasOwnProperty',
-                            '__lookupGetter__',
-                            '__lookupSetter__',
-                            'isPrototypeOf',
-                            'propertyIsEnumerable',
-                            'toString',
-                            'valueOf',
-                            '__proto__',
-                            'toLocaleString'
-                        ].indexOf(prop) !== -1)
-                            return;
-                        let descriptor = Object.getOwnPropertyDescriptor(instance, prop);
-                        let inProto = 0;
-                        let proto = instance.__proto__;
-                        while (!descriptor) {
-                            if (!proto)
-                                break;
-                            descriptor = Object.getOwnPropertyDescriptor(proto, prop);
-                            inProto++;
-                            proto = proto.__proto__;
-                        }
-                        if (!descriptor)
-                            descriptor = {};
-                        let descr = {
-                            // configurable:	!!descriptor.configurable,
-                            inProto: inProto,
-                            enumerable: !!descriptor.enumerable,
-                            writable: !!descriptor.writable,
-                            get: !!descriptor.get,
-                            set: !!descriptor.set,
-                            readable: !!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
-                        };
-                        if (typeof instance[prop] === 'function') {
-                            props.push({
-                                key: prop,
-                                type: InitPropType.FUNCTION,
-                                descriptor: descr
-                            });
+    handleInstanceMessageFromParent(m, handle) {
+        const instance = handle.instance;
+        if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.INIT) {
+            const msg = m;
+            this._config = m.config;
+            this._parentPid = m.parentPid;
+            let pModuleClass;
+            // Load in the class:
+            if (lib_1.isBrowser()) {
+                pModuleClass = new Promise((resolve, reject) => {
+                    // @ts-ignore
+                    let oReq = new XMLHttpRequest();
+                    oReq.open('GET', msg.modulePath, true);
+                    // oReq.responseType = 'blob'
+                    oReq.onload = () => {
+                        if (oReq.response) {
+                            resolve(oReq.response);
                         }
                         else {
-                            props.push({
-                                key: prop,
-                                type: InitPropType.VALUE,
-                                descriptor: descr
-                            });
+                            reject(Error(`Bad reply from ${msg.modulePath} in instance ${handle.id}`));
                         }
-                    });
-                    this.reply(handle, msg, props);
-                    return;
+                    };
+                    oReq.send();
                 })
-                    .catch((e) => {
-                    console.log('INIT error', e);
-                });
-                if (!m.config.disableMultithreading && !lib_1.nodeSupportsWorkerThreads()) {
-                    this.startOrphanMonitoring();
-                }
-            }
-            else if (m.cmd === MessageType.PING) {
-                this.reply(handle, m, null);
-            }
-            else if (m.cmd === MessageType.REPLY) {
-                const msg = m;
-                let cb = handle.queue[msg.replyTo + ''];
-                if (!cb)
-                    throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`);
-                if (msg.error) {
-                    cb(msg.error);
-                }
-                else {
-                    cb(null, msg.reply);
-                }
-                delete handle.queue[msg.replyTo + ''];
-            }
-            else if (m.cmd === MessageType.FUNCTION) {
-                // A function has been called by parent
-                let msg = m;
-                const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args);
-                let p = (typeof instance[msg.fcn] === 'function' ?
-                    instance[msg.fcn](...fixedArgs) :
-                    instance[msg.fcn]); // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
-                Promise.resolve(p)
-                    .then((result) => {
-                    const encodedResult = this.encodeArgumentsToParent(instance, [result]);
-                    this.reply(handle, msg, encodedResult[0]);
-                })
-                    .catch((err) => {
-                    let errorResponse = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`;
-                    this.replyError(handle, msg, errorResponse);
+                    .then((bodyString) => {
+                    // This is a terrible hack, I'm ashamed of myself.
+                    // Better solutions are very much appreciated.
+                    // tslint:disable-next-line:no-var-keyword
+                    var f = null;
+                    let fcn = `
+						f = function() {
+							${bodyString}
+							;
+							return ${msg.exportName}
+						}
+					`;
+                    // tslint:disable-next-line:no-eval
+                    let moduleClass = eval(fcn)();
+                    f = f;
+                    if (!moduleClass) {
+                        throw Error(`${msg.exportName} not found in ${msg.modulePath}`);
+                    }
+                    return moduleClass;
                 });
             }
-            else if (m.cmd === MessageType.SET) {
-                let msg = m;
-                const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0];
-                instance[msg.property] = fixedValue;
-                this.reply(handle, msg, fixedValue);
+            else {
+                pModuleClass = Promise.resolve(require(msg.modulePath))
+                    .then((module) => {
+                    return module[msg.exportName];
+                });
             }
-            else if (m.cmd === MessageType.KILL) {
-                let msg = m;
-                // kill off instance
-                this.killInstance(handle);
-                this.reply(handle, msg, null);
-            }
-            else if (m.cmd === MessageType.CALLBACK) {
-                let msg = m;
-                let callback = this.callbacks[msg.callbackId];
-                if (callback) {
-                    try {
-                        Promise.resolve(callback(...msg.args))
-                            .then((result) => {
-                            const encodedResult = this.encodeArgumentsToParent(instance, [result]);
-                            this.reply(handle, msg, encodedResult[0]);
-                        })
-                            .catch((err) => {
-                            let errorResponse = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`;
-                            this.replyError(handle, msg, errorResponse);
+            pModuleClass
+                .then((moduleClass) => {
+                if (!moduleClass) {
+                    return Promise.reject('Failed to find class');
+                }
+                const handle = {
+                    id: msg.instanceId,
+                    cmdId: 0,
+                    queue: {},
+                    instance: null // Note: This is dangerous, but gets set right after.
+                };
+                const decodedArgs = this.decodeArgumentsFromParent(handle, msg.args);
+                handle.instance = ((...args) => {
+                    return new moduleClass(...args);
+                }).apply(null, decodedArgs);
+                this.instanceHandles[handle.id] = handle;
+                const instance = handle.instance;
+                const allProps = this.getAllProperties(instance);
+                const props = [];
+                allProps.forEach((prop) => {
+                    if ([
+                        'constructor',
+                        '__defineGetter__',
+                        '__defineSetter__',
+                        'hasOwnProperty',
+                        '__lookupGetter__',
+                        '__lookupSetter__',
+                        'isPrototypeOf',
+                        'propertyIsEnumerable',
+                        'toString',
+                        'valueOf',
+                        '__proto__',
+                        'toLocaleString'
+                    ].indexOf(prop) !== -1)
+                        return;
+                    let descriptor = Object.getOwnPropertyDescriptor(instance, prop);
+                    let inProto = 0;
+                    let proto = instance.__proto__;
+                    while (!descriptor) {
+                        if (!proto)
+                            break;
+                        descriptor = Object.getOwnPropertyDescriptor(proto, prop);
+                        inProto++;
+                        proto = proto.__proto__;
+                    }
+                    if (!descriptor)
+                        descriptor = {};
+                    let descr = {
+                        // configurable:	!!descriptor.configurable,
+                        inProto: inProto,
+                        enumerable: !!descriptor.enumerable,
+                        writable: !!descriptor.writable,
+                        get: !!descriptor.get,
+                        set: !!descriptor.set,
+                        readable: !!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
+                    };
+                    if (typeof instance[prop] === 'function') {
+                        props.push({
+                            key: prop,
+                            type: sharedApi_1.InitPropType.FUNCTION,
+                            descriptor: descr
                         });
                     }
-                    catch (err) {
-                        let errorResponse = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`;
-                        this.replyError(handle, msg, errorResponse);
+                    else {
+                        props.push({
+                            key: prop,
+                            type: sharedApi_1.InitPropType.VALUE,
+                            descriptor: descr
+                        });
                     }
-                }
-                else {
-                    this.replyError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`);
-                }
+                });
+                this.replyToInstanceMessage(handle, msg, props);
+                return;
+            })
+                .catch((e) => {
+                console.log('INIT error', e);
+            });
+            if (!m.config.disableMultithreading && !lib_1.nodeSupportsWorkerThreads()) {
+                this.startOrphanMonitoring();
             }
         }
-        catch (e) {
-            if (m.cmdId) {
-                this.replyError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`);
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.PING) {
+            this.replyToInstanceMessage(handle, m, null);
+        }
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.REPLY) {
+            const msg = m;
+            let cb = handle.queue[msg.replyTo + ''];
+            if (!cb)
+                throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`);
+            if (msg.error) {
+                cb(msg.error);
             }
-            else
-                this.log('Error: ' + e.toString(), e.stack);
+            else {
+                cb(null, msg.reply);
+            }
+            delete handle.queue[msg.replyTo + ''];
+        }
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.FUNCTION) {
+            // A function has been called by parent
+            let msg = m;
+            const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args);
+            let p = (typeof instance[msg.fcn] === 'function' ?
+                instance[msg.fcn](...fixedArgs) :
+                instance[msg.fcn]); // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
+            Promise.resolve(p)
+                .then((result) => {
+                const encodedResult = this.encodeArgumentsToParent(instance, [result]);
+                this.replyToInstanceMessage(handle, msg, encodedResult[0]);
+            })
+                .catch((err) => {
+                let errorResponse = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`;
+                this.replyInstanceError(handle, msg, errorResponse);
+            });
+        }
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.SET) {
+            let msg = m;
+            const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0];
+            instance[msg.property] = fixedValue;
+            this.replyToInstanceMessage(handle, msg, fixedValue);
+        }
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.KILL) {
+            let msg = m;
+            // kill off instance
+            this.killInstance(handle);
+            this.replyToInstanceMessage(handle, msg, null);
+        }
+        else if (m.cmd === sharedApi_1.Message.To.Instance.CommandType.CALLBACK) {
+            let msg = m;
+            let callback = this.callbacks[msg.callbackId];
+            if (callback) {
+                try {
+                    Promise.resolve(callback(...msg.args))
+                        .then((result) => {
+                        const encodedResult = this.encodeArgumentsToParent(instance, [result]);
+                        this.replyToInstanceMessage(handle, msg, encodedResult[0]);
+                    })
+                        .catch((err) => {
+                        let errorResponse = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`;
+                        this.replyInstanceError(handle, msg, errorResponse);
+                    });
+                }
+                catch (err) {
+                    let errorResponse = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`;
+                    this.replyInstanceError(handle, msg, errorResponse);
+                }
+            }
+            else {
+                this.replyInstanceError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`);
+            }
+        }
+    }
+    handleChildMessageFromParent(m, handle) {
+        if (m.cmd === sharedApi_1.Message.To.Child.CommandType.GET_MEM_USAGE) {
+            let memUsage = (process ?
+                process.memoryUsage() :
+                // @ts-ignore web-worker global window
+                window ?
+                    // @ts-ignore web-worker global window
+                    window.performance.memory :
+                    'N/A');
+            const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0];
+            this.replyToChildMessage(handle, m, encodedResult);
         }
     }
     startOrphanMonitoring() {
@@ -346,6 +484,116 @@ class Worker {
     }
 }
 exports.Worker = Worker;
+
+}).call(this,require('_process'))
+
+},{"../shared/lib":3,"../shared/sharedApi":4,"_process":9,"is-running":8}],3:[function(require,module,exports){
+(function (process){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Returns true if running in th browser (if not, then we're in NodeJS)
+ */
+function isBrowser() {
+    return !(process && process.hasOwnProperty('stdin'));
+}
+exports.isBrowser = isBrowser;
+function browserSupportsWebWorkers() {
+    // @ts-ignore
+    return !!(isBrowser() && window.Worker);
+}
+exports.browserSupportsWebWorkers = browserSupportsWebWorkers;
+function nodeSupportsWorkerThreads() {
+    const workerThreads = getWorkerThreads();
+    return !!workerThreads;
+}
+exports.nodeSupportsWorkerThreads = nodeSupportsWorkerThreads;
+function getWorkerThreads() {
+    try {
+        const workerThreads = require('worker_threads');
+        return workerThreads;
+    }
+    catch (e) {
+        return null;
+    }
+}
+exports.getWorkerThreads = getWorkerThreads;
+
+}).call(this,require('_process'))
+
+},{"_process":9,"worker_threads":undefined}],4:[function(require,module,exports){
+(function (Buffer){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+// This file contains definitions for the API between the child and parent process.
+exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
+var InitPropType;
+(function (InitPropType) {
+    InitPropType["FUNCTION"] = "function";
+    InitPropType["VALUE"] = "value";
+})(InitPropType = exports.InitPropType || (exports.InitPropType = {}));
+// Messages to/from child instances ------------------------------------------------
+/** Definitions of all messages between the child and parent */
+var Message;
+(function (Message) {
+    /** Defines messages from the child ot the parent process */
+    let To;
+    (function (To) {
+        let Instance;
+        (function (Instance) {
+            let CommandType;
+            (function (CommandType) {
+                CommandType["INIT"] = "init";
+                CommandType["PING"] = "ping";
+                CommandType["FUNCTION"] = "fcn";
+                CommandType["REPLY"] = "reply";
+                CommandType["SET"] = "set";
+                CommandType["KILL"] = "kill";
+                CommandType["CALLBACK"] = "callback";
+            })(CommandType = Instance.CommandType || (Instance.CommandType = {}));
+        })(Instance = To.Instance || (To.Instance = {}));
+        let Child;
+        (function (Child) {
+            let CommandType;
+            (function (CommandType) {
+                CommandType["GET_MEM_USAGE"] = "get_mem_usage";
+                CommandType["REPLY"] = "reply";
+            })(CommandType = Child.CommandType || (Child.CommandType = {}));
+        })(Child = To.Child || (To.Child = {}));
+    })(To = Message.To || (Message.To = {}));
+    /** Defines messages from the parent process to the child */
+    let From;
+    (function (From) {
+        let Instance;
+        (function (Instance) {
+            let CommandType;
+            (function (CommandType) {
+                CommandType["CALLBACK"] = "callback";
+                CommandType["REPLY"] = "reply";
+            })(CommandType = Instance.CommandType || (Instance.CommandType = {}));
+        })(Instance = From.Instance || (From.Instance = {}));
+        let Child;
+        (function (Child) {
+            let CommandType;
+            (function (CommandType) {
+                CommandType["LOG"] = "log";
+                CommandType["REPLY"] = "reply";
+                CommandType["CALLBACK"] = "callback";
+            })(CommandType = Child.CommandType || (Child.CommandType = {}));
+        })(Child = From.Child || (From.Child = {}));
+    })(From = Message.From || (Message.From = {}));
+})(Message = exports.Message || (exports.Message = {}));
+var ArgumentType;
+(function (ArgumentType) {
+    ArgumentType["STRING"] = "string";
+    ArgumentType["NUMBER"] = "number";
+    ArgumentType["UNDEFINED"] = "undefined";
+    ArgumentType["NULL"] = "null";
+    ArgumentType["OBJECT"] = "object";
+    ArgumentType["FUNCTION"] = "function";
+    ArgumentType["BUFFER"] = "buffer";
+    ArgumentType["OTHER"] = "other";
+})(ArgumentType || (ArgumentType = {}));
 let argumentsCallbackId = 0;
 function encodeArguments(instance, callbacks, args, disabledMultithreading) {
     try {
@@ -425,147 +673,9 @@ function decodeArguments(instance, args, getCallback) {
 }
 exports.decodeArguments = decodeArguments;
 
-}).call(this,require('_process'),require("buffer").Buffer)
+}).call(this,require("buffer").Buffer)
 
-},{"./lib":2,"_process":8,"buffer":5,"is-running":7}],2:[function(require,module,exports){
-(function (process){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * Returns true if running in th browser (if not, then we're in NodeJS)
- */
-function isBrowser() {
-    return !(process && process.hasOwnProperty('stdin'));
-}
-exports.isBrowser = isBrowser;
-function browserSupportsWebWorkers() {
-    // @ts-ignore
-    return !!(isBrowser() && window.Worker);
-}
-exports.browserSupportsWebWorkers = browserSupportsWebWorkers;
-function nodeSupportsWorkerThreads() {
-    const workerThreads = getWorkerThreads();
-    return !!workerThreads;
-}
-exports.nodeSupportsWorkerThreads = nodeSupportsWorkerThreads;
-function getWorkerThreads() {
-    try {
-        const workerThreads = require('worker_threads');
-        return workerThreads;
-    }
-    catch (e) {
-        return null;
-    }
-}
-exports.getWorkerThreads = getWorkerThreads;
-
-}).call(this,require('_process'))
-
-},{"_process":8,"worker_threads":undefined}],3:[function(require,module,exports){
-(function (process){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const internalApi_1 = require("./internalApi");
-const lib_1 = require("./lib");
-const WorkerThreads = lib_1.getWorkerThreads();
-/* This file is the one that is launched in the worker child process */
-function send(message) {
-    if (WorkerThreads) {
-        if (WorkerThreads.parentPort) {
-            WorkerThreads.parentPort.postMessage(message);
-        }
-        else {
-            throw Error('WorkerThreads.parentPort not set!');
-        }
-    }
-    else if (process.send) {
-        process.send(message);
-        // @ts-ignore global postMessage
-    }
-    else if (postMessage) {
-        // @ts-ignore
-        postMessage(message);
-    }
-    else
-        throw Error('process.send and postMessage are undefined!');
-}
-class ThreadedWorker extends internalApi_1.Worker {
-    constructor() {
-        super(...arguments);
-        this.instanceHandles = {};
-    }
-    sendMessageToParent(handle, msg, cb) {
-        if (msg.cmd === internalApi_1.MessageType.LOG) {
-            const message = Object.assign(Object.assign({}, msg), {
-                cmdId: 0,
-                instanceId: ''
-            });
-            send(message);
-        }
-        else {
-            const message = Object.assign(Object.assign({}, msg), {
-                cmdId: handle.cmdId++,
-                instanceId: handle.id
-            });
-            if (cb)
-                handle.queue[message.cmdId + ''] = cb;
-            send(message);
-        }
-    }
-    killInstance(handle) {
-        delete this.instanceHandles[handle.id];
-    }
-}
-// const _orgConsoleLog = console.log
-if (lib_1.isBrowser()) {
-    const worker = new ThreadedWorker();
-    // console.log = worker.log
-    // @ts-ignore global onmessage
-    onmessage = (m) => {
-        // Received message from parent
-        if (m.type === 'message') {
-            worker.onMessageFromParent(m.data);
-        }
-        else {
-            console.log('child process: onMessage', m);
-        }
-    };
-}
-else if (lib_1.nodeSupportsWorkerThreads()) {
-    if (WorkerThreads) {
-        const worker = new ThreadedWorker();
-        console.log = worker.log;
-        console.error = worker.logError;
-        if (WorkerThreads.parentPort) {
-            WorkerThreads.parentPort.on('message', (m) => {
-                // Received message from parent
-                worker.onMessageFromParent(m);
-            });
-        }
-        else {
-            throw Error('WorkerThreads.parentPort not set!');
-        }
-    }
-    else {
-        throw Error('WorkerThreads not available!');
-    }
-}
-else if (process.send) {
-    const worker = new ThreadedWorker();
-    console.log = worker.log;
-    console.error = worker.logError;
-    process.on('message', (m) => {
-        // Received message from parent
-        worker.onMessageFromParent(m);
-    });
-}
-else {
-    throw Error('process.send and onmessage are undefined!');
-}
-
-}).call(this,require('_process'))
-
-},{"./internalApi":1,"./lib":2,"_process":8}],4:[function(require,module,exports){
+},{"buffer":6}],5:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -719,7 +829,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
@@ -2501,7 +2611,7 @@ function numberIsNaN (obj) {
 
 }).call(this,require("buffer").Buffer)
 
-},{"base64-js":4,"buffer":5,"ieee754":6}],6:[function(require,module,exports){
+},{"base64-js":5,"buffer":6,"ieee754":7}],7:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -2587,7 +2697,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function (process){
 module.exports = function (pid) {
   if (module.exports.stub !== module.exports) {
@@ -2604,7 +2714,7 @@ module.exports.stub = module.exports;
 
 }).call(this,require('_process'))
 
-},{"_process":8}],8:[function(require,module,exports){
+},{"_process":9}],9:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -2790,6 +2900,6 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}]},{},[3])
+},{}]},{},[1])
 
 //# sourceMappingURL=threadedclass-worker.js.map
