@@ -4,10 +4,10 @@ import {
 	CallbackFunction,
 	MessageFromChildConstr,
 	InstanceHandle,
-	Worker,
 	MessageType
-} from './internalApi'
-import { isBrowser, nodeSupportsWorkerThreads, getWorkerThreads } from './lib'
+} from '../shared/sharedApi'
+import { isBrowser, nodeSupportsWorkerThreads, getWorkerThreads } from '../shared/lib'
+import { Worker } from './worker'
 
 const WorkerThreads = getWorkerThreads()
 

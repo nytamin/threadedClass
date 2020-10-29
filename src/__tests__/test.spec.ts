@@ -8,7 +8,7 @@ import {
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
 import { AlmostTestClass } from '../../test-lib/rename'
-import { ThreadMode } from '../manager'
+import { ThreadMode } from '../parent-process/manager'
 
 const HOUSE_PATH = '../../test-lib/house.js'
 const RENAME_PATH = '../../test-lib/rename.js'

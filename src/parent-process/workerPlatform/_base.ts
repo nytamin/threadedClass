@@ -1,5 +1,5 @@
 import { EventEmitter } from 'eventemitter3'
-import { MessageFromChild, MessageToChild } from './internalApi'
+import { MessageFromChild, MessageToChild } from '../../shared/sharedApi'
 
 export type WorkerPlatformBaseEvents = {
 	message: (msg: MessageFromChild) => void

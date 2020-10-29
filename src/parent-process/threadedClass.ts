@@ -16,13 +16,13 @@ import {
 	decodeArguments,
 	encodeArguments,
 	MessageCallbackConstr
-} from './internalApi'
+} from '../shared/sharedApi'
 import {
 	ThreadedClass,
 	ThreadedClassConfig
-} from './api'
+} from '../api'
 import { ThreadedClassManagerInternal, ChildInstance, Child } from './manager'
-import { isBrowser, browserSupportsWebWorkers } from './lib'
+import { isBrowser, browserSupportsWebWorkers } from '../shared/lib'
 
 // From: https://github.com/Morglod/tsargs/blob/master/lib/ctor-args.ts
 type CtorArgs<CtorT extends new (...args: any) => any> = CtorT extends new (...args: infer K) => any ? K : never
@@ -173,8 +173,9 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				pathToModule = require.resolve(absPathToModule)
 
 				pathToWorker = thisCallPath
+					.replace(/parent-process/,'child-process')
 					.replace(/threadedClass(\.[tj]s)$/,'threadedclass-worker.js')
-					.replace(/src([\\\/])threadedclass-worker/,'dist$1threadedclass-worker')
+					.replace(/src([\\\/])child-process([\\\/])threadedclass-worker/,'dist$1child-process$2threadedclass-worker')
 			}
 
 			const child: Child = ThreadedClassManagerInternal.findNextAvailableChild(

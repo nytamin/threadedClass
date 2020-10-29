@@ -1,12 +1,11 @@
 import {
 	MessageFromChild,
-	CallbackFunction,
-	MessageFromChildConstr,
-	Worker,
 	InstanceHandle,
+	MessageFromChildConstr,
+	CallbackFunction,
 	MessageType
-} from './internalApi'
-import { WorkerPlatformBase } from './workerPlatformBase'
+} from '../shared/sharedApi'
+import { Worker } from './worker'
 
 export class FakeWorker extends Worker {
 	private mockProcessSend: (m: MessageFromChild) => void
@@ -40,24 +39,4 @@ export class FakeWorker extends Worker {
 		}
 	}
 
-}
-
-export class FakeProcess extends WorkerPlatformBase {
-	private worker: FakeWorker
-
-	constructor () {
-		super()
-		this.worker = new FakeWorker((m) => {
-			this.emit('message', m)
-		})
-	}
-
-	kill (): void {
-		// @todo: needs some implementation.
-		this.emit('close')
-	}
-
-	send (m: any): void {
-		this.worker.onMessageFromParent(m)
-	}
 }

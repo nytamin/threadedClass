@@ -3,9 +3,9 @@ import {
 	browserSupportsWebWorkers,
 	nodeSupportsWorkerThreads,
 	getWorkerThreads
-} from '../lib'
+} from '../shared/lib'
 import { ThreadedClassManager } from '..'
-import { ThreadMode } from '../manager'
+import { ThreadMode } from '../parent-process/manager'
 
 describe('lib', () => {
 	console.log('process.version', process.version)

@@ -1,7 +1,7 @@
 import { Worker as IWorker } from 'worker_threads'
-import { getWorkerThreads } from './lib'
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { MessageToChild } from './internalApi'
+import { MessageToChild } from '../../shared/sharedApi'
+import { getWorkerThreads } from '../../shared/lib'
+import { WorkerPlatformBase } from './_base'
 
 const WorkerThreads = getWorkerThreads()
 

@@ -1,6 +1,6 @@
-import { WorkerPlatformBase } from './workerPlatformBase'
+import { WorkerPlatformBase } from './_base'
 import { ChildProcess, fork } from 'child_process'
-import { MessageToChild } from './internalApi'
+import { MessageToChild } from '../../shared/sharedApi'
 
 export function forkChildProcess (pathToWorker: string): ChildProcessWorker {
 	return new ChildProcessWorker(pathToWorker)

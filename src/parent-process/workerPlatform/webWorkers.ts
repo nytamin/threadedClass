@@ -1,5 +1,5 @@
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { MessageToChild } from './internalApi'
+import { WorkerPlatformBase } from './_base'
+import { MessageToChild } from '../../shared/sharedApi'
 
 /** Functions for emulating child-process in web-workers */
 

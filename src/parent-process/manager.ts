@@ -1,5 +1,4 @@
-import { FakeProcess } from './fakeProcess'
-import { ThreadedClassConfig, ThreadedClass } from './api'
+import { ThreadedClassConfig, ThreadedClass } from '../api'
 import {
 	MessageFromChild,
 	MessageToChildConstr,
@@ -13,13 +12,14 @@ import {
 	MessagePingConstr,
 	DEFAULT_CHILD_FREEZE_TIME,
 	encodeArguments
-} from './internalApi'
+} from '../shared/sharedApi'
 import { EventEmitter } from 'events'
-import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from './lib'
-import { forkWebWorker } from './webWorkers'
-import { forkWorkerThread } from './workerThreads'
-import { WorkerPlatformBase } from './workerPlatformBase'
-import { forkChildProcess } from './childProcess'
+import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
+import { WorkerPlatformBase } from './workerPlatform/_base'
+import { FakeProcess } from './workerPlatform/fakeWorker'
+import { forkWebWorker } from './workerPlatform/webWorkers'
+import { forkWorkerThread } from './workerPlatform/workerThreads'
+import { forkChildProcess } from './workerPlatform/childProcess'
 
 export class ThreadedClassManagerClass {
 
