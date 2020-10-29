@@ -13,7 +13,7 @@ import { ThreadMode } from '../parent-process/manager'
 const HOUSE_PATH = '../../test-lib/house.js'
 const RENAME_PATH = '../../test-lib/rename.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
-const TESTCLASS_PATH_UNSYNCED = '../../test-lib/testClass-unsynced.js'
+// const TESTCLASS_PATH_UNSYNCED = '../../test-lib/testClass-unsynced.js'
 
 // function wait (time: number) {
 // 	return new Promise((resolve) => {
@@ -679,20 +679,18 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(self).toEqual(threaded)
 
 		})
-		test('import typescript', async () => {
-			let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH_UNSYNCED, 'TestClass', [], { disableMultithreading })
-
-			let id = await threaded.getId()
-
-			if (disableMultithreading) {
-				// expect the ts file to have been loaded:
-				expect(id).toEqual('abc')
-			} else {
-				// expect the js file to have been loaded:
-				expect(id).toEqual('unsynced')
-			}
-
-		})
+		// Note: This is not possible anymore, as of https://github.com/nytamin/threadedClass/commit/1cce2271c567e232ce612e784432dec07cb3ac38
+		// test('import typescript', async () => {
+		// 	let threaded 	= await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH_UNSYNCED, 'TestClass', [], { disableMultithreading })
+		// 	let id = await threaded.getId()
+		// 	if (disableMultithreading) {
+		// 		// expect the ts file to have been loaded:
+		// 		expect(id).toEqual('abc')
+		// 	} else {
+		// 		// expect the js file to have been loaded:
+		// 		expect(id).toEqual('unsynced')
+		// 	}
+		// })
 		test('export name mismatch', async () => {
 			let threaded = await threadedClass<AlmostTestClass, typeof AlmostTestClass>(RENAME_PATH, 'AlmostTestClass', [], { disableMultithreading })
 
