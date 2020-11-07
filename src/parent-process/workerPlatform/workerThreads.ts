@@ -2,6 +2,7 @@ import { Worker as IWorker } from 'worker_threads'
 import { Message } from '../../shared/sharedApi'
 import { getWorkerThreads } from '../../shared/lib'
 import { WorkerPlatformBase } from './_base'
+import { readFileSync } from 'fs'
 
 const WorkerThreads = getWorkerThreads()
 
@@ -16,9 +17,20 @@ export class WorkerThread extends WorkerPlatformBase {
 		// @ts-ignore
 		// this.worker = new window.Worker(pathToWorker)
 		if (!WorkerThreads) throw new Error('Unable to create Worker thread! Not supported!')
-		this.worker = new WorkerThreads.Worker(pathToWorker, {
-			workerData: ''
-		})
+
+		if (process.env.THREADEDCLASS_ASAR_SHIM) {
+			const buf = readFileSync(process.env.THREADEDCLASS_ASAR_SHIM)
+
+			this.worker = new WorkerThreads.Worker(buf.toString(), {
+				workerData: pathToWorker,
+				eval: true
+			})
+		} else {
+			this.worker = new WorkerThreads.Worker(pathToWorker, {
+				workerData: ''
+			})
+		}
+
 		this.worker.on('message', (message: any) => {
 			this.emit('message', message)
 			// if (message.type === 'message') {
