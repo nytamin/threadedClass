@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.2](https://github.com/nytamin/threadedClass/compare/0.8.1...0.8.2) (2020-11-16)
+
+
+### Features
+
+* add getMemUsage function ([e19d3a0](https://github.com/nytamin/threadedClass/commit/e19d3a02332935c0ed710f366e68b20626965840))
+* add support for sending messages directly to the Child process ([b8517a3](https://github.com/nytamin/threadedClass/commit/b8517a3262d07a41a998a178de38dcc889ad054d))
+
+
+### Bug Fixes
+
+* add .description to MemUsageReport ([0bbe357](https://github.com/nytamin/threadedClass/commit/0bbe357ed47266d3a61a6f7117dff1c478f3e205))
+* refactor internal type definitions in sharedApi.ts, to clarify message directions, senders & receivers by grouping types in namespaces ([1e1c460](https://github.com/nytamin/threadedClass/commit/1e1c46070f50985201d0d83688a67fa50c31283c))
+
 ### [0.8.1](https://github.com/nytamin/threadedClass/compare/0.8.0...0.8.1) (2020-10-27)
 
 
