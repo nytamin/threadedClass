@@ -188,7 +188,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 			)
 
 			ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance: ChildInstance, err: Error | null, props: InitProps) => {
-				// This callback is called from the worker process, with a list of supported properties of the c
+				// This callback is called from the child process, with a list of supported properties of the instance
 				if (err) {
 					reject(err)
 					return false
