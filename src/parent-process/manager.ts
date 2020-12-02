@@ -23,6 +23,13 @@ export class ThreadedClassManagerClass {
 		this._internal = internal
 		this._internal.setMaxListeners(0)
 	}
+	/** Enable debug messages */
+	public set debug (v: boolean) {
+		this._internal.debug = v
+	}
+	public get debug (): boolean {
+		return this._internal.debug
+	}
 	/** Destroy a proxy class */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
 		return this._internal.killProxy(proxy)
@@ -140,6 +147,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _methodId: number = 0
 	private _children: {[id: string]: Child} = {}
 	private _pinging: boolean = true // for testing only
+	public debug: boolean = false
+	/** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
+	private uniqueId: number = Date.now() % 10000
 
 	public findNextAvailableChild (
 		config: ThreadedClassConfig,
@@ -156,7 +166,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		if (!child) {
 			// Create new child process:
 			const newChild: Child = {
-				id: config.threadId || ('process_' + this._threadId++),
+				id: config.threadId || (`process_${this.uniqueId}_${this._threadId++}`),
 				isNamed: !!config.threadId,
 				pathToWorker: pathToWorker,
 
@@ -177,6 +187,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			this._setupChildProcess(newChild)
 			this._children[newChild.id] = newChild
 			child = newChild
+
+			if (this.debug) this.consoleLog(`New child: "${newChild.id}"`)
 		}
 
 		return child
@@ -198,7 +210,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	): ChildInstance {
 		const instance: ChildInstance = {
 
-			id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
+			id: `instance_${this.uniqueId}_${this._instanceId++}` + (config.instanceName ? `_${config.instanceName}` : ''),
 			child: child,
 			proxy: proxy,
 			usage: config.threadUsage,
@@ -211,6 +223,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			config: config
 		}
 		child.instances[instance.id] = instance
+
+		if (this.debug) this.consoleLog(`Add instance "${instance.id}" to "${child.id}"`)
 
 		return instance
 	}
@@ -362,7 +376,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		return Promise.all(
 			Object.keys(this._children).map((id) => {
 				const child = this._children[id]
-				console.log(`ThreadedClass: Killing child "${this.getChildDescriptor(child)}"`)
+				if (this.debug) this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`)
 				return this.killChild(id)
 			})
 		).then(() => {
@@ -504,7 +518,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						instance.child.alive &&
 						!instance.child.isClosing
 					) {
-						// console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
+						// this.consoleLog(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
 						this._childHasCrashed(instance.child, `Child process ("${this.getChildDescriptor(instance.child)}") of instance ${instance.id} ping timeout`)
 					}
 				})
@@ -555,12 +569,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				// https://nodejs.org/api/process.html#process_signal_events
 
 				const onSignal = (signal: string, message?: string) => {
-					let msg = `ThreadedClass: Signal "${signal}" event`
+					let msg = `Signal "${signal}" event`
 					if (message) msg += ', ' + message
-					console.log(msg)
+					if (this.debug) this.consoleLog(msg)
 
 					this.killAllChildren()
-					.catch(console.log)
+					.catch(this.consoleError)
 
 					process.exit()
 				}
@@ -595,8 +609,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				if (!err) {
 					resolve()
 				} else {
-					console.log('error', err)
-					reject()
+					this.consoleError(err)
+					reject(err)
 				}
 			})
 			setTimeout(() => {
@@ -625,12 +639,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				.then(() => {
 					this.emit('restarted', child)
 				})
-				.catch((err) => console.log('Error when running restartChild()', err))
+				.catch((err) => this.consoleError('Error when running restartChild()', err))
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
 				if (child.alive) {
 					this.killChild(child, true)
-					.catch((err) => console.log('Error when running killChild()', err))
+					.catch((err) => this.consoleError('Error when running killChild()', err))
 				}
 			}
 		}
@@ -661,15 +675,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 		child.process.on('error', (err) => {
-			console.error('Error from child ' + child.id, err)
+			this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
 			if (message.messageType === 'child') {
 				try {
 					this._onMessageFromChild(child, message)
 				} catch (e) {
-					console.error(`Error in onMessageCallback in child ${child.id}`, message)
-					console.error(e)
+					this.consoleError(`Error in onMessageCallback in child ${child.id}`, message)
+					this.consoleError(e)
 					throw e
 				}
 			} else if (message.messageType === 'instance') {
@@ -678,15 +692,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						console.error(`Error in onMessageCallback in instance ${instance.id}`, message, instance)
-						console.error(e)
+						this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance)
+						this.consoleError(e)
 						throw e
 					}
 				} else {
-					console.error(`Instance "${message.instanceId}" not found`)
+					this.consoleError(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
 				}
 			} else {
-				console.error(`Unknown messageType "${message['messageType']}"!`)
+				this.consoleError(`Unknown messageType "${message['messageType']}"!`)
 			}
 		})
 	}
@@ -794,7 +808,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					})
 					setTimeout(() => {
 						delete this._children[child.id]
-						reject('Timeout: Kill child process')
+						reject(`Timeout: Kill child process "${child.id}"`)
 					},1000)
 					if (!child.isClosing) {
 						child.isClosing = true
@@ -811,6 +825,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			method.reject(Error('Method aborted due to: ' + reason))
 		})
 		child.methods = {}
+	}
+	/** trace to console.error */
+	private consoleError (...args: any[]) {
+		console.error(`ThreadedClass Error (${this.uniqueId})`, ...args)
+
+	}
+	/** trace to console.log */
+	private consoleLog (...args: any[]) {
+		console.log(`ThreadedClass (${this.uniqueId})`, ...args)
+
 	}
 }
 
