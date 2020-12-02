@@ -30,6 +30,13 @@ export class ThreadedClassManagerClass {
 	public get debug (): boolean {
 		return this._internal.debug
 	}
+	public set dontHandleExit (v: boolean) {
+		this._internal.dontHandleExit = v
+	}
+	public get dontHandleExit (): boolean {
+		return this._internal.dontHandleExit
+	}
+
 	/** Destroy a proxy class */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
 		return this._internal.killProxy(proxy)
@@ -275,7 +282,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				return false
 			})
 			if (!foundProxy) {
-				reject('Proxy not found')
+				reject('killProxy: Proxy not found')
 			}
 		})
 	}

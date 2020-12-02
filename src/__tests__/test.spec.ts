@@ -26,6 +26,10 @@ const doPerformanceTests = false
 const getTests = (disableMultithreading: boolean) => {
 	return () => {
 
+		beforeAll(() => {
+			ThreadedClassManager.dontHandleExit = true
+			ThreadedClassManager.debug = false
+		})
 		beforeEach(async () => {
 			await ThreadedClassManager.destroyAll()
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)

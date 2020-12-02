@@ -15,6 +15,10 @@ function wait (time: number) {
 }
 
 describe('restarts', () => {
+	beforeAll(() => {
+		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.debug = false
+	})
 
 	beforeEach(async () => {
 		await ThreadedClassManager.destroyAll()
