@@ -438,6 +438,19 @@ class ThreadedClassManagerClass {
         this._internal = internal;
         this._internal.setMaxListeners(0);
     }
+    /** Enable debug messages */
+    set debug(v) {
+        this._internal.debug = v;
+    }
+    get debug() {
+        return this._internal.debug;
+    }
+    set dontHandleExit(v) {
+        this._internal.dontHandleExit = v;
+    }
+    get dontHandleExit() {
+        return this._internal.dontHandleExit;
+    }
     /** Destroy a proxy class */
     destroy(proxy) {
         return this._internal.killProxy(proxy);
@@ -516,6 +529,9 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         this._methodId = 0;
         this._children = {};
         this._pinging = true; // for testing only
+        this.debug = false;
+        /** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
+        this.uniqueId = Date.now() % 10000;
     }
     findNextAvailableChild(config, pathToWorker) {
         this._init();
@@ -529,7 +545,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         if (!child) {
             // Create new child process:
             const newChild = {
-                id: config.threadId || ('process_' + this._threadId++),
+                id: config.threadId || (`process_${this.uniqueId}_${this._threadId++}`),
                 isNamed: !!config.threadId,
                 pathToWorker: pathToWorker,
                 process: this._createFork(config, pathToWorker),
@@ -548,6 +564,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             this._setupChildProcess(newChild);
             this._children[newChild.id] = newChild;
             child = newChild;
+            if (this.debug)
+                this.consoleLog(`New child: "${newChild.id}"`);
         }
         return child;
     }
@@ -559,7 +577,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
      */
     attachInstanceToChild(config, child, proxy, pathToModule, exportName, constructorArgs, onInstanceMessage) {
         const instance = {
-            id: 'instance_' + this._instanceId++ + (config.instanceName ? '_' + config.instanceName : ''),
+            id: `instance_${this.uniqueId}_${this._instanceId++}` + (config.instanceName ? `_${config.instanceName}` : ''),
             child: child,
             proxy: proxy,
             usage: config.threadUsage,
@@ -572,6 +590,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             config: config
         };
         child.instances[instance.id] = instance;
+        if (this.debug)
+            this.consoleLog(`Add instance "${instance.id}" to "${child.id}"`);
         return instance;
     }
     killProxy(proxy) {
@@ -616,7 +636,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 return false;
             });
             if (!foundProxy) {
-                reject('Proxy not found');
+                reject('killProxy: Proxy not found');
             }
         });
     }
@@ -719,7 +739,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     killAllChildren() {
         return Promise.all(Object.keys(this._children).map((id) => {
             const child = this._children[id];
-            console.log(`ThreadedClass: Killing child "${this.getChildDescriptor(child)}"`);
+            if (this.debug)
+                this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`);
             return this.killChild(id);
         })).then(() => {
             return;
@@ -842,7 +863,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     if (instance.child &&
                         instance.child.alive &&
                         !instance.child.isClosing) {
-                        // console.log(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
+                        // this.consoleLog(`Ping failed for Child "${instance.child.id }" of instance "${instance.id}"`)
                         this._childHasCrashed(instance.child, `Child process ("${this.getChildDescriptor(instance.child)}") of instance ${instance.id} ping timeout`);
                     }
                 });
@@ -884,12 +905,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 // Read about Node signals here:
                 // https://nodejs.org/api/process.html#process_signal_events
                 const onSignal = (signal, message) => {
-                    let msg = `ThreadedClass: Signal "${signal}" event`;
+                    let msg = `Signal "${signal}" event`;
                     if (message)
                         msg += ', ' + message;
-                    console.log(msg);
+                    if (this.debug)
+                        this.consoleLog(msg);
                     this.killAllChildren()
-                        .catch(console.log);
+                        .catch(this.consoleError);
                     process.exit();
                 };
                 // Do something when app is closing:
@@ -920,8 +942,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     resolve();
                 }
                 else {
-                    console.log('error', err);
-                    reject();
+                    this.consoleError(err);
+                    reject(err);
                 }
             });
             setTimeout(() => {
@@ -947,13 +969,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     .then(() => {
                     this.emit('restarted', child);
                 })
-                    .catch((err) => console.log('Error when running restartChild()', err));
+                    .catch((err) => this.consoleError('Error when running restartChild()', err));
             }
             else {
                 // No instance wants to be restarted, make sure the child is killed then:
                 if (child.alive) {
                     this.killChild(child, true)
-                        .catch((err) => console.log('Error when running killChild()', err));
+                        .catch((err) => this.consoleError('Error when running killChild()', err));
                 }
             }
         }
@@ -986,7 +1008,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             }
         });
         child.process.on('error', (err) => {
-            console.error('Error from child ' + child.id, err);
+            this.consoleError('Error from child ' + child.id, err);
         });
         child.process.on('message', (message) => {
             if (message.messageType === 'child') {
@@ -994,8 +1016,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     this._onMessageFromChild(child, message);
                 }
                 catch (e) {
-                    console.error(`Error in onMessageCallback in child ${child.id}`, message);
-                    console.error(e);
+                    this.consoleError(`Error in onMessageCallback in child ${child.id}`, message);
+                    this.consoleError(e);
                     throw e;
                 }
             }
@@ -1006,17 +1028,17 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                         instance.onMessageCallback(instance, message);
                     }
                     catch (e) {
-                        console.error(`Error in onMessageCallback in instance ${instance.id}`, message, instance);
-                        console.error(e);
+                        this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance);
+                        this.consoleError(e);
                         throw e;
                     }
                 }
                 else {
-                    console.error(`Instance "${message.instanceId}" not found`);
+                    this.consoleError(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`);
                 }
             }
             else {
-                console.error(`Unknown messageType "${message['messageType']}"!`);
+                this.consoleError(`Unknown messageType "${message['messageType']}"!`);
             }
         });
     }
@@ -1122,7 +1144,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     });
                     setTimeout(() => {
                         delete this._children[child.id];
-                        reject('Timeout: Kill child process');
+                        reject(`Timeout: Kill child process "${child.id}"`);
                     }, 1000);
                     if (!child.isClosing) {
                         child.isClosing = true;
@@ -1138,6 +1160,14 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             method.reject(Error('Method aborted due to: ' + reason));
         });
         child.methods = {};
+    }
+    /** trace to console.error */
+    consoleError(...args) {
+        console.error(`ThreadedClass Error (${this.uniqueId})`, ...args);
+    }
+    /** trace to console.log */
+    consoleLog(...args) {
+        console.log(`ThreadedClass (${this.uniqueId})`, ...args);
     }
 }
 exports.ThreadedClassManagerClassInternal = ThreadedClassManagerClassInternal;
@@ -1306,7 +1336,7 @@ function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
             const proxy = {};
             let instanceInChild = manager_1.ThreadedClassManagerInternal.attachInstanceToChild(config, child, proxy, pathToModule, exportName, constructorArgs, onMessageFromInstance);
             manager_1.ThreadedClassManagerInternal.sendInit(child, instanceInChild, config, (instance, err, props) => {
-                // This callback is called from the worker process, with a list of supported properties of the c
+                // This callback is called from the child process, with a list of supported properties of the instance
                 if (err) {
                     reject(err);
                     return false;
