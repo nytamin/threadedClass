@@ -8,6 +8,10 @@ import { ThreadedClassManager } from '..'
 import { ThreadMode } from '../parent-process/manager'
 
 describe('lib', () => {
+	beforeAll(() => {
+		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.debug = false
+	})
 	console.log('process.version', process.version)
 	const m = (process.version + '').match(/(\d+)\.(\d+)\.(\d+)/)
 	if (

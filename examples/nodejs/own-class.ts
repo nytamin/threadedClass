@@ -19,7 +19,7 @@ async function runExample () {
 
 	// (Optional) Clean up & close all threads:
 	await ThreadedClassManager.destroyAll()
-	console.log('Done, number of preocesses left: ' + ThreadedClassManager.getThreadCount()) // outputs 0 (zero)
+	console.log('Done, number of processes left: ' + ThreadedClassManager.getThreadCount()) // outputs 0 (zero)
 }
 
 runExample()

@@ -4,6 +4,11 @@ import { TestClass2 } from '../../test-lib/testClass2'
 const TESTCLASS_PATH = '../../test-lib/testClass2.js'
 
 describe('Test with Jest mock', () => {
+	beforeAll(() => {
+		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.debug = false
+	})
+
 	test('mock', async () => {
 
 		// This test is making sure jest is mocking modules that are used inside the threaded class.
