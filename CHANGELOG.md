@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.3](https://github.com/nytamin/threadedClass/compare/0.8.2...0.8.3) (2020-12-09)
+
+
+### Bug Fixes
+
+* debug logging to troubleshoot restart issues ([7ed20e2](https://github.com/nytamin/threadedClass/commit/7ed20e2c93ff1915c14a72db8d26915137728170))
+* expose dontHandleExit property ([eca698f](https://github.com/nytamin/threadedClass/commit/eca698f3e175c173fdfa13f3469622fb2261e41b))
+
 ### [0.8.2](https://github.com/nytamin/threadedClass/compare/0.8.1...0.8.2) (2020-11-16)
 
 
