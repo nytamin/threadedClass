@@ -18,9 +18,9 @@ export class WorkerThread extends WorkerPlatformBase {
 		// this.worker = new window.Worker(pathToWorker)
 		if (!WorkerThreads) throw new Error('Unable to create Worker thread! Not supported!')
 
-		if (process.env.THREADEDCLASS_ASAR_SHIM) {
-			// The WorkerThreads api will not be able to load this file, so we must do it first
-			const buf = readFileSync(process.env.THREADEDCLASS_ASAR_SHIM)
+		if (process.env.THREADEDCLASS_WORKERTHREAD_LOADER) {
+			// The WorkerThreads may will not be able to load this file, so we must do it first
+			const buf = readFileSync(process.env.THREADEDCLASS_WORKERTHREAD_LOADER)
 
 			this.worker = new WorkerThreads.Worker(buf.toString(), {
 				workerData: pathToWorker,
