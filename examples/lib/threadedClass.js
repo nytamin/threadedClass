@@ -1549,10 +1549,12 @@ function forkWebWorker(pathToWorker) {
 exports.forkWebWorker = forkWebWorker;
 
 },{"./_base":6}],10:[function(require,module,exports){
+(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("../../shared/lib");
 const _base_1 = require("./_base");
+const fs_1 = require("fs");
 const WorkerThreads = lib_1.getWorkerThreads();
 /** Functions for spawning worker-threads in NodeJS */
 class WorkerThread extends _base_1.WorkerPlatformBase {
@@ -1562,9 +1564,19 @@ class WorkerThread extends _base_1.WorkerPlatformBase {
         // this.worker = new window.Worker(pathToWorker)
         if (!WorkerThreads)
             throw new Error('Unable to create Worker thread! Not supported!');
-        this.worker = new WorkerThreads.Worker(pathToWorker, {
-            workerData: ''
-        });
+        if (process.env.THREADEDCLASS_WORKERTHREAD_LOADER) {
+            // The WorkerThreads may will not be able to load this file, so we must do it first
+            const buf = fs_1.readFileSync(process.env.THREADEDCLASS_WORKERTHREAD_LOADER);
+            this.worker = new WorkerThreads.Worker(buf.toString(), {
+                workerData: pathToWorker,
+                eval: true
+            });
+        }
+        else {
+            this.worker = new WorkerThreads.Worker(pathToWorker, {
+                workerData: ''
+            });
+        }
         this.worker.on('message', (message) => {
             this.emit('message', message);
             // if (message.type === 'message') {
@@ -1604,7 +1616,9 @@ function forkWorkerThread(pathToWorker) {
 }
 exports.forkWorkerThread = forkWorkerThread;
 
-},{"../../shared/lib":11,"./_base":6}],11:[function(require,module,exports){
+}).call(this,require('_process'))
+
+},{"../../shared/lib":11,"./_base":6,"_process":22,"fs":14}],11:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
