@@ -78,6 +78,7 @@ gulp.task('browserify-asar-loader', function () {
 
 	var b = browserify({
 		entries: './dist/asar-loader.js',
+		node: true,
 		debug: true
 	}).exclude('worker_threads')
 	return b.bundle()
