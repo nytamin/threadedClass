@@ -3,8 +3,11 @@ import { Message } from '../../shared/sharedApi'
 import { getWorkerThreads } from '../../shared/lib'
 import { WorkerPlatformBase } from './_base'
 import { readFileSync } from 'fs'
+import * as path from 'path'
 
 const WorkerThreads = getWorkerThreads()
+
+const DEFAULT_ELECTRON_LOADER = path.join(__dirname, '../../js/asar-loader.js')
 
 /** Functions for spawning worker-threads in NodeJS */
 
@@ -18,9 +21,15 @@ export class WorkerThread extends WorkerPlatformBase {
 		// this.worker = new window.Worker(pathToWorker)
 		if (!WorkerThreads) throw new Error('Unable to create Worker thread! Not supported!')
 
-		if (process.env.THREADEDCLASS_WORKERTHREAD_LOADER) {
+		// Figure out the loader to use
+		let loader = process.env.THREADEDCLASS_WORKERTHREAD_LOADER
+		if (!loader && Object.prototype.hasOwnProperty.call(process.versions, 'electron') && DEFAULT_ELECTRON_LOADER.indexOf('.asar/') !== -1) {
+			loader = DEFAULT_ELECTRON_LOADER
+		}
+
+		if (loader) {
 			// The WorkerThreads may will not be able to load this file, so we must do it first
-			const buf = readFileSync(process.env.THREADEDCLASS_WORKERTHREAD_LOADER)
+			const buf = readFileSync(loader)
 
 			this.worker = new WorkerThreads.Worker(buf.toString(), {
 				workerData: pathToWorker,
