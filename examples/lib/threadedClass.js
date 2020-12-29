@@ -1549,13 +1549,15 @@ function forkWebWorker(pathToWorker) {
 exports.forkWebWorker = forkWebWorker;
 
 },{"./_base":6}],10:[function(require,module,exports){
-(function (process){
+(function (process,__dirname){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("../../shared/lib");
 const _base_1 = require("./_base");
 const fs_1 = require("fs");
+const path = require("path");
 const WorkerThreads = lib_1.getWorkerThreads();
+const DEFAULT_ELECTRON_LOADER = path.join(__dirname, '../../js/asar-loader.js');
 /** Functions for spawning worker-threads in NodeJS */
 class WorkerThread extends _base_1.WorkerPlatformBase {
     constructor(pathToWorker) {
@@ -1564,9 +1566,14 @@ class WorkerThread extends _base_1.WorkerPlatformBase {
         // this.worker = new window.Worker(pathToWorker)
         if (!WorkerThreads)
             throw new Error('Unable to create Worker thread! Not supported!');
-        if (process.env.THREADEDCLASS_WORKERTHREAD_LOADER) {
+        // Figure out the loader to use
+        let loader = process.env.THREADEDCLASS_WORKERTHREAD_LOADER;
+        if (!loader && Object.prototype.hasOwnProperty.call(process.versions, 'electron') && DEFAULT_ELECTRON_LOADER.indexOf('.asar/') !== -1) {
+            loader = DEFAULT_ELECTRON_LOADER;
+        }
+        if (loader) {
             // The WorkerThreads may will not be able to load this file, so we must do it first
-            const buf = fs_1.readFileSync(process.env.THREADEDCLASS_WORKERTHREAD_LOADER);
+            const buf = fs_1.readFileSync(loader);
             this.worker = new WorkerThreads.Worker(buf.toString(), {
                 workerData: pathToWorker,
                 eval: true
@@ -1616,9 +1623,9 @@ function forkWorkerThread(pathToWorker) {
 }
 exports.forkWorkerThread = forkWorkerThread;
 
-}).call(this,require('_process'))
+}).call(this,require('_process'),"/dist/parent-process/workerPlatform")
 
-},{"../../shared/lib":11,"./_base":6,"_process":22,"fs":14}],11:[function(require,module,exports){
+},{"../../shared/lib":11,"./_base":6,"_process":22,"fs":14,"path":21}],11:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
