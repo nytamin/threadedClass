@@ -8,6 +8,7 @@ import * as path from 'path'
 const WorkerThreads = getWorkerThreads()
 
 const DEFAULT_ELECTRON_LOADER = path.join(__dirname, '../../js/asar-loader.js')
+const isInAsar = Object.prototype.hasOwnProperty.call(process.versions, 'electron') && DEFAULT_ELECTRON_LOADER.match(/.asar(\/|\\)/)
 
 /** Functions for spawning worker-threads in NodeJS */
 
@@ -23,7 +24,7 @@ export class WorkerThread extends WorkerPlatformBase {
 
 		// Figure out the loader to use. This is to allow for some environment setup (eg require behaviour modification) before trying to run threadedClass
 		let loader = process.env.THREADEDCLASS_WORKERTHREAD_LOADER
-		if (!loader && Object.prototype.hasOwnProperty.call(process.versions, 'electron') && DEFAULT_ELECTRON_LOADER.indexOf('.asar/') !== -1) {
+		if (!loader && isInAsar) {
 			loader = DEFAULT_ELECTRON_LOADER
 		}
 
