@@ -4,6 +4,7 @@ import {
 } from '../index'
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
+import { RegisterExitHandlers } from '../parent-process/manager'
 
 const HOUSE_PATH = '../../test-lib/house.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
@@ -16,7 +17,7 @@ function wait (time: number) {
 
 describe('restarts', () => {
 	beforeAll(() => {
-		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.handleExit = RegisterExitHandlers.No
 		ThreadedClassManager.debug = false
 	})
 

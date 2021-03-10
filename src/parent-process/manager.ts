@@ -16,6 +16,12 @@ import { WorkerPlatformBase } from './workerPlatform/_base'
 import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
 
+export enum RegisterExitHandlers {
+	Auto,
+	Yes,
+	No
+}
+
 export class ThreadedClassManagerClass {
 
 	private _internal: ThreadedClassManagerClassInternal
@@ -30,11 +36,12 @@ export class ThreadedClassManagerClass {
 	public get debug (): boolean {
 		return this._internal.debug
 	}
-	public set dontHandleExit (v: boolean) {
-		this._internal.dontHandleExit = v
+	/** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
+	public set handleExit (v: RegisterExitHandlers) {
+		this._internal.handleExit = v
 	}
-	public get dontHandleExit (): boolean {
-		return this._internal.dontHandleExit
+	public get handleExit (): RegisterExitHandlers {
+		return this._internal.handleExit
 	}
 
 	/** Destroy a proxy class */
@@ -147,7 +154,7 @@ export interface ChildInstance {
 export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
-	public dontHandleExit: boolean = false
+	public handleExit = RegisterExitHandlers.Auto
 	private isInitialized: boolean = false
 	private _threadId: number = 0
 	private _instanceId: number = 0
@@ -564,11 +571,29 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _init () {
 		if (
 			!this.isInitialized &&
-			!this.dontHandleExit
+			!isBrowser() // in NodeJS
 		) {
+			let doRegister = false
 
-			if (!isBrowser()) { // in NodeJS
+			switch (this.handleExit) {
+				case RegisterExitHandlers.Yes:
+					doRegister = true
+					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
+						this.consoleLog('No other exit handler is registered, this may exit silently on error')
+					}
+					break
+				case RegisterExitHandlers.Auto:
+					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
+						this.consoleLog('Skippig exit handler registration as no exit handler is registered')
+					} else {
+						doRegister = true
+					}
+					break
+				case RegisterExitHandlers.No:
+					break
+			}
 
+			if (doRegister) {
 				// Close the child processes upon exit:
 				process.stdin.resume() // so the program will not close instantly
 
@@ -603,6 +628,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 				// catches uncaught exceptions
 				process.on('uncaughtException', (message) => onSignal('uncaughtException', message.toString()))
+				process.on('unhandledRejection', (message) => onSignal('unhandledRejection', message ? message.toString() : undefined))
 			}
 		}
 		this.isInitialized = true
