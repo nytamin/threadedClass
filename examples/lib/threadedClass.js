@@ -433,6 +433,12 @@ const webWorkers_1 = require("./workerPlatform/webWorkers");
 const workerThreads_1 = require("./workerPlatform/workerThreads");
 const childProcess_1 = require("./workerPlatform/childProcess");
 const fakeWorker_1 = require("./workerPlatform/fakeWorker");
+var RegisterExitHandlers;
+(function (RegisterExitHandlers) {
+    RegisterExitHandlers[RegisterExitHandlers["Auto"] = 0] = "Auto";
+    RegisterExitHandlers[RegisterExitHandlers["Yes"] = 1] = "Yes";
+    RegisterExitHandlers[RegisterExitHandlers["No"] = 2] = "No";
+})(RegisterExitHandlers = exports.RegisterExitHandlers || (exports.RegisterExitHandlers = {}));
 class ThreadedClassManagerClass {
     constructor(internal) {
         this._internal = internal;
@@ -445,11 +451,12 @@ class ThreadedClassManagerClass {
     get debug() {
         return this._internal.debug;
     }
-    set dontHandleExit(v) {
-        this._internal.dontHandleExit = v;
+    /** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
+    set handleExit(v) {
+        this._internal.handleExit = v;
     }
-    get dontHandleExit() {
-        return this._internal.dontHandleExit;
+    get handleExit() {
+        return this._internal.handleExit;
     }
     /** Destroy a proxy class */
     destroy(proxy) {
@@ -522,7 +529,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     constructor() {
         super(...arguments);
         /** Set to true if you want to handle the exiting of child process yourselt */
-        this.dontHandleExit = false;
+        this.handleExit = RegisterExitHandlers.Auto;
         this.isInitialized = false;
         this._threadId = 0;
         this._instanceId = 0;
@@ -898,8 +905,28 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     /** Called before using internally */
     _init() {
         if (!this.isInitialized &&
-            !this.dontHandleExit) {
-            if (!lib_1.isBrowser()) { // in NodeJS
+            !lib_1.isBrowser() // in NodeJS
+        ) {
+            let doRegister = false;
+            switch (this.handleExit) {
+                case RegisterExitHandlers.Yes:
+                    doRegister = true;
+                    if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
+                        this.consoleLog('No other exit handler is registered, this may exit silently on error');
+                    }
+                    break;
+                case RegisterExitHandlers.Auto:
+                    if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
+                        this.consoleLog('Skippig exit handler registration as no exit handler is registered');
+                    }
+                    else {
+                        doRegister = true;
+                    }
+                    break;
+                case RegisterExitHandlers.No:
+                    break;
+            }
+            if (doRegister) {
                 // Close the child processes upon exit:
                 process.stdin.resume(); // so the program will not close instantly
                 // Read about Node signals here:
@@ -928,6 +955,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 process.on('SIGUSR2', () => onSignal('SIGUSR2'));
                 // catches uncaught exceptions
                 process.on('uncaughtException', (message) => onSignal('uncaughtException', message.toString()));
+                process.on('unhandledRejection', (message) => onSignal('unhandledRejection', message ? message.toString() : undefined));
             }
         }
         this.isInitialized = true;

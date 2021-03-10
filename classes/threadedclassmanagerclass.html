@@ -2375,7 +2375,7 @@ img {
 					<a href="threadedclassmanagerclass.html#debug" class="tsd-kind-icon">debug</a>
 				</li>
 				<li class=" tsd-kind-accessor tsd-parent-kind-class tsd-is-external">
-					<a href="threadedclassmanagerclass.html#donthandleexit" class="tsd-kind-icon">dont<wbr>Handle<wbr>Exit</a>
+					<a href="threadedclassmanagerclass.html#handleexit" class="tsd-kind-icon">handle<wbr>Exit</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 					<a href="threadedclassmanagerclass.html#destroy" class="tsd-kind-icon">destroy</a>
@@ -2426,7 +2426,7 @@ img {
 						<h3>Accessors</h3>
 						<ul class="tsd-index-list">
 							<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#debug" class="tsd-kind-icon">debug</a></li>
-							<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#donthandleexit" class="tsd-kind-icon">dont<wbr>Handle<wbr>Exit</a></li>
+							<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-external"><a href="threadedclassmanagerclass.html#handleexit" class="tsd-kind-icon">handle<wbr>Exit</a></li>
 						</ul>
 					</section>
 					<section class="tsd-index-section tsd-is-external">
@@ -2456,7 +2456,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L21">src/parent-process/manager.ts:21</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L27">src/parent-process/manager.ts:27</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -2483,7 +2483,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L30">src/parent-process/manager.ts:30</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L36">src/parent-process/manager.ts:36</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2496,7 +2496,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L27">src/parent-process/manager.ts:27</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L33">src/parent-process/manager.ts:33</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2515,31 +2515,41 @@ img {
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-accessor tsd-parent-kind-class tsd-is-external">
-				<a name="donthandleexit" class="tsd-anchor"></a>
-				<h3>dont<wbr>Handle<wbr>Exit</h3>
+				<a name="handleexit" class="tsd-anchor"></a>
+				<h3>handle<wbr>Exit</h3>
 				<ul class="tsd-signatures tsd-kind-accessor tsd-parent-kind-class tsd-is-external">
-					<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> dontHandleExit<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
-					<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">set</span> dontHandleExit<span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> handleExit<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../enums/registerexithandlers.html" class="tsd-signature-type">RegisterExitHandlers</a></li>
+					<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">set</span> handleExit<span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><a href="../enums/registerexithandlers.html" class="tsd-signature-type">RegisterExitHandlers</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L36">src/parent-process/manager.ts:36</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L43">src/parent-process/manager.ts:43</a></li>
 							</ul>
 						</aside>
-						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit</p>
+							</div>
+						</div>
+						<h4 class="tsd-returns-title">Returns <a href="../enums/registerexithandlers.html" class="tsd-signature-type">RegisterExitHandlers</a></h4>
 					</li>
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L33">src/parent-process/manager.ts:33</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L40">src/parent-process/manager.ts:40</a></li>
 							</ul>
 						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit</p>
+							</div>
+						</div>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>v: <span class="tsd-signature-type">boolean</span></h5>
+								<h5>v: <a href="../enums/registerexithandlers.html" class="tsd-signature-type">RegisterExitHandlers</a></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -2559,7 +2569,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L41">src/parent-process/manager.ts:41</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L48">src/parent-process/manager.ts:48</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2587,7 +2597,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L44">src/parent-process/manager.ts:44</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L51">src/parent-process/manager.ts:51</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -2604,7 +2614,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L48">src/parent-process/manager.ts:48</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L55">src/parent-process/manager.ts:55</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2626,7 +2636,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L83">src/parent-process/manager.ts:83</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L90">src/parent-process/manager.ts:90</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2648,7 +2658,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L52">src/parent-process/manager.ts:52</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L59">src/parent-process/manager.ts:59</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2670,7 +2680,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L55">src/parent-process/manager.ts:55</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L62">src/parent-process/manager.ts:62</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -2696,7 +2706,7 @@ img {
 									<li class="tsd-description">
 										<aside class="tsd-sources">
 											<ul>
-												<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L67">src/parent-process/manager.ts:67</a></li>
+												<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L74">src/parent-process/manager.ts:74</a></li>
 											</ul>
 										</aside>
 										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -2717,7 +2727,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5b84f60/src/parent-process/manager.ts#L77">src/parent-process/manager.ts:77</a></li>
+								<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L84">src/parent-process/manager.ts:84</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
