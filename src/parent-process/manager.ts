@@ -17,8 +17,11 @@ import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
 
 export enum RegisterExitHandlers {
+	/** Do a check if any exit handlers have been registered by someone else, and if so */
 	AUTO = -1,
+	/** Set up exit handlers to ensure child processes are killed on exit signal. */
 	YES = 1,
+	/** Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed). */
 	NO = 0
 }
 
