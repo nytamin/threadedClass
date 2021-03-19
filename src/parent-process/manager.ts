@@ -576,11 +576,11 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			!this.isInitialized &&
 			!isBrowser() // in NodeJS
 		) {
-			let doRegister = false
+			let registerExitHandlers: boolean
 
 			switch (this.handleExit) {
 				case RegisterExitHandlers.YES:
-					doRegister = true
+					registerExitHandlers = true
 					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
 						this.consoleLog('No other exit handler is registered, this may exit silently on error')
 					}
@@ -588,15 +588,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				case RegisterExitHandlers.AUTO:
 					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
 						this.consoleLog('Skippig exit handler registration as no exit handler is registered')
+						registerExitHandlers = false
 					} else {
-						doRegister = true
+						registerExitHandlers = true
 					}
 					break
-				case RegisterExitHandlers.NO:
-					break
+				default: // RegisterExitHandlers.NO
+					registerExitHandlers = false
 			}
 
-			if (doRegister) {
+			if (registerExitHandlers) {
 				// Close the child processes upon exit:
 				process.stdin.resume() // so the program will not close instantly
 
