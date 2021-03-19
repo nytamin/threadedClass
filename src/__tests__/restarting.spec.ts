@@ -17,7 +17,7 @@ function wait (time: number) {
 
 describe('restarts', () => {
 	beforeAll(() => {
-		ThreadedClassManager.handleExit = RegisterExitHandlers.No
+		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 	})
 

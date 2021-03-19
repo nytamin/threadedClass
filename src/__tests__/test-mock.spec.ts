@@ -6,7 +6,7 @@ const TESTCLASS_PATH = '../../test-lib/testClass2.js'
 
 describe('Test with Jest mock', () => {
 	beforeAll(() => {
-		ThreadedClassManager.handleExit = RegisterExitHandlers.No
+		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 	})
 

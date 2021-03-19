@@ -17,9 +17,9 @@ import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
 
 export enum RegisterExitHandlers {
-	Auto,
-	Yes,
-	No
+	AUTO = -1,
+	YES = 1,
+	NO = 0
 }
 
 export class ThreadedClassManagerClass {
@@ -154,7 +154,7 @@ export interface ChildInstance {
 export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
-	public handleExit = RegisterExitHandlers.Auto
+	public handleExit = RegisterExitHandlers.AUTO
 	private isInitialized: boolean = false
 	private _threadId: number = 0
 	private _instanceId: number = 0
@@ -576,20 +576,20 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			let doRegister = false
 
 			switch (this.handleExit) {
-				case RegisterExitHandlers.Yes:
+				case RegisterExitHandlers.YES:
 					doRegister = true
 					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
 						this.consoleLog('No other exit handler is registered, this may exit silently on error')
 					}
 					break
-				case RegisterExitHandlers.Auto:
+				case RegisterExitHandlers.AUTO:
 					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
 						this.consoleLog('Skippig exit handler registration as no exit handler is registered')
 					} else {
 						doRegister = true
 					}
 					break
-				case RegisterExitHandlers.No:
+				case RegisterExitHandlers.NO:
 					break
 			}
 

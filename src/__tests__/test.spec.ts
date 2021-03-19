@@ -27,7 +27,7 @@ const getTests = (disableMultithreading: boolean) => {
 	return () => {
 
 		beforeAll(() => {
-			ThreadedClassManager.handleExit = RegisterExitHandlers.No
+			ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 			ThreadedClassManager.debug = false
 		})
 		beforeEach(async () => {
