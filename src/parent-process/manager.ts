@@ -581,13 +581,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			switch (this.handleExit) {
 				case RegisterExitHandlers.YES:
 					registerExitHandlers = true
-					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
-						this.consoleLog('No other exit handler is registered, this may exit silently on error')
-					}
 					break
 				case RegisterExitHandlers.AUTO:
 					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
-						this.consoleLog('Skippig exit handler registration as no exit handler is registered')
+						this.consoleLog('Skipping exit handler registration as no exit handler is registered')
+						// If no listeners are registered,
+						// we don't want to change the default Node behaviours upon those signals
 						registerExitHandlers = false
 					} else {
 						registerExitHandlers = true
@@ -607,7 +606,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const onSignal = (signal: string, message?: string) => {
 					let msg = `Signal "${signal}" event`
 					if (message) msg += ', ' + message
-					if (this.debug) this.consoleLog(msg)
+
+					if (process.listenerCount(signal) == 1) {
+						// If there is only one listener, that's us
+						// Log the error, it is the right thing to do.
+						console.error(msg)
+					} else {
+						if (this.debug) this.consoleLog(msg)
+					}
 
 					this.killAllChildren()
 					.catch(this.consoleError)
@@ -616,7 +622,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				}
 
 				// Do something when app is closing:
-				process.on('exit', (code: number) => onSignal('process.exit', `exit code: ${code}`))
+				process.on('exit', (code: number) => onSignal('exit', `exit code: ${code}`))
 
 				// catches ctrl+c event
 				process.on('SIGINT', () => onSignal('SIGINT'))
