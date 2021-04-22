@@ -16,6 +16,15 @@ import { WorkerPlatformBase } from './workerPlatform/_base'
 import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
 
+export enum RegisterExitHandlers {
+	/** Do a check if any exit handlers have been registered by someone else, and if so */
+	AUTO = -1,
+	/** Set up exit handlers to ensure child processes are killed on exit signal. */
+	YES = 1,
+	/** Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed). */
+	NO = 0
+}
+
 export class ThreadedClassManagerClass {
 
 	private _internal: ThreadedClassManagerClassInternal
@@ -30,11 +39,12 @@ export class ThreadedClassManagerClass {
 	public get debug (): boolean {
 		return this._internal.debug
 	}
-	public set dontHandleExit (v: boolean) {
-		this._internal.dontHandleExit = v
+	/** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
+	public set handleExit (v: RegisterExitHandlers) {
+		this._internal.handleExit = v
 	}
-	public get dontHandleExit (): boolean {
-		return this._internal.dontHandleExit
+	public get handleExit (): RegisterExitHandlers {
+		return this._internal.handleExit
 	}
 
 	/** Destroy a proxy class */
@@ -147,7 +157,7 @@ export interface ChildInstance {
 export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
-	public dontHandleExit: boolean = false
+	public handleExit = RegisterExitHandlers.AUTO
 	private isInitialized: boolean = false
 	private _threadId: number = 0
 	private _instanceId: number = 0
@@ -564,11 +574,29 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _init () {
 		if (
 			!this.isInitialized &&
-			!this.dontHandleExit
+			!isBrowser() // in NodeJS
 		) {
+			let registerExitHandlers: boolean
 
-			if (!isBrowser()) { // in NodeJS
+			switch (this.handleExit) {
+				case RegisterExitHandlers.YES:
+					registerExitHandlers = true
+					break
+				case RegisterExitHandlers.AUTO:
+					if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
+						this.consoleLog('Skipping exit handler registration as no exit handler is registered')
+						// If no listeners are registered,
+						// we don't want to change the default Node behaviours upon those signals
+						registerExitHandlers = false
+					} else {
+						registerExitHandlers = true
+					}
+					break
+				default: // RegisterExitHandlers.NO
+					registerExitHandlers = false
+			}
 
+			if (registerExitHandlers) {
 				// Close the child processes upon exit:
 				process.stdin.resume() // so the program will not close instantly
 
@@ -578,7 +606,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const onSignal = (signal: string, message?: string) => {
 					let msg = `Signal "${signal}" event`
 					if (message) msg += ', ' + message
-					if (this.debug) this.consoleLog(msg)
+
+					if (process.listenerCount(signal) === 1) {
+						// If there is only one listener, that's us
+						// Log the error, it is the right thing to do.
+						console.error(msg)
+					} else {
+						if (this.debug) this.consoleLog(msg)
+					}
 
 					this.killAllChildren()
 					.catch(this.consoleError)
@@ -587,7 +622,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				}
 
 				// Do something when app is closing:
-				process.on('exit', (code: number) => onSignal('process.exit', `exit code: ${code}`))
+				process.on('exit', (code: number) => onSignal('exit', `exit code: ${code}`))
 
 				// catches ctrl+c event
 				process.on('SIGINT', () => onSignal('SIGINT'))
@@ -603,6 +638,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 				// catches uncaught exceptions
 				process.on('uncaughtException', (message) => onSignal('uncaughtException', message.toString()))
+				process.on('unhandledRejection', (message) => onSignal('unhandledRejection', message ? message.toString() : undefined))
 			}
 		}
 		this.isInitialized = true

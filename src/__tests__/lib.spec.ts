@@ -5,11 +5,11 @@ import {
 	getWorkerThreads
 } from '../shared/lib'
 import { ThreadedClassManager } from '..'
-import { ThreadMode } from '../parent-process/manager'
+import { ThreadMode, RegisterExitHandlers } from '../parent-process/manager'
 
 describe('lib', () => {
 	beforeAll(() => {
-		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 	})
 	console.log('process.version', process.version)

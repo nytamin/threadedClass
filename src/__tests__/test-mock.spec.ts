@@ -1,11 +1,12 @@
 jest.mock('casparcg-connection')
 import { threadedClass, ThreadedClassManager } from '..'
 import { TestClass2 } from '../../test-lib/testClass2'
+import { RegisterExitHandlers } from '../parent-process/manager'
 const TESTCLASS_PATH = '../../test-lib/testClass2.js'
 
 describe('Test with Jest mock', () => {
 	beforeAll(() => {
-		ThreadedClassManager.dontHandleExit = true
+		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 	})
 
