@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.9.0](https://github.com/nytamin/threadedClass/compare/0.8.3...0.9.0) (2021-04-22)
+
+
+### Features
+
+* add environemnt variable to use a worker_thread loader script ([#42](https://github.com/nytamin/threadedClass/issues/42)) ([e931372](https://github.com/nytamin/threadedClass/commit/e931372585770acfe960495726e6bbbb167e8d5c))
+* make exit handlers opt-in [#45](https://github.com/nytamin/threadedClass/issues/45) ([#47](https://github.com/nytamin/threadedClass/issues/47)) ([5c4bb34](https://github.com/nytamin/threadedClass/commit/5c4bb344d10d520f2193a9ab072961ecb4e794d1))
+
 ### [0.8.3](https://github.com/nytamin/threadedClass/compare/0.8.2...0.8.3) (2020-12-09)
 
 
