@@ -607,7 +607,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					let msg = `Signal "${signal}" event`
 					if (message) msg += ', ' + message
 
-					if (process.listenerCount(signal) == 1) {
+					if (process.listenerCount(signal) === 1) {
 						// If there is only one listener, that's us
 						// Log the error, it is the right thing to do.
 						console.error(msg)
