@@ -2369,13 +2369,13 @@ img {
 			<a href="registerexithandlers.html" class="tsd-kind-icon">Register<wbr>Exit<wbr>Handlers</a>
 			<ul>
 				<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
-					<a href="registerexithandlers.html#auto" class="tsd-kind-icon">Auto</a>
+					<a href="registerexithandlers.html#auto" class="tsd-kind-icon">AUTO</a>
 				</li>
 				<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
-					<a href="registerexithandlers.html#no" class="tsd-kind-icon">No</a>
+					<a href="registerexithandlers.html#no" class="tsd-kind-icon">NO</a>
 				</li>
 				<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
-					<a href="registerexithandlers.html#yes" class="tsd-kind-icon">Yes</a>
+					<a href="registerexithandlers.html#yes" class="tsd-kind-icon">YES</a>
 				</li>
 			</ul>
 		</li>
@@ -2390,9 +2390,9 @@ img {
 					<section class="tsd-index-section tsd-is-external">
 						<h3>Enumeration members</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#auto" class="tsd-kind-icon">Auto</a></li>
-							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#no" class="tsd-kind-icon">No</a></li>
-							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#yes" class="tsd-kind-icon">Yes</a></li>
+							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#auto" class="tsd-kind-icon">AUTO</a></li>
+							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#no" class="tsd-kind-icon">NO</a></li>
+							<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external"><a href="registerexithandlers.html#yes" class="tsd-kind-icon">YES</a></li>
 						</ul>
 					</section>
 				</div>
@@ -2402,33 +2402,48 @@ img {
 			<h2>Enumeration members</h2>
 			<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
 				<a name="auto" class="tsd-anchor"></a>
-				<h3>Auto</h3>
-				<div class="tsd-signature tsd-kind-icon">Auto<span class="tsd-signature-symbol">:</span></div>
+				<h3>AUTO</h3>
+				<div class="tsd-signature tsd-kind-icon">AUTO<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> = -1</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L20">src/parent-process/manager.ts:20</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5c4bb34/src/parent-process/manager.ts#L21">src/parent-process/manager.ts:21</a></li>
 					</ul>
 				</aside>
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Do a check if any exit handlers have been registered by someone else, and if so</p>
+					</div>
+				</div>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
 				<a name="no" class="tsd-anchor"></a>
-				<h3>No</h3>
-				<div class="tsd-signature tsd-kind-icon">No<span class="tsd-signature-symbol">:</span></div>
+				<h3>NO</h3>
+				<div class="tsd-signature tsd-kind-icon">NO<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> = 0</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L22">src/parent-process/manager.ts:22</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5c4bb34/src/parent-process/manager.ts#L25">src/parent-process/manager.ts:25</a></li>
 					</ul>
 				</aside>
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Don&#39;t set up any exit handlers (depending on your environment and Node version, children might need to be manually killed).</p>
+					</div>
+				</div>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-external">
 				<a name="yes" class="tsd-anchor"></a>
-				<h3>Yes</h3>
-				<div class="tsd-signature tsd-kind-icon">Yes<span class="tsd-signature-symbol">:</span></div>
+				<h3>YES</h3>
+				<div class="tsd-signature tsd-kind-icon">YES<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> = 1</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/20beb50/src/parent-process/manager.ts#L21">src/parent-process/manager.ts:21</a></li>
+						<li>Defined in <a href="https://github.com/nytamin/threadedClass/blob/5c4bb34/src/parent-process/manager.ts#L23">src/parent-process/manager.ts:23</a></li>
 					</ul>
 				</aside>
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Set up exit handlers to ensure child processes are killed on exit signal.</p>
+					</div>
+				</div>
 			</section>
 		</section>
 		<footer class="with-border-bottom">

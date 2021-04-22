@@ -419,6 +419,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const manager_1 = require("./parent-process/manager");
 exports.ThreadedClassManager = manager_1.ThreadedClassManager;
+exports.RegisterExitHandlers = manager_1.RegisterExitHandlers;
 tslib_1.__exportStar(require("./parent-process/threadedClass"), exports);
 
 },{"./parent-process/manager":4,"./parent-process/threadedClass":5,"tslib":23}],4:[function(require,module,exports){
@@ -435,9 +436,12 @@ const childProcess_1 = require("./workerPlatform/childProcess");
 const fakeWorker_1 = require("./workerPlatform/fakeWorker");
 var RegisterExitHandlers;
 (function (RegisterExitHandlers) {
-    RegisterExitHandlers[RegisterExitHandlers["Auto"] = 0] = "Auto";
-    RegisterExitHandlers[RegisterExitHandlers["Yes"] = 1] = "Yes";
-    RegisterExitHandlers[RegisterExitHandlers["No"] = 2] = "No";
+    /** Do a check if any exit handlers have been registered by someone else, and if so */
+    RegisterExitHandlers[RegisterExitHandlers["AUTO"] = -1] = "AUTO";
+    /** Set up exit handlers to ensure child processes are killed on exit signal. */
+    RegisterExitHandlers[RegisterExitHandlers["YES"] = 1] = "YES";
+    /** Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed). */
+    RegisterExitHandlers[RegisterExitHandlers["NO"] = 0] = "NO";
 })(RegisterExitHandlers = exports.RegisterExitHandlers || (exports.RegisterExitHandlers = {}));
 class ThreadedClassManagerClass {
     constructor(internal) {
@@ -529,7 +533,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     constructor() {
         super(...arguments);
         /** Set to true if you want to handle the exiting of child process yourselt */
-        this.handleExit = RegisterExitHandlers.Auto;
+        this.handleExit = RegisterExitHandlers.AUTO;
         this.isInitialized = false;
         this._threadId = 0;
         this._instanceId = 0;
@@ -907,26 +911,26 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         if (!this.isInitialized &&
             !lib_1.isBrowser() // in NodeJS
         ) {
-            let doRegister = false;
+            let registerExitHandlers;
             switch (this.handleExit) {
-                case RegisterExitHandlers.Yes:
-                    doRegister = true;
-                    if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
-                        this.consoleLog('No other exit handler is registered, this may exit silently on error');
-                    }
+                case RegisterExitHandlers.YES:
+                    registerExitHandlers = true;
                     break;
-                case RegisterExitHandlers.Auto:
+                case RegisterExitHandlers.AUTO:
                     if (process.listenerCount('exit') === 0 || process.listenerCount('uncaughtException') === 0 || process.listenerCount('unhandledRejection') === 0) {
-                        this.consoleLog('Skippig exit handler registration as no exit handler is registered');
+                        this.consoleLog('Skipping exit handler registration as no exit handler is registered');
+                        // If no listeners are registered,
+                        // we don't want to change the default Node behaviours upon those signals
+                        registerExitHandlers = false;
                     }
                     else {
-                        doRegister = true;
+                        registerExitHandlers = true;
                     }
                     break;
-                case RegisterExitHandlers.No:
-                    break;
+                default: // RegisterExitHandlers.NO
+                    registerExitHandlers = false;
             }
-            if (doRegister) {
+            if (registerExitHandlers) {
                 // Close the child processes upon exit:
                 process.stdin.resume(); // so the program will not close instantly
                 // Read about Node signals here:
@@ -935,14 +939,21 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     let msg = `Signal "${signal}" event`;
                     if (message)
                         msg += ', ' + message;
-                    if (this.debug)
-                        this.consoleLog(msg);
+                    if (process.listenerCount(signal) === 1) {
+                        // If there is only one listener, that's us
+                        // Log the error, it is the right thing to do.
+                        console.error(msg);
+                    }
+                    else {
+                        if (this.debug)
+                            this.consoleLog(msg);
+                    }
                     this.killAllChildren()
                         .catch(this.consoleError);
                     process.exit();
                 };
                 // Do something when app is closing:
-                process.on('exit', (code) => onSignal('process.exit', `exit code: ${code}`));
+                process.on('exit', (code) => onSignal('exit', `exit code: ${code}`));
                 // catches ctrl+c event
                 process.on('SIGINT', () => onSignal('SIGINT'));
                 // Terminal windows closed
