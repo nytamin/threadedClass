@@ -234,6 +234,13 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 				if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
 				if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
 				if (typeof arg === 'function') {
+					// have we seen this one before?
+					for (const id in callbacks) {
+						if (callbacks[id] === arg) {
+							return { type: ArgumentType.FUNCTION, value: id + '' }
+						}
+					}
+					// new function, so add it to our list
 					const callbackId = argumentsCallbackId++
 					callbacks[callbackId + ''] = arg
 					return { type: ArgumentType.FUNCTION, value: callbackId + '' }

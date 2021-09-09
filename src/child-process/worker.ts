@@ -25,6 +25,7 @@ export abstract class Worker {
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
 	private callbacks: {[key: string]: Function} = {}
+	private remoteFns: {[key: string]: (...args: any[]) => Promise<any>} = {}
 
 	protected disabledMultithreading: boolean = false
 
@@ -83,24 +84,30 @@ export abstract class Worker {
 	private decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
 		// Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
 		return decodeArguments(() => handle.instance, args, (a: ArgDefinition) => {
-			return ((...args: any[]) => {
-				return new Promise((resolve, reject) => {
-					const callbackId = a.value
-					this.sendCallback(
-						handle,
-						callbackId,
-						args,
-						(err, encodedResult) => {
-							if (err) {
-								reject(err)
-							} else {
-								const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult]
-								resolve(result[0])
+			const callbackId = a.value
+
+			if (!this.remoteFns[callbackId]) {
+				this.remoteFns[callbackId] = ((...args: any[]) => {
+					return new Promise((resolve, reject) => {
+						const callbackId = a.value
+						this.sendCallback(
+							handle,
+							callbackId,
+							args,
+							(err, encodedResult) => {
+								if (err) {
+									reject(err)
+								} else {
+									const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult]
+									resolve(result[0])
+								}
 							}
-						}
-					)
+						)
+					})
 				})
-			})
+			}
+
+			return this.remoteFns[callbackId]
 		})
 	}
 	private encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {

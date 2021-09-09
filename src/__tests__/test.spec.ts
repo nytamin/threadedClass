@@ -98,6 +98,14 @@ const getTests = (disableMultithreading: boolean) => {
 			await new Promise((resolve) => { setTimeout(resolve, 200) })
 			expect(onEvent).toHaveBeenCalledTimes(1)
 
+			onEvent.mockClear()
+			await threaded.removeListener('test', onEvent)
+
+			await threaded.doEmit('test')
+
+			await new Promise((resolve) => { setTimeout(resolve, 200) })
+			expect(onEvent).toHaveBeenCalledTimes(0)
+
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
