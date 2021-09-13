@@ -54,6 +54,7 @@ class Worker {
         };
         this.instanceHandles = {};
         this.callbacks = {};
+        this.remoteFns = {};
         this.disabledMultithreading = false;
         this._parentPid = 0;
         this.log = (...data) => {
@@ -108,20 +109,24 @@ class Worker {
     decodeArgumentsFromParent(handle, args) {
         // Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
         return sharedApi_1.decodeArguments(() => handle.instance, args, (a) => {
-            return ((...args) => {
-                return new Promise((resolve, reject) => {
-                    const callbackId = a.value;
-                    this.sendCallback(handle, callbackId, args, (err, encodedResult) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        else {
-                            const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult];
-                            resolve(result[0]);
-                        }
+            const callbackId = a.value;
+            if (!this.remoteFns[callbackId]) {
+                this.remoteFns[callbackId] = ((...args) => {
+                    return new Promise((resolve, reject) => {
+                        const callbackId = a.value;
+                        this.sendCallback(handle, callbackId, args, (err, encodedResult) => {
+                            if (err) {
+                                reject(err);
+                            }
+                            else {
+                                const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult];
+                                resolve(result[0]);
+                            }
+                        });
                     });
                 });
-            });
+            }
+            return this.remoteFns[callbackId];
         });
     }
     encodeArgumentsToParent(instance, args) {
@@ -1796,6 +1801,13 @@ function encodeArguments(instance, callbacks, args, disabledMultithreading) {
                 if (typeof arg === 'number')
                     return { type: ArgumentType.NUMBER, value: arg };
                 if (typeof arg === 'function') {
+                    // have we seen this one before?
+                    for (const id in callbacks) {
+                        if (callbacks[id] === arg) {
+                            return { type: ArgumentType.FUNCTION, value: id + '' };
+                        }
+                    }
+                    // new function, so add it to our list
                     const callbackId = argumentsCallbackId++;
                     callbacks[callbackId + ''] = arg;
                     return { type: ArgumentType.FUNCTION, value: callbackId + '' };
