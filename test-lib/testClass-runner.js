@@ -15,6 +15,9 @@ const TESTCLASS_PATH = './testClass.js';
         if (process.send) {
             process.send(childPid);
         }
-        process.on('message', () => process.exit(99));
+        process.on('message', () => {
+            console.log('die');
+            process.exit(99);
+        });
     });
 })();

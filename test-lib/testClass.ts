@@ -5,9 +5,13 @@ export class TestClass extends EventEmitter {
 	private myself: TestClass
 
 	private param1: any
+	private param2: any
 
 	set Param1 (val: any) {
 		this.param1 = val
+	}
+	set Param2 (val: any) {
+		this.param2 = val
 	}
 
 	constructor (param1?: any) {
@@ -37,8 +41,14 @@ export class TestClass extends EventEmitter {
 	public setParam1 (val: any) {
 		return this.param1 = val
 	}
+	public setParam2 (val: any) {
+		return this.param2 = val
+	}
 	public callParam1<T> (...args: any[]): T {
 		return this.param1(...args)
+	}
+	public areParamsEqual (): boolean {
+		return this.param1 && this.param1 === this.param2
 	}
 	public callParam1Function<T> (...args: any[]): T {
 		return this.param1.fcn(...args)

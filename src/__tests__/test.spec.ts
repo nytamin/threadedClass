@@ -52,6 +52,7 @@ const getTests = (disableMultithreading: boolean) => {
 			expect(await threaded.getWindows('')).toHaveLength(2)
 			expect(await threaded.getRooms()).toHaveLength(1)
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
@@ -70,6 +71,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(await threaded.returnValue('asdf')).toEqual('asdf')
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
@@ -106,6 +108,7 @@ const getTests = (disableMultithreading: boolean) => {
 			await new Promise((resolve) => { setTimeout(resolve, 200) })
 			expect(onEvent).toHaveBeenCalledTimes(0)
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -132,6 +135,7 @@ const getTests = (disableMultithreading: boolean) => {
 			// await new Promise((resolve) => { setTimeout(resolve, 200) })
 			expect(result).toEqual('parent,child,parent2,child2')
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -150,6 +154,7 @@ const getTests = (disableMultithreading: boolean) => {
 			}], { disableMultithreading })
 			expect(await threaded.host).toEqual('192.168.0.1')
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -168,6 +173,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(euroSign2).toEqual(euroSign)
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
@@ -273,6 +279,7 @@ const getTests = (disableMultithreading: boolean) => {
 			threaded.writeonly = 13
 			expect(await threaded.writeonly).toEqual(undefined)
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -406,6 +413,7 @@ const getTests = (disableMultithreading: boolean) => {
 				}
 			}
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
@@ -435,6 +443,7 @@ const getTests = (disableMultithreading: boolean) => {
 					expect(returned).toEqual(value)
 				}
 
+				expect((threaded as any).__uncaughtError).toBeFalsy()
 				await ThreadedClassManager.destroy(threaded)
 				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			}
@@ -465,6 +474,7 @@ const getTests = (disableMultithreading: boolean) => {
 				}
 			}
 
+			// expect((threaded as any).__uncaughtError).toBeFalsy()
 			// await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
@@ -476,6 +486,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 		// 	expect(await threaded.callParam1Function(40, 1)).toEqual(42)
 
+		// expect((threaded as any).__uncaughtError).toBeFalsy()
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
@@ -486,6 +497,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			expect(await threaded.callParam1(40, 1)).toEqual(42)
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -495,15 +507,21 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	await threaded.setParam1({ fcn: (num0: number, num1: number): number => num0 + num1 + 1 })
 		// 	expect(await threaded.callParam1Function(40, 1)).toEqual(42)
 
+		// expect((threaded as any).__uncaughtError).toBeFalsy()
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
 		test('execute callback loaded via function', async () => {
 			let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			await threaded.setParam1((num0: number, num1: number): number => num0 + num1 + 1)
+			const fcn = (num0: number, num1: number): number => num0 + num1 + 1
+			await threaded.setParam1(fcn)
 			expect(await threaded.callParam1(40, 1)).toEqual(42)
 
+			await threaded.setParam2(fcn)
+			expect(await threaded.areParamsEqual()).toBeTruthy()
+
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -513,15 +531,22 @@ const getTests = (disableMultithreading: boolean) => {
 		// 	threaded.Param1 = Promise.resolve({ fcn: (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1) })
 		// 	expect(await threaded.callParam1Function(40, 1)).toEqual(42)
 
+		// expect((threaded as any).__uncaughtError).toBeFalsy()
 		// 	await ThreadedClassManager.destroy(threaded)
 		// 	expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		// })
 		test('execute callback loaded via setter', async () => {
 			let threaded = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { disableMultithreading })
 
-			threaded.Param1 = (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1)
+			const fcn = (num0: number, num1: number): Promise<number> => Promise.resolve(num0 + num1 + 1)
+			threaded.Param1 = fcn
+			await new Promise(resolve => setTimeout(resolve, 300))
 			expect(await threaded.callParam1(40, 1)).toEqual(42)
 
+			threaded.Param2 = fcn
+			expect(await threaded.areParamsEqual()).toBeTruthy()
+
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
@@ -766,6 +791,7 @@ const getTests = (disableMultithreading: boolean) => {
 				expect(error.toString()).toMatch(/test\.spec\.ts/) // path to this file
 			}
 
+			expect((threaded as any).__uncaughtError).toBeFalsy()
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 

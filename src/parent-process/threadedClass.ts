@@ -282,6 +282,8 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 										(_instance, err, _result) => {
 											if (err) {
 												console.log('Error in setter', err)
+												// hack, used in unit tests:
+												;(proxy as any).__uncaughtError = err
 											}
 										}
 									)

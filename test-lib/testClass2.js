@@ -6,10 +6,10 @@ class TestClass2 {
         this.ccg = new casparcg_connection_1.CasparCG();
     }
     isOkay() {
-        if (this.ccg)
+        // @ts-ignore
+        if (this.ccg && this.ccg.isMock())
             return true;
-        else
-            return false;
+        return false;
     }
 }
 exports.TestClass2 = TestClass2;

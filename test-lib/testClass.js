@@ -12,6 +12,9 @@ class TestClass extends events_1.EventEmitter {
     set Param1(val) {
         this.param1 = val;
     }
+    set Param2(val) {
+        this.param2 = val;
+    }
     getPid() {
         return process.pid;
     }
@@ -30,8 +33,14 @@ class TestClass extends events_1.EventEmitter {
     setParam1(val) {
         return this.param1 = val;
     }
+    setParam2(val) {
+        return this.param2 = val;
+    }
     callParam1(...args) {
         return this.param1(...args);
+    }
+    areParamsEqual() {
+        return this.param1 && this.param1 === this.param2;
     }
     callParam1Function(...args) {
         return this.param1.fcn(...args);
