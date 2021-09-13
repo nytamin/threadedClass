@@ -6,8 +6,10 @@ export class TestClass2 {
 		this.ccg = new CasparCG()
 	}
 	public isOkay (): boolean {
-		// @ts-ignore
-		if (this.ccg && this.ccg.isMock()) return true
-		return false
+		if (this.ccg) return true
+		else return false
+		// // @ts-ignore
+		// if (this.ccg && this.ccg.isMock()) return true
+		// return false
 	}
 }
