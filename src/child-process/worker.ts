@@ -347,7 +347,8 @@ export abstract class Worker {
 			const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
 			instance[msg.property] = fixedValue
 
-			this.replyToInstanceMessage(handle, msg, fixedValue)
+			const encodedResult = this.encodeArgumentsToParent(instance, [fixedValue])
+			this.replyToInstanceMessage(handle, msg, encodedResult[0])
 		} else if (m.cmd === Message.To.Instance.CommandType.KILL) {
 			let msg: Message.To.Instance.Kill = m
 			// kill off instance
