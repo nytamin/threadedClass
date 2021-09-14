@@ -40,7 +40,7 @@
     "docs:publish": "yarn docs:prepare && gh-pages -d docs -m \"Updates [skip ci]\"",
     "docs:copy": "gulp copy-to-docs",
     "help": "gh-pages -h",
-    "changelog": "standard-version",
+    "release": "standard-version",
     "reset": "git clean -dfx && git reset --hard && yarn",
     "validate:dependencies": "yarn audit --groups dependencies",
     "validate:dev-dependencies": "yarn audit --groups devDependencies"
@@ -56,9 +56,8 @@
     "docs": "Generate HTML API documentation and open it in a browser",
     "docs:publish": "Generate HTML API documentation and push it to GitHub Pages",
     "docs:json": "Generate API documentation in typedoc JSON format",
-    "changelog": "Bump package.json version, update CHANGELOG.md, tag a release",
-    "reset": "Delete all untracked files and reset the repo to the last commit",
-    "release": "Clean, build, test, publish docs, and prepare release (a one-step publish process)"
+    "release": "Bump package.json version, update CHANGELOG.md, tag a release",
+    "reset": "Delete all untracked files and reset the repo to the last commit"
   },
   "engines": {
     "node": ">=8.0"
