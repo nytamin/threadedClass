@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/nytamin/threadedClass/compare/0.9.0...1.0.0) (2021-09-14)
+
+
+### Bug Fixes
+
+* fix error in setter ([25b87cf](https://github.com/nytamin/threadedClass/commit/25b87cf8d1310dab75f52bc79804bbc2cf20c738))
+* reuse callbacks where possible ([ba8e5b1](https://github.com/nytamin/threadedClass/commit/ba8e5b1b45bf0b6178fd8f9c642df5889a089321))
+
 ## [0.9.0](https://github.com/nytamin/threadedClass/compare/0.8.3...0.9.0) (2021-04-22)
 
 
