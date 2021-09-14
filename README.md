@@ -1,5 +1,5 @@
 # Threaded class
-[![CircleCI](https://circleci.com/gh/nytamin/threadedClass.svg?style=svg)](https://circleci.com/gh/nytamin/threadedClass)
+[![Lint and Test](https://github.com/nytamin/threadedClass/actions/workflows/lint-and-test.yml/badge.svg)](https://github.com/nytamin/threadedClass/actions/workflows/lint-and-test.yml)
 [![codecov](https://codecov.io/gh/nytamin/threadedClass/branch/master/graph/badge.svg)](https://codecov.io/gh/nytamin/threadedClass)
 
 Fork instances of classes (while keeping typings) with one line of code.
@@ -21,7 +21,7 @@ function getStory() {
 }
 ```
 `Threaded-class` helps you create an asynchronous version of the instance of that class.
-The instance will have _almost_ the same typings-API as the original (all methods return promises instead), but will run in a separate thread. 
+The instance will have _almost_ the same typings-API as the original (all methods return promises instead), but will run in a separate thread.
 ```typescript
 // Multi-threaded, asynchronous way:
 import { threadedClass} from 'threadedclass'

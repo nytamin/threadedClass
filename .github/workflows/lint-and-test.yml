@@ -70,3 +70,8 @@ jobs:
           yarn test
         env:
           CI: true
+      - name: Send test coverage
+        run: |
+          yarn send-coverage
+        env:
+          CI: true
