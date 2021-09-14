@@ -41,7 +41,6 @@
     "docs:copy": "gulp copy-to-docs",
     "help": "gh-pages -h",
     "changelog": "standard-version",
-    "release": "yarn reset && yarn build && yarn test && yarn docs:publish && yarn changelog",
     "reset": "git clean -dfx && git reset --hard && yarn",
     "validate:dependencies": "yarn audit --groups dependencies",
     "validate:dev-dependencies": "yarn audit --groups devDependencies"
