@@ -67,7 +67,7 @@ jobs:
           CI: true
       - name: Run unit tests
         run: |
-          yarn test
+          yarn unit
         env:
           CI: true
 
@@ -82,14 +82,21 @@ jobs:
         with:
           node-version: 14.x
       - name: Prepare Environment
-        run: |
-          yarn
-          yarn build
+        run: yarn
+        env:
+          CI: true
+      - name: Fix codecov version issue
+      # This is to fix an issue in codecov, doing it here because it requires Node>=10 and threadedclass still supports >=8
+        run: yarn add codecov@^3.8.3
+        env:
+          CI: true
+      - name: Build
+        run: yarn build
         env:
           CI: true
       - name: Run unit tests
         run: |
-          yarn test
+          yarn unit
         env:
           CI: true
       - name: Send test coverage
