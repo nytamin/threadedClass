@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.1](https://github.com/nytamin/threadedClass/compare/1.0.0...1.0.1) (2022-01-13)
+
+
+### Bug Fixes
+
+* only resolve error stack when needed. ([5afb47b](https://github.com/nytamin/threadedClass/commit/5afb47b9ad378e87c8f61c00b7da6f899990f629))
+
 ## [1.0.0](https://github.com/nytamin/threadedClass/compare/0.9.0...1.0.0) (2021-09-14)
 
 
