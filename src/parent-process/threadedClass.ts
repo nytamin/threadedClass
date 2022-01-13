@@ -204,7 +204,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							const fcn = (...args: any[]) => {
 								// An instance method is called by parent
 
-								const originalStack = 'Original stack:\n' + new Error().stack
+								const originalError = new Error()
 
 								if (!instance.child) return Promise.reject(new Error(`Instance ${instance.id} has been detached from child process`))
 
@@ -220,6 +220,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 											// Function result is returned from worker
 
 											if (err) {
+												const originalStack = 'Original stack:\n' + originalError.stack
 												if (typeof err === 'string') {
 													err += '\n' + originalStack
 												} else {
