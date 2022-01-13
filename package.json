@@ -110,7 +110,7 @@
     "tslib": "^1.13.0"
   },
   "standard-version": {
-    "message": "chore(release): %s [skip ci]",
+    "message": "chore(release): %s",
     "tagPrefix": ""
   }
 }
