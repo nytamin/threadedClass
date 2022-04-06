@@ -155,8 +155,6 @@ const getTests = (disableMultithreading: boolean) => {
 					expect(err).toMatch(/errors.spec/)
 				})
 			}
-
-
 		}
 	}
 }
