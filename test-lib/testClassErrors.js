@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TestClassErrors = void 0;
 const tslib_1 = require("tslib");
 const events_1 = require("events");
 class TestClassErrors extends events_1.EventEmitter {
@@ -30,7 +31,7 @@ class TestClassErrors extends events_1.EventEmitter {
     emitEventAsync(eventName) {
         setTimeout(() => {
             Promise.resolve()
-                .then(() => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                .then(() => (0, tslib_1.__awaiter)(this, void 0, void 0, function* () {
                 try {
                     yield Promise.resolve(this.emit(eventName, 'testData'));
                 }
@@ -45,7 +46,7 @@ class TestClassErrors extends events_1.EventEmitter {
         return this.lastAsyncError;
     }
     callCallback(cb) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return (0, tslib_1.__awaiter)(this, void 0, void 0, function* () {
             const value = yield cb();
             return value;
         });
