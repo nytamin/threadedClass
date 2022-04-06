@@ -182,6 +182,8 @@ export abstract class Worker {
 	private handleInstanceMessageFromParent (m: Message.To.Instance.Any, handle: InstanceHandle) {
 		const instance = handle.instance
 		if (m.cmd === Message.To.Instance.CommandType.INIT) {
+			// This is the initial message sent from the parent process upon initialization.
+
 			const msg: Message.To.Instance.Init = m
 
 			this._config = m.config
@@ -322,8 +324,12 @@ export abstract class Worker {
 			}
 
 		} else if (m.cmd === Message.To.Instance.CommandType.PING) {
+			// This is a message from the parent process. It's just a ping, used to check if this instance is alive.
 			this.replyToInstanceMessage(handle, m, null)
+
 		} else if (m.cmd === Message.To.Instance.CommandType.REPLY) {
+			// A reply to an earlier message.
+
 			const msg: Message.To.Instance.Reply = m
 			let cb = handle.queue[msg.replyTo + '']
 			if (!cb) throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`)
@@ -366,6 +372,8 @@ export abstract class Worker {
 				this.replyInstanceError(handle, msg, errorResponse)
 			})
 		} else if (m.cmd === Message.To.Instance.CommandType.SET) {
+			// A setter has been called by the parent
+
 			let msg: Message.To.Instance.Set = m
 
 			const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
@@ -374,12 +382,17 @@ export abstract class Worker {
 			const encodedResult = this.encodeArgumentsToParent(instance, [fixedValue])
 			this.replyToInstanceMessage(handle, msg, encodedResult[0])
 		} else if (m.cmd === Message.To.Instance.CommandType.KILL) {
+			// A Kill-command has been sent by the parent.
+
 			let msg: Message.To.Instance.Kill = m
 			// kill off instance
 			this.killInstance(handle)
 
 			this.replyToInstanceMessage(handle, msg, null)
 		} else if (m.cmd === Message.To.Instance.CommandType.CALLBACK) {
+			// A callback has been called by the parent.
+			// A "callback" is a function that has been sent to the parent process from the child instance.
+
 			let msg: Message.To.Instance.Callback = m
 			let callback = this.callbacks[msg.callbackId]
 			if (callback) {
