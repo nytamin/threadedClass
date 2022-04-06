@@ -113,40 +113,50 @@ const getTests = (disableMultithreading: boolean) => {
 				await threaded.clearUnhandledPromiseRejections()
 			})
 
-			test('Internal error when sending invalid value', async () => {
+			const m = (process.version + '').match(/(\d+)\.(\d+)\.(\d+)/)
+			if (
+				m &&
+				m[1] &&
+				parseInt(m[1], 10) >= 11
+			) {
+				// DataCloneError is introduced in Node.js 11+
+				test('Internal error when sending invalid value', async () => {
 
-				let err: string | undefined
-				try {
-					await threaded.receiveValue({
-						a: () => {
-							// This is a function.
-							// ThreadedClass doesn't support functions inside of objects.
-							// Sending this will throw a DataCloneError.
-						}
-					})
-				} catch (e) {
-					if (typeof e === 'object') err = e.stack
-					else err = `${e}`
-				}
+					let err: string | undefined
+					try {
+						await threaded.receiveValue({
+							a: () => {
+								// This is a function.
+								// ThreadedClass doesn't support functions inside of objects.
+								// Sending this will throw a DataCloneError.
+							}
+						})
+					} catch (e) {
+						if (typeof e === 'object') err = e.stack
+						else err = `${e}`
+					}
 
-				expect(err).toMatch(/DataCloneError/)
-				// ensure that the original path is included in the stack-trace:
-				expect(err).toMatch(/errors.spec/)
+					expect(err).toMatch(/DataCloneError/)
+					// ensure that the original path is included in the stack-trace:
+					expect(err).toMatch(/errors.spec/)
 
-			})
-			test('Internal error when returning invalid value in callback', async () => {
-				let err: string | undefined
-				try {
-					await threaded.callCallback(cbReturnBadValue)
-				} catch (e) {
-					if (typeof e === 'object') err = e.stack
-					else err = `${e}`
-				}
+				})
+				test('Internal error when returning invalid value in callback', async () => {
+					let err: string | undefined
+					try {
+						await threaded.callCallback(cbReturnBadValue)
+					} catch (e) {
+						if (typeof e === 'object') err = e.stack
+						else err = `${e}`
+					}
 
-				expect(err).toMatch(/DataCloneError/)
-				// ensure that the original path is included in the stack-trace:
-				expect(err).toMatch(/errors.spec/)
-			})
+					expect(err).toMatch(/DataCloneError/)
+					// ensure that the original path is included in the stack-trace:
+					expect(err).toMatch(/errors.spec/)
+				})
+			}
+
+
 		}
 	}
 }
