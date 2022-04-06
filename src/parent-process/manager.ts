@@ -249,14 +249,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 		return new Promise((resolve, reject) => {
 			let foundProxy = false
-			Object.keys(this._children).find((childId) => {
+			for (const childId of Object.keys(this._children)) {
 				const child = this._children[childId]
 
-				const instanceId = Object.keys(child.instances).find((instanceId) => {
-					let instance = child.instances[instanceId]
-
-					return (instance.proxy === proxy)
-				})
+				const instanceId = this.findProxyInstanceOfChild(child, proxy)
 				if (instanceId) {
 					let instance = child.instances[instanceId]
 					foundProxy = true
@@ -269,7 +265,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					} else {
 						const cleanup = () => {
-							delete instance.child
+							// delete instance.child
 							delete child.instances[instanceId]
 						}
 						this.sendMessageToInstance(instance, {
@@ -286,11 +282,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 							child.usage -= instance.usage
 						}
 					}
-
-					return true
+					break
 				}
-				return false
-			})
+			}
 			if (!foundProxy) {
 				reject('killProxy: Proxy not found')
 			}
@@ -364,7 +358,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 		await Promise.all(
 			Object.keys(this._children).map((childId) => {
-				return new Promise((resolve) => {
+				return new Promise<void>((resolve) => {
 					const child = this._children[childId]
 					this.sendMessageToChild(child, {
 						cmd: Message.To.Child.CommandType.GET_MEM_USAGE
@@ -400,25 +394,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			return
 		})
 	}
+	/** Restart the thread of a proxy instance */
 	public async restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		let foundInstance: ChildInstance | undefined
 		let foundChild: Child | undefined
-		Object.keys(this._children).find((childId: string) => {
-			const child = this._children[childId]
-			const found = Object.keys(child.instances).find((instanceId: string) => {
-				const instance = child.instances[instanceId]
-				if (instance.proxy === proxy) {
-					foundInstance = instance
-					return true
-				}
-				return false
-			})
-			if (found) {
+		for (const child of Object.values(this._children)) {
+			const foundInstanceId = this.findProxyInstanceOfChild(child, proxy)
+			if (foundInstanceId) {
+				foundInstance = child.instances[foundInstanceId]
 				foundChild = child
-				return true
+				break
 			}
-			return false
-		})
+		}
 		if (!foundChild) throw Error(`Child of proxy not found`)
 		if (!foundInstance) throw Error(`Instance of proxy not found`)
 
@@ -432,7 +419,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		if (!child.alive) {
 			// clear old process:
 			child.process.removeAllListeners()
-			delete child.process
+			// delete child.process
 
 			Object.keys(child.instances).forEach((instanceId) => {
 				const instance = child.instances[instanceId]
@@ -445,7 +432,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			child.process = this._createFork(child.config, child.pathToWorker)
 			this._setupChildProcess(child)
 		}
-		let p = new Promise((resolve, reject) => {
+		let p = new Promise<void>((resolve, reject) => {
 			const onInit = (child: Child) => {
 				if (child === child) {
 					resolve()
@@ -840,9 +827,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						if (!dontCleanUp) {
 							// Clean up:
 							Object.keys(child.instances).forEach(instanceId => {
-								const instance = child.instances[instanceId]
-
-								delete instance.child
+								// const instance = child.instances[instanceId]
+								// delete instance.child
 								delete child.instances[instanceId]
 							})
 							delete this._children[child.id]
@@ -878,6 +864,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private consoleLog (...args: any[]) {
 		console.log(`ThreadedClass (${this.uniqueId})`, ...args)
 
+	}
+	/** Look up which instance contains a proxy, and return its instanceId */
+	private findProxyInstanceOfChild (child: Child, proxy: ThreadedClass<any>): string | undefined {
+		for (const instanceId of Object.keys(child.instances)) {
+			let instance = child.instances[instanceId]
+
+			if (instance.proxy === proxy) return instanceId
+		}
+		return undefined
 	}
 }
 
