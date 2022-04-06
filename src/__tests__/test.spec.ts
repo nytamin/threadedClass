@@ -13,13 +13,6 @@ import { ThreadMode, RegisterExitHandlers } from '../parent-process/manager'
 const HOUSE_PATH = '../../test-lib/house.js'
 const RENAME_PATH = '../../test-lib/rename.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
-// const TESTCLASS_PATH_UNSYNCED = '../../test-lib/testClass-unsynced.js'
-
-// function wait (time: number) {
-// 	return new Promise((resolve) => {
-// 		setTimeout(resolve, time)
-// 	})
-// }
 
 const doPerformanceTests = false
 
@@ -180,7 +173,6 @@ const getTests = (disableMultithreading: boolean) => {
 		})
 		if (doPerformanceTests) {
 			test('single-thread', async () => {
-				// let startTime = Date.now()
 				let results: Array<number> = []
 				for (let i = 0; i < 5; i++) {
 
@@ -188,13 +180,9 @@ const getTests = (disableMultithreading: boolean) => {
 
 					results.push(myHouse.slowFib(37))
 				}
-				// let endTime = Date.now()
-
-				// console.log('Single-thread: ', results.length, endTime - startTime)
 				expect(results).toHaveLength(5)
 			})
 			test('multi-thread', async () => {
-				// let startTime = Date.now()
 				let threads: ThreadedClass<House>[] = []
 				let results: Array<number> = []
 
@@ -213,12 +201,10 @@ const getTests = (disableMultithreading: boolean) => {
 					)
 				}
 				await Promise.all(ps)
-				// let endTime = Date.now()
 				await Promise.all(threads.map((thread) => {
 					return ThreadedClassManager.destroy(thread)
 				}))
 
-				// console.log('Multi-thread: ', results.length, endTime - startTime)
 				expect(results).toHaveLength(5)
 				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			})

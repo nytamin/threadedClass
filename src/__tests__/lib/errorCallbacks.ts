@@ -4,7 +4,7 @@ export const cbError = () => {
 export const cbReject = () => {
 	return Promise.reject(new Error('Rejected promise 123'))
 }
-export const cbReturnBadValue = () => {
+export const cbReturnBadValue = async () => {
 	return {
 		a: () => {
 			// This is a function.

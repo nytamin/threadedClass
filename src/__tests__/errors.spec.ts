@@ -1,8 +1,7 @@
 import {
 	threadedClass,
 	ThreadedClassManager,
-
-	Promisify
+	ThreadedClass
 } from '../index'
 import { TestClassErrors } from '../../test-lib/testClassErrors'
 import { RegisterExitHandlers } from '../parent-process/manager'
@@ -12,7 +11,7 @@ const TESTCLASS_PATH = '../../test-lib/testClassErrors.js'
 const getTests = (disableMultithreading: boolean) => {
 	return () => {
 
-		let threaded: Promisify<TestClassErrors>
+		let threaded: ThreadedClass<TestClassErrors>
 		let onClosed = jest.fn()
 		let onClosedListener: any
 
