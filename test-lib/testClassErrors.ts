@@ -28,7 +28,7 @@ export class TestClassErrors extends EventEmitter {
 			})
 		}, 1)
 	}
-	public emitEventAsync(eventName: string): void {
+	public emitEventAsync (eventName: string): void {
 		setTimeout(() => {
 			Promise.resolve()
 			.then(async () => {
@@ -41,17 +41,17 @@ export class TestClassErrors extends EventEmitter {
 			.catch(console.error)
 		}, 10)
 	}
-	public getLastAsyncError(): Error | null {
+	public getLastAsyncError (): Error | null {
 		return this.lastAsyncError
 	}
 	public async callCallback (cb: () => Promise<any>): Promise<any> {
 		const value = await cb()
 		return value
 	}
-	public getUnhandledPromiseRejections(): string[] {
+	public getUnhandledPromiseRejections (): string[] {
 		return this.unhandledPromiseRejections
 	}
-	public clearUnhandledPromiseRejections(): void {
+	public clearUnhandledPromiseRejections (): void {
 		this.unhandledPromiseRejections = []
 	}
 
@@ -72,6 +72,5 @@ export class TestClassErrors extends EventEmitter {
 	// get valueError (): any {
 	// 	throw new Error('TestError in get valueError')
 	// }
-
 
 }

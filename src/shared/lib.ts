@@ -75,9 +75,7 @@ export function combineErrorStacks (orgError: Error | string, ...stacks: string[
 		const err = new Error(orgError.message)
 		err.stack = combineErrorStacks(`${orgError.stack}`, ...stacks)
 		return err
-	} else if (typeof orgError === 'string') {
-		return orgError + '\n' + stacks.join('\n')
 	} else {
-		return orgError
+		return orgError + '\n' + stacks.join('\n')
 	}
 }

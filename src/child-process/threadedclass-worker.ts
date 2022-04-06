@@ -54,10 +54,12 @@ class ThreadedWorker extends Worker {
 			messageType: 'child',
 			cmdId: handle.cmdId++
 		}}
-		if (cb) handle.queue[message.cmdId + ''] = {
-			// Store an error, just so we can append the original stack later in case there's an error:
-			traceError: new Error('Error when calling callback'),
-			cb
+		if (cb) {
+			handle.queue[message.cmdId + ''] = {
+				// Store an error, just so we can append the original stack later in case there's an error:
+				traceError: new Error('Error when calling callback'),
+				cb
+			}
 		}
 		send(message)
 	}
