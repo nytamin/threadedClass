@@ -1,12 +1,24 @@
-// TODO: change this as Variadic types are implemented in TS
-// https://github.com/Microsoft/TypeScript/issues/5453
-export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
-
 export type Promisify<T> = {
-	[K in keyof T]: PromisifyProperty<T[K]>
+	[K in keyof T]: PromisifyProperty<T[K], K>
 }
 
-type PromisifyProperty<T> = T extends Function ? (...args: any[]) => Promise<ReturnType<T>> : Promise<T>
+type PromisifyProperty<T, K> =
+	T extends (...args: any) => any
+	? K extends 'on'
+		// It is an event-emitter, handle that differently:
+		? PromisifyEventEmitterOn<T, Parameters<T>[0], Parameters<T>[1]>
+		: PromisifyFunction<T>
+	: Promise<T>
+
+/** Promisify a function, ie change the return type to be a Promise */
+type PromisifyFunction<T extends (...args: any) => any> = (...args: Parameters<T>) => Promise<ReturnType<T>>
+
+/** Special case: Promisify the .on() method for an eventEmitter */
+type PromisifyEventEmitterOn<
+	T extends (eventName: string, listener: EventListener) => any,
+	Event,
+	EventListener extends (event: string, ...args: any[]) => any
+> = (eventName: Event, listener: (...args: Parameters<EventListener>) => undefined | void) => Promise<ReturnType<T>>
 
 export type ThreadedClass<T> = Promisify<T>
 
