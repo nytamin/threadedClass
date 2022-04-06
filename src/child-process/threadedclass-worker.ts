@@ -40,7 +40,13 @@ class ThreadedWorker extends Worker {
 			cmdId: handle.cmdId++,
 			instanceId: handle.id
 		}}
-		if (cb) handle.queue[message.cmdId + ''] = cb
+		if (cb) {
+			handle.queue[message.cmdId + ''] = {
+				// Store an error, just so we can append the original stack later in case there's an error:
+				traceError: new Error('Error when calling callback'),
+				cb
+			}
+		}
 		send(message)
 	}
 	protected sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction) {
@@ -48,7 +54,11 @@ class ThreadedWorker extends Worker {
 			messageType: 'child',
 			cmdId: handle.cmdId++
 		}}
-		if (cb) handle.queue[message.cmdId + ''] = cb
+		if (cb) handle.queue[message.cmdId + ''] = {
+			// Store an error, just so we can append the original stack later in case there's an error:
+			traceError: new Error('Error when calling callback'),
+			cb
+		}
 		send(message)
 	}
 	protected killInstance (handle: InstanceHandle) {

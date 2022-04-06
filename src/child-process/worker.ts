@@ -4,7 +4,7 @@ import {
 	ThreadedClassConfig,
 	WebWorkerMemoryUsage
 } from '../api'
-import { isBrowser, nodeSupportsWorkerThreads } from '../shared/lib'
+import { assertNever, combineErrorStacks, getErrorStack, isBrowser, nodeSupportsWorkerThreads, stripStack } from '../shared/lib'
 import {
 	ArgDefinition,
 	decodeArguments,
@@ -58,7 +58,7 @@ export abstract class Worker {
 				this.handleInstanceMessageFromParent(m, handle)
 			} catch (e) {
 				if (m.cmdId) {
-					this.replyInstanceError(handle, m, `Error: ${e.toString()} ${e.stack} on instance "${m.instanceId}"`)
+					this.replyInstanceError(handle, m, `Error: ${e.toString()} ${e.stack} thrown in handleInstanceMessageFromParent on instance "${m.instanceId}"`)
 				} else this.log('Error: ' + e.toString(), e.stack)
 			}
 		} else if (m.messageType === 'child') {
@@ -68,7 +68,7 @@ export abstract class Worker {
 				this.handleChildMessageFromParent(m, handle)
 			} catch (e) {
 				if (m.cmdId) {
-					this.replyChildError(handle, m, `Error: ${e.toString()} ${e.stack}"`)
+					this.replyChildError(handle, m, `Error: ${e.toString()} ${e.stack} thrown in handleChildMessageFromParent on child`)
 				} else this.log('Error: ' + e.toString(), e.stack)
 			}
 		}
@@ -88,6 +88,7 @@ export abstract class Worker {
 
 			if (!this.remoteFns[callbackId]) {
 				this.remoteFns[callbackId] = ((...args: any[]) => {
+					const orgError = new Error()
 					return new Promise((resolve, reject) => {
 						const callbackId = a.value
 						this.sendCallback(
@@ -96,7 +97,18 @@ export abstract class Worker {
 							args,
 							(err, encodedResult) => {
 								if (err) {
-									reject(err)
+
+									const errStack = stripStack(getErrorStack(err), [
+										/[\\/]parent-process[\\/]manager/,
+										/[\\/]eventemitter3[\\/]index/
+									])
+									const orgStack = (orgError.stack + '')
+										.split('\n')
+										.slice(2) // Remove the first two lines, since they are internal to ThreadedClass
+										.join('\n')
+
+									reject(combineErrorStacks(errStack, orgStack))
+									// reject(err)
 								} else {
 									const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult]
 									resolve(result[0])
@@ -316,21 +328,28 @@ export abstract class Worker {
 			let cb = handle.queue[msg.replyTo + '']
 			if (!cb) throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`)
 			if (msg.error) {
-				cb(msg.error)
+				cb.cb(msg.error)
 			} else {
-				cb(null, msg.reply)
+				cb.cb(null, msg.reply)
 			}
 			delete handle.queue[msg.replyTo + '']
 		} else if (m.cmd === Message.To.Instance.CommandType.FUNCTION) {
-			// A function has been called by parent
+			// A function/method has been called by the parent
 			let msg: Message.To.Instance.Fcn = m
 			const fixedArgs = this.decodeArgumentsFromParent(handle, msg.args)
 
-			let p = (
-				typeof instance[msg.fcn] === 'function' ?
-				instance[msg.fcn](...fixedArgs) :
-				instance[msg.fcn]
-			) // in case instance[msg.fcn] does not exist, it will simply resolve to undefined on the consumer side
+			let p: any
+			try {
+				if (typeof instance[msg.fcn] === 'function') {
+					p = instance[msg.fcn](...fixedArgs)
+				} else {
+					// in case instance[msg.fcn] does not exist, it will simply resolve to undefined
+					p = instance[msg.fcn]
+				}
+			} catch (error) {
+				p = Promise.reject(error)
+			}
+
 			Promise.resolve(p)
 			.then((result) => {
 				const encodedResult = this.encodeArgumentsToParent(instance, [result])
@@ -338,7 +357,12 @@ export abstract class Worker {
 			})
 			.catch((err) => {
 
-				let errorResponse: string = (err.stack || err.toString()) + `\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
+				const errStack = stripStack(err.stack || err.toString(), [
+					/onMessageFromParent/,
+					/threadedclass-worker/
+				])
+
+				let errorResponse: string = `${errStack}\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
 				this.replyInstanceError(handle, msg, errorResponse)
 			})
 		} else if (m.cmd === Message.To.Instance.CommandType.SET) {
@@ -376,6 +400,8 @@ export abstract class Worker {
 			} else {
 				this.replyInstanceError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`)
 			}
+		} else {
+			assertNever(m)
 		}
 	}
 	private handleChildMessageFromParent (m: Message.To.Child.Any, handle: ChildHandle) {
@@ -412,7 +438,10 @@ export abstract class Worker {
 
 export interface MessageHandle {
 	cmdId: number
-	queue: {[cmdId: string]: CallbackFunction}
+	queue: {[cmdId: string]: {
+		traceError?: Error
+		cb: CallbackFunction
+	}}
 }
 export interface InstanceHandle extends MessageHandle {
 	id: string

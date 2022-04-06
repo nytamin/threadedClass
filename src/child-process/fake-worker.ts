@@ -32,7 +32,7 @@ export class FakeWorker extends Worker {
 			cmdId: handle.cmdId++,
 			instanceId: handle.id
 		}}
-		if (cb) handle.queue[message.cmdId + ''] = cb
+		if (cb) handle.queue[message.cmdId + ''] = { cb }
 		// Send message to Parent:
 		this.mockProcessSend(message)
 	}
@@ -41,7 +41,7 @@ export class FakeWorker extends Worker {
 			messageType: 'child',
 			cmdId: handle.cmdId++
 		}}
-		if (cb) handle.queue[message.cmdId + ''] = cb
+		if (cb) handle.queue[message.cmdId + ''] = { cb }
 		// Send message to Parent:
 		this.mockProcessSend(message)
 
