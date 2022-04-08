@@ -1,0 +1,15 @@
+node_modules
+dist
+test
+src/**.js
+.vscode
+
+coverage
+.nyc_output
+*.log
+
+wallaby.conf.js
+
+.DS_Store
+.npmrc
+docs/
