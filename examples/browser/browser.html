@@ -43,7 +43,7 @@
 			return Promise.resolve(
 				threaded ?
 				// Create a threaded variant of the class:
-				threadedClass('../myClass.js', MyClass, [], {
+				threadedClass('../myClass.js', 'MyClass', [], {
 					pathToWorker: 'lib/threadedclass-worker.js'
 				}) :
 				new MyClass()
@@ -58,7 +58,7 @@
 				log(`Task ${i} done`)
 			})
 
-		
+
 		}
 	</script>
 </head>

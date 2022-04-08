@@ -149,12 +149,16 @@ This table shows measured round-trip times of [just calling a method](https://gi
 
 | Platform | API used | Avg. time per call |
 |--|--|--|
-| NodeJS 8.9.x     | Single-thread mode   | 0.000200 ms per call     |
-| NodeJS 8.9.x     | Child process        | **0.117000** ms per call |
-| NodeJS 10.15.x   | Single-thread mode   | 0.000080 ms per call     |
-| NodeJS 10.15.x   | Child process        | **0.090000** ms per call |
-| NodeJS 10.15.x   | Worker-threads       | **0.045000** ms per call |
-| NodeJS 11.14.x   | Single-thread mode   | 0.000085 ms per call     |
-| NodeJS 11.14.x   | Worker-threads       | **0.047000** ms per call |
-| Browser (Chrome) | Single-thread mode   | 0.001500 ms per call     |
+| NodeJS 8.17    | Single-thread mode   |   0.000200 ms per call   |
+| NodeJS 8.17    | Child process        | **0.090000** ms per call |
+| NodeJS 10.15   | Single-thread mode   |   0.000078 ms per call   |
+| NodeJS 10.15   | Child process        | **0.076000** ms per call |
+| NodeJS 10.15   | Worker-threads       | **0.045000** ms per call |
+| NodeJS 12.22   | Single-thread mode   |   0.000064 ms per call   |
+| NodeJS 12.22   | Worker-threads       | **0.053000** ms per call |
+| NodeJS 14.18   | Single-thread mode   |   0.000069 ms per call   |
+| NodeJS 14.18   | Worker-threads       | **0.055000** ms per call |
+| NodeJS 16.14   | Single-thread mode   |   0.000072 ms per call   |
+| NodeJS 16.14   | Worker-threads       | **0.052000** ms per call |
+| Browser (Chrome) | Single-thread mode   |   0.001500 ms per call   |
 | Browser (Chrome) | Web-workers          | **0.140000** ms per call |
