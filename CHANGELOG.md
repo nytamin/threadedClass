@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.2](https://github.com/nytamin/threadedClass/compare/1.0.1...1.0.2) (2022-04-08)
+
+
+### Bug Fixes
+
+* check argument types in threadedClass() ([68ee9ce](https://github.com/nytamin/threadedClass/commit/68ee9cec7e64e71f4e551656ba2d4fbbada49501))
+* improve error handling, by appending the original stack traces to the errors thrown. ([14116da](https://github.com/nytamin/threadedClass/commit/14116dab194b33c36bfe2a9e248f3413de65acdb))
+* update types to handle a special case of eventEmitters. ([7ebc71f](https://github.com/nytamin/threadedClass/commit/7ebc71f51887f24e31527d4f414ded77072dfc88))
+
 ### [1.0.1](https://github.com/nytamin/threadedClass/compare/1.0.0...1.0.1) (2022-01-13)
 
 
