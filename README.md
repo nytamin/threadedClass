@@ -160,5 +160,5 @@ This table shows measured round-trip times of [just calling a method](https://gi
 | NodeJS 14.18   | Worker-threads       | **0.055000** ms per call |
 | NodeJS 16.14   | Single-thread mode   |   0.000072 ms per call   |
 | NodeJS 16.14   | Worker-threads       | **0.052000** ms per call |
-| Browser (Chrome) | Single-thread mode   |   0.001500 ms per call   |
-| Browser (Chrome) | Web-workers          | **0.140000** ms per call |
+| Browser (Chrome 99) | Single-thread mode   |   0.002500 ms per call   |
+| Browser (Chrome 99) | Web-workers          | **0.094202** ms per call |
