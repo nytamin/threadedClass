@@ -1,0 +1,255 @@
+<!DOCTYPE html><html class="default"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>threadedclass</title><meta name="description" content="Documentation for threadedclass"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script async src="assets/search.js" id="search-script"></script></head><body><script>document.body.classList.add(localStorage.getItem("tsd-theme") || "os")</script><header><div class="tsd-page-toolbar"><div class="container"><div class="table-wrap"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget search no-caption">Search</label><input type="text" id="tsd-search-field"/></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">threadedclass</a></div><div class="table-cell" id="tsd-widgets"><div id="tsd-filter"><a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a><div class="tsd-filter-group"><div class="tsd-select" id="tsd-filter-visibility"><span class="tsd-select-label">All</span><ul class="tsd-select-list"><li data-value="public">Public</li><li data-value="protected">Public/Protected</li><li data-value="private" class="selected">All</li></ul></div> <input type="checkbox" id="tsd-filter-inherited" checked/><label class="tsd-widget" for="tsd-filter-inherited">Inherited</label><input type="checkbox" id="tsd-filter-externals" checked/><label class="tsd-widget" for="tsd-filter-externals">Externals</label></div></div><a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a></div></div></div></div><div class="tsd-page-title"><div class="container"><h1>threadedclass</h1></div></div></header><div class="container container-main"><div class="row"><div class="col-8 col-content"><div class="tsd-panel tsd-typography">
+<a href="#threaded-class" id="threaded-class" style="color: inherit; text-decoration: none;">
+  <h1>Threaded class</h1>
+</a>
+<p><a href="https://github.com/nytamin/threadedClass/actions/workflows/lint-and-test.yml"><img src="https://github.com/nytamin/threadedClass/actions/workflows/lint-and-test.yml/badge.svg" alt="Lint and Test"></a>
+<a href="https://codecov.io/gh/nytamin/threadedClass"><img src="https://codecov.io/gh/nytamin/threadedClass/branch/master/graph/badge.svg" alt="codecov"></a></p>
+<p>Fork instances of classes (while keeping typings) with one line of code.</p>
+
+<a href="#getting-started" id="getting-started" style="color: inherit; text-decoration: none;">
+  <h2>Getting started</h2>
+</a>
+<pre><code><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-0">install</span><span class="hl-1"> </span><span class="hl-0">threadedclass</span>
+</code></pre>
+<p>Let&#39;s say you have a class that has several computational-heavy methods:</p>
+<pre><code class="language-typescript"><span class="hl-2">// Normal, single-threaded way:</span><br/><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-0">Professor</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-4">&#39;./professor&#39;</span><br/><br/><span class="hl-5">function</span><span class="hl-1"> </span><span class="hl-6">getStory</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-5">let</span><span class="hl-1"> </span><span class="hl-0">mrSmith</span><span class="hl-1"> = </span><span class="hl-5">new</span><span class="hl-1"> </span><span class="hl-6">Professor</span><span class="hl-1">(</span><span class="hl-4">&#39;maths&#39;</span><span class="hl-1">, </span><span class="hl-4">&#39;greek&#39;</span><span class="hl-1">)</span><br/><span class="hl-1">  </span><span class="hl-5">let</span><span class="hl-1"> </span><span class="hl-0">story</span><span class="hl-1"> = </span><span class="hl-0">mrSmith</span><span class="hl-1">.</span><span class="hl-6">talkAboutAncientGreece</span><span class="hl-1">() </span><span class="hl-2">// takes a loong time</span><br/><span class="hl-1">  </span><span class="hl-3">return</span><span class="hl-1"> </span><span class="hl-0">story</span><br/><span class="hl-1">}</span>
+</code></pre>
+<p><code>Threaded-class</code> helps you create an asynchronous version of the instance of that class.
+The instance will have <em>almost</em> the same typings-API as the original (all methods return promises instead), but will run in a separate thread.</p>
+<pre><code class="language-typescript"><span class="hl-2">// Multi-threaded, asynchronous way:</span><br/><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-0">threadedClass</span><span class="hl-1">} </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-4">&#39;threadedclass&#39;</span><br/><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-0">Professor</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-4">&#39;./professor&#39;</span><br/><br/><span class="hl-5">async</span><span class="hl-1"> </span><span class="hl-5">function</span><span class="hl-1"> </span><span class="hl-6">getStory</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-5">let</span><span class="hl-1"> </span><span class="hl-0">mrSmith</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-6">threadedClass</span><span class="hl-1">&lt;</span><span class="hl-7">Professor</span><span class="hl-1">&gt;(</span><span class="hl-4">&#39;./professor.js&#39;</span><span class="hl-1">, </span><span class="hl-4">&#39;Professor&#39;</span><span class="hl-1">, [</span><span class="hl-4">&#39;maths&#39;</span><span class="hl-1">, </span><span class="hl-4">&#39;greek&#39;</span><span class="hl-1">])</span><br/><span class="hl-1">  </span><span class="hl-5">let</span><span class="hl-1"> </span><span class="hl-0">story</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-0">mrSmith</span><span class="hl-1">.</span><span class="hl-6">talkAboutAncientGreece</span><span class="hl-1">() </span><span class="hl-2">// still takes a loong time, but now runs in a separate thread</span><br/><span class="hl-1">  </span><span class="hl-3">return</span><span class="hl-1"> </span><span class="hl-0">story</span><br/><span class="hl-1">}</span>
+</code></pre>
+<p>The instance returned by <code>threadedClass()</code> has methods equivalent to the original, but all properties and methods will be asynchronous (return Promises).</p>
+
+<a href="#api" id="api" style="color: inherit; text-decoration: none;">
+  <h2>API</h2>
+</a>
+<p><a href="https://nytamin.github.io/threadedClass">API reference</a></p>
+
+<a href="#nodejs-typescript-example" id="nodejs-typescript-example" style="color: inherit; text-decoration: none;">
+  <h3>NodeJS: Typescript example</h3>
+</a>
+<pre><code class="language-typescript"><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-0">threadedClass</span><span class="hl-1">} </span><span class="hl-3">from</span><span class="hl-1">  </span><span class="hl-4">&#39;threadedclass&#39;</span><br/><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-0">Professor</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-4">&#39;./professor&#39;</span><br/><br/><span class="hl-6">threadedClass</span><span class="hl-1">&lt;</span><span class="hl-7">Professor</span><span class="hl-1">&gt;(</span><br/><span class="hl-1">   </span><span class="hl-4">&#39;./professor.js&#39;</span><span class="hl-1">,     </span><span class="hl-2">// Path to imported module (this should be the same path as is in require(&#39;XX&#39;) or import {class} from &#39;XX&#39;} )</span><br/><span class="hl-1">   </span><span class="hl-4">&#39;Professor&#39;</span><span class="hl-1"> ,        </span><span class="hl-2">// The export name for the class to be forked</span><br/><span class="hl-1">   [</span><span class="hl-4">&#39;maths&#39;</span><span class="hl-1">, </span><span class="hl-4">&#39;greek&#39;</span><span class="hl-1">], </span><span class="hl-2">// Array of arguments to be fed into the class constructor</span><br/><span class="hl-1">   {} </span><span class="hl-2">// Config (see below)</span><br/><span class="hl-1">)</span><br/><span class="hl-1">.</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-0">instance</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">   </span><span class="hl-3">return</span><span class="hl-1"> </span><span class="hl-0">mrSmith</span><span class="hl-1">.</span><span class="hl-6">talkAboutAncientGreece</span><span class="hl-1">() </span><span class="hl-2">// All methods returns a Promise</span><br/><span class="hl-1">})</span><br/><span class="hl-1">.</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-0">story</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">   </span><span class="hl-0">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-0">story</span><span class="hl-1">)</span><br/><span class="hl-1">})</span>
+</code></pre>
+
+<a href="#nodejs-javascript-example" id="nodejs-javascript-example" style="color: inherit; text-decoration: none;">
+  <h3>NodeJS: Javascript example</h3>
+</a>
+<pre><code class="language-javascript"><span class="hl-5">var</span><span class="hl-1"> </span><span class="hl-0">threadedClass</span><span class="hl-1"> = </span><span class="hl-6">require</span><span class="hl-1">(</span><span class="hl-4">&#39;threadedclass&#39;</span><span class="hl-1">).</span><span class="hl-0">threadedClass</span><br/><span class="hl-5">var</span><span class="hl-1"> </span><span class="hl-0">Professor</span><span class="hl-1"> = </span><span class="hl-6">require</span><span class="hl-1">(</span><span class="hl-4">&#39;./professor&#39;</span><span class="hl-1">)</span><br/><br/><span class="hl-6">threadedClass</span><span class="hl-1">(</span><span class="hl-4">&#39;./professor.js&#39;</span><span class="hl-1">, </span><span class="hl-0">Professor</span><span class="hl-1">, [</span><span class="hl-4">&#39;maths&#39;</span><span class="hl-1">, </span><span class="hl-4">&#39;greek&#39;</span><span class="hl-1">])</span><br/><span class="hl-1">.</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-0">instance</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">   </span><span class="hl-3">return</span><span class="hl-1"> </span><span class="hl-0">mrSmith</span><span class="hl-1">.</span><span class="hl-6">talkAboutAncientGreece</span><span class="hl-1">() </span><span class="hl-2">// All methods returns a Promise</span><br/><span class="hl-1">})</span><br/><span class="hl-1">.</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-0">story</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">   </span><span class="hl-0">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-0">story</span><span class="hl-1">)</span><br/><span class="hl-1">})</span>
+</code></pre>
+
+<a href="#browser-javascript-example" id="browser-javascript-example" style="color: inherit; text-decoration: none;">
+  <h3>Browser: Javascript example</h3>
+</a>
+<p><a href="https://nytamin.github.io/threadedClass/examples/browser.html">Example</a></p>
+<pre><code class="language-html"><span class="hl-8">&lt;</span><span class="hl-9">script</span><span class="hl-10"> </span><span class="hl-11">type</span><span class="hl-10">=</span><span class="hl-12">&quot;text/javascript&quot;</span><span class="hl-10"> </span><span class="hl-11">src</span><span class="hl-10">=</span><span class="hl-12">&quot;lib/threadedClass.js&quot;</span><span class="hl-8">&gt;&lt;/</span><span class="hl-9">script</span><span class="hl-8">&gt;</span><br/><span class="hl-8">&lt;</span><span class="hl-9">script</span><span class="hl-10"> </span><span class="hl-11">type</span><span class="hl-10">=</span><span class="hl-12">&quot;text/javascript&quot;</span><span class="hl-10"> </span><span class="hl-11">src</span><span class="hl-10">=</span><span class="hl-12">&quot;professor.js&quot;</span><span class="hl-8">&gt;&lt;/</span><span class="hl-9">script</span><span class="hl-8">&gt;</span><br/><span class="hl-8">&lt;</span><span class="hl-9">script</span><span class="hl-10"> </span><span class="hl-11">type</span><span class="hl-10">=</span><span class="hl-12">&quot;text/javascript&quot;</span><span class="hl-8">&gt;</span><br/><span class="hl-10">   </span><span class="hl-5">var</span><span class="hl-10"> </span><span class="hl-0">threadedClass</span><span class="hl-10"> </span><span class="hl-1">=</span><span class="hl-10"> </span><span class="hl-0">ThreadedClass</span><span class="hl-10">.</span><span class="hl-0">threadedClass</span><br/><br/><span class="hl-10">   </span><span class="hl-6">threadedClass</span><span class="hl-10">(</span><span class="hl-4">&#39;../professor.js&#39;</span><span class="hl-10">, </span><span class="hl-0">Professor</span><span class="hl-10">, [</span><span class="hl-4">&#39;maths&#39;</span><span class="hl-10">, </span><span class="hl-4">&#39;greek&#39;</span><span class="hl-10">], { </span><span class="hl-2">// path to module is relative to threadedClass.js</span><br/><span class="hl-10">      </span><span class="hl-0">pathToWorker:</span><span class="hl-10"> </span><span class="hl-4">&#39;lib/threadedclass-worker.js&#39;</span><span class="hl-10"> </span><span class="hl-2">// in browser, a path to the worker-scrip must also be provided</span><br/><span class="hl-10">   })</span><br/><span class="hl-10">   .</span><span class="hl-6">then</span><span class="hl-10">((</span><span class="hl-0">instance</span><span class="hl-10">) </span><span class="hl-5">=&gt;</span><span class="hl-10"> {</span><br/><span class="hl-10">   </span><span class="hl-3">return</span><span class="hl-10"> </span><span class="hl-0">mrSmith</span><span class="hl-10">.</span><span class="hl-6">talkAboutAncientGreece</span><span class="hl-10">() </span><span class="hl-2">// All methods returns a Promise</span><br/><span class="hl-10">   })</span><br/><span class="hl-10">   .</span><span class="hl-6">then</span><span class="hl-10">((</span><span class="hl-0">story</span><span class="hl-10">) </span><span class="hl-5">=&gt;</span><span class="hl-10"> {</span><br/><span class="hl-10">      </span><span class="hl-0">console</span><span class="hl-10">.</span><span class="hl-6">log</span><span class="hl-10">(</span><span class="hl-0">story</span><span class="hl-10">)</span><br/><span class="hl-10">   })</span><br/><span class="hl-8">&lt;/</span><span class="hl-9">script</span><span class="hl-8">&gt;</span>
+</code></pre>
+
+<a href="#options" id="options" style="color: inherit; text-decoration: none;">
+  <h3>Options</h3>
+</a>
+<p>An optional options object can be passed to threadedClass() with the following properties:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>threadUsage</code></td>
+<td>number</td>
+<td>A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances.</td>
+</tr>
+<tr>
+<td><code>threadId</code></td>
+<td>string</td>
+<td>Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread.</td>
+</tr>
+<tr>
+<td><code>autoRestart</code></td>
+<td>boolean</td>
+<td>If the process crashes or freezes it&#39;s automatically restarted. (ThreadedClassManager will emit the &quot;restarted&quot; event upon restart)</td>
+</tr>
+<tr>
+<td><code>disableMultithreading</code></td>
+<td>boolean</td>
+<td>Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged.</td>
+</tr>
+<tr>
+<td><code>pathToWorker</code></td>
+<td>string</td>
+<td>Set path to worker, used in browser</td>
+</tr>
+<tr>
+<td><code>freezeLimit</code></td>
+<td>number</td>
+<td>(milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms)</td>
+</tr>
+</tbody></table>
+
+<a href="#features" id="features" style="color: inherit; text-decoration: none;">
+  <h2>Features</h2>
+</a>
+
+<a href="#supported-imports" id="supported-imports" style="color: inherit; text-decoration: none;">
+  <h3>Supported imports</h3>
+</a>
+<ul>
+<li>Classes imported from <em>your own modules</em>. <code>import { MyClass } from &#39;./myModule&#39;</code></li>
+<li>Classes imported from <em>external dependencies</em>. <code>import { DatClass } from &#39;dat-library&#39;</code></li>
+<li>Classes importted from <em>native Node modules</em>. <code>import { StringDecoder } from &#39;string_decoder&#39;</code></li>
+</ul>
+
+<a href="#supported-methods-arguments--parameters-amp-return-values" id="supported-methods-arguments--parameters-amp-return-values" style="color: inherit; text-decoration: none;">
+  <h3>Supported methods, arguments / parameters &amp; return values</h3>
+</a>
+<p>When calling a method of your threaded instance (<code>threaded.myMethod()</code>), there are some limitations to what data-types are allowed to be provided and returned.</p>
+
+<a href="#supported-data-types" id="supported-data-types" style="color: inherit; text-decoration: none;">
+  <h4>Supported data types</h4>
+</a>
+<ul>
+<li>All JSON-serializable types; numbers, strings, arrays, objects etc..</li>
+<li>Buffers</li>
+<li>Functions (such as callbacks or returned functions)</li>
+</ul>
+
+<a href="#unsupported-data-types" id="unsupported-data-types" style="color: inherit; text-decoration: none;">
+  <h4>Unsupported data types</h4>
+</a>
+<ul>
+<li>Non-JSON-encodable types, such as objects with <em>cyclic references</em> (except when in worker_threads, then it&#39;s fine).</li>
+<li>Instances of classes (the instance will be serialized as JSON and piped through, but its methods will not).</li>
+</ul>
+
+<a href="#using-with-electron" id="using-with-electron" style="color: inherit; text-decoration: none;">
+  <h3>Using with electron</h3>
+</a>
+<p>Electron does not properly support asar files with worker_threads. When loading a file to execute, it must reside on disk and not inside of the asar file containing all of your application code.</p>
+<p>ThreadedClass can workaround this, by using a small preloader that is loaded from disk by the parent, and evaled by the worker_thread. The default electron loader utilises the <a href="https://www.npmjs.com/package/asar-node">asar-node</a> package to provide support for reading from the asar to the new thread. This preloader is only used for electron when it is detected that the code to load is inside an asar file, and if a custom loader is not specified.</p>
+<p>The loader can be overridden by defining the <code>THREADEDCLASS_WORKERTHREAD_LOADER</code> environment variable containing an absolute path to the desired loader. This can be done inside node before the thread is created. This file can reside inside an asar, or anywhere else the parent can load via <code>fs.readFileSync</code>. It is recommended to bundle this file with browserify or webpack. See <a href="/src/asar-loader.ts">asar-loader.ts</a> as an example</p>
+
+<a href="#known-limitations" id="known-limitations" style="color: inherit; text-decoration: none;">
+  <h2>Known limitations</h2>
+</a>
+<ul>
+<li>The to-be-threaded class must not be referencing any global variables, as the class is run in its own sandbox.</li>
+<li><strong>No garbage-collection of callback-functions</strong>
+  Currently, if you give a callback to a method (like so: <code>threaded.myMethod(() =&gt; {})</code>) a reference to the method will be stored indefinitely, because we cannot determine if the reference is valid in the child process.</li>
+<li>There is a noticable delay when spawning a new thread, and since each thread is its own Node-process it uses up a few Megabytes of memory. If you intend to spawn many instances of a class, consider using the <em>threadUsage</em> option (for example <code>threadUsage: 0.1</code> will put 10 instances in a thread before spawning a new).</li>
+</ul>
+
+<a href="#under-the-hood" id="under-the-hood" style="color: inherit; text-decoration: none;">
+  <h2>Under the hood</h2>
+</a>
+
+<a href="#used-apis" id="used-apis" style="color: inherit; text-decoration: none;">
+  <h3>Used API:s</h3>
+</a>
+<p>Different API:s will be used for threading, depending on the platform:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>API used</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://caniuse.com/#feat=webworkers">Browser</a></td>
+<td>Web-workers</td>
+</tr>
+<tr>
+<td>NodeJS &lt;10.x</td>
+<td>Child process</td>
+</tr>
+<tr>
+<td>NodeJS 10.x - 11.7</td>
+<td>Worker-threads (if <code>node --experimental-worker</code> flag is enabled)</td>
+</tr>
+<tr>
+<td>NodeJS &gt;11.8</td>
+<td>Worker-threads</td>
+</tr>
+</tbody></table>
+
+<a href="#notes-on-performance" id="notes-on-performance" style="color: inherit; text-decoration: none;">
+  <h3>Notes on performance</h3>
+</a>
+<p>Doing method-calls to threads is slower than when running in a single thread. The greatest benefit comes when there is heavy computations to be made.</p>
+<p>This table shows measured round-trip times of <a href="https://github.com/nytamin/threadedClass/blob/master/performance-test/index.js">just calling a method</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>API used</th>
+<th>Avg. time per call</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NodeJS 8.17</td>
+<td>Single-thread mode</td>
+<td>0.000200 ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 8.17</td>
+<td>Child process</td>
+<td><strong>0.090000</strong> ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 10.15</td>
+<td>Single-thread mode</td>
+<td>0.000078 ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 10.15</td>
+<td>Child process</td>
+<td><strong>0.076000</strong> ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 10.15</td>
+<td>Worker-threads</td>
+<td><strong>0.045000</strong> ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 12.22</td>
+<td>Single-thread mode</td>
+<td>0.000064 ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 12.22</td>
+<td>Worker-threads</td>
+<td><strong>0.053000</strong> ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 14.18</td>
+<td>Single-thread mode</td>
+<td>0.000069 ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 14.18</td>
+<td>Worker-threads</td>
+<td><strong>0.055000</strong> ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 16.14</td>
+<td>Single-thread mode</td>
+<td>0.000072 ms per call</td>
+</tr>
+<tr>
+<td>NodeJS 16.14</td>
+<td>Worker-threads</td>
+<td><strong>0.052000</strong> ms per call</td>
+</tr>
+<tr>
+<td>Browser (Chrome)</td>
+<td>Single-thread mode</td>
+<td>0.001500 ms per call</td>
+</tr>
+<tr>
+<td>Browser (Chrome)</td>
+<td>Web-workers</td>
+<td><strong>0.140000</strong> ms per call</td>
+</tr>
+</tbody></table>
+</div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-enum"><a href="enums/RegisterExitHandlers.html" class="tsd-kind-icon">Register<wbr/>Exit<wbr/>Handlers</a></li><li class="tsd-kind-interface"><a href="interfaces/ThreadedClassConfig.html" class="tsd-kind-icon">Threaded<wbr/>Class<wbr/>Config</a></li><li class="tsd-kind-interface"><a href="interfaces/WebWorkerMemoryUsage.html" class="tsd-kind-icon">Web<wbr/>Worker<wbr/>Memory<wbr/>Usage</a></li><li class="tsd-kind-type-alias"><a href="modules.html#MemUsageReport" class="tsd-kind-icon">Mem<wbr/>Usage<wbr/>Report</a></li><li class="tsd-kind-type-alias"><a href="modules.html#MemUsageReportInner" class="tsd-kind-icon">Mem<wbr/>Usage<wbr/>Report<wbr/>Inner</a></li><li class="tsd-kind-type-alias tsd-has-type-parameter"><a href="modules.html#Promisify" class="tsd-kind-icon">Promisify</a></li><li class="tsd-kind-type-alias tsd-has-type-parameter"><a href="modules.html#ThreadedClass" class="tsd-kind-icon">Threaded<wbr/>Class</a></li><li class="tsd-kind-variable"><a href="modules.html#ThreadedClassManager" class="tsd-kind-icon">Threaded<wbr/>Class<wbr/>Manager</a></li><li class="tsd-kind-function tsd-has-type-parameter"><a href="modules.html#threadedClass" class="tsd-kind-icon">threaded<wbr/>Class</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
