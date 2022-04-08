@@ -33,6 +33,9 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 ): Promise<ThreadedClass<T>> {
 	let exportName: string = orgExport
 
+	if (typeof orgModule as any !== 'string') throw new Error('threadedClass parameter orgModule must be a string!')
+	if (typeof orgExport as any !== 'string') throw new Error('threadedClass parameter orgExport must be a string!')
+
 	const config: ThreadedClassConfig = {
 		...configOrg,
 		instanceName: configOrg.instanceName || orgExport // Default to the export class name
