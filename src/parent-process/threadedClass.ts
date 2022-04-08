@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as callsites from 'callsites'
-import { isBrowser, browserSupportsWebWorkers } from '../shared/lib'
+import { isBrowser, browserSupportsWebWorkers, combineErrorStacks } from '../shared/lib'
 import {
 	InitProps,
 	InitProp,
@@ -201,7 +201,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 						}
 						if (p.type === InitPropType.FUNCTION) {
 
-							const fcn = (...args: any[]) => {
+							const callMethod = (...args: any[]) => {
 								// An instance method is called by parent
 
 								const originalError = new Error()
@@ -217,15 +217,10 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 										p.key,
 										encodedArgs,
 										(_instance, err, encodedResult) => {
-											// Function result is returned from worker
+											// Function result is returned from child instance
 
 											if (err) {
-												const originalStack = 'Original stack:\n' + originalError.stack
-												if (typeof err === 'string') {
-													err += '\n' + originalStack
-												} else {
-													err.stack += '\n' + originalStack
-												}
+												err = combineErrorStacks(err, 'Original stack (on parent):', originalError.stack || '')
 												reject(err)
 											} else {
 												let result = decodeResultFromWorker(_instance, encodedResult)
@@ -236,7 +231,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 								})
 							}
 							// @ts-ignore
-							proxy[p.key] = fcn
+							proxy[p.key] = callMethod
 						} else if (p.type === InitPropType.VALUE) {
 
 							let m: PropertyDescriptor = {

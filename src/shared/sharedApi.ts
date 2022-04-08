@@ -43,11 +43,13 @@ export namespace Message {
 	export interface ChildBase extends Base {
 		messageType: 'child'
 	}
-	/** Defines messages from the child ot the parent process */
+
+	/** Containes definitions of messages sent from the parent process */
 	export namespace To {
 		export type Any = Instance.Any | Child.Any
 		export type AnyConstr = Instance.AnyConstr | Child.AnyConstr
 
+		/** Defines messages sent from the parent process to the child instance */
 		export namespace Instance {
 
 			export type AnyConstr 	= InitConstr 	| FcnConstr 	| ReplyConstr 	| SetConstr | KillConstr 	| CallbackConstr 	| PingConstr
@@ -71,10 +73,20 @@ export namespace Message {
 				config: ThreadedClassConfig
 				parentPid: number
 			}
+			/**
+			 * Initial message from parent to the child instance.
+			 * Child instance will reply with InitProps.
+			 * @see InitProps
+			 */
 			export type Init = InitConstr & InstanceBase
+			/**  */
 			export interface PingConstr {
 				cmd: CommandType.PING
 			}
+			/**
+			 * Just a ping, used to check if the child instance is alive.
+			 * Child instance will reply with null.
+			 */
 			export type Ping = PingConstr & InstanceBase
 
 			export interface FcnConstr {
@@ -82,6 +94,11 @@ export namespace Message {
 				fcn: string
 				args: Array<ArgDefinition>
 			}
+			/**
+			 * Sent from parent process to child instance.
+			 * Calls a function/method on the child instance.
+			 * Child instance will reply with the result of the function call.
+			 */
 			export type Fcn = FcnConstr & InstanceBase
 
 			export interface SetConstr {
@@ -89,6 +106,11 @@ export namespace Message {
 				property: string
 				value: ArgDefinition
 			}
+			/**
+			 * Sent from parent process to child instance.
+			 * Sets a property on the child instance.
+			 * Child instance will reply with the set value
+			 */
 			export type Set = SetConstr & InstanceBase
 
 			export interface ReplyConstr {
@@ -97,11 +119,20 @@ export namespace Message {
 				reply?: any
 				error?: Error | string
 			}
+			/**
+			 * Sent from parent process to child instance.
+			 * Contains a reply to a previous message sent from the child instance to the parent process.
+			 */
 			export type Reply = ReplyConstr & InstanceBase
 
 			export interface KillConstr {
 				cmd: CommandType.KILL
 			}
+			/**
+			 * Sent from parent process to child instance.
+			 * A Kill command
+			 * Child instance will reply with null.
+			 */
 			export type Kill = KillConstr & InstanceBase
 
 			export interface CallbackConstr {
@@ -109,8 +140,14 @@ export namespace Message {
 				callbackId: string
 				args: Array<any>
 			}
+			/**
+			 * Sent from parent process to child instance.
+			 * Calling a callback function. A "callback" is a function that has been sent to the parent process from the child instance.
+			 * Child instance will reply with null.
+			 */
 			export type Callback = CallbackConstr & InstanceBase
 		}
+		/** Defines messages sent from the parent process to the child process */
 		export namespace Child {
 			export type AnyConstr	= ReplyConstr 	| GetMemUsageConstr
 			export type Any			= Reply 		| GetMemUsage
@@ -134,10 +171,11 @@ export namespace Message {
 			export type Reply = ReplyConstr & ChildBase
 		}
 	}
-	/** Defines messages from the parent process to the child */
+	/** Containes definitions of messages sent from the child process */
 	export namespace From {
 		export type Any = Instance.Any | Child.Any
 		export type AnyConstr = Instance.AnyConstr | Child.AnyConstr
+		/** Defines messages sent from the child instance to the parent process */
 		export namespace Instance {
 			export enum CommandType {
 				CALLBACK = 'callback',
@@ -162,6 +200,7 @@ export namespace Message {
 			export type AnyConstr 	= ReplyConstr 	| CallbackConstr
 			export type Any 		= Reply 		| Callback
 		}
+		/** Defines messages sent from the child process to the parent process */
 		export namespace Child {
 			export enum CommandType {
 				LOG = 'log',

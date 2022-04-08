@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TestClass2 = void 0;
 const casparcg_connection_1 = require("casparcg-connection");
 class TestClass2 {
     constructor() {

@@ -8,18 +8,13 @@ import {
 import { House } from '../../test-lib/house'
 import { TestClass } from '../../test-lib/testClass'
 import { AlmostTestClass } from '../../test-lib/rename'
+import { DefaultEventEmitter, TypedEventEmitter } from '../../test-lib/EventEmitter'
 import { ThreadMode, RegisterExitHandlers } from '../parent-process/manager'
 
 const HOUSE_PATH = '../../test-lib/house.js'
 const RENAME_PATH = '../../test-lib/rename.js'
 const TESTCLASS_PATH = '../../test-lib/testClass.js'
-// const TESTCLASS_PATH_UNSYNCED = '../../test-lib/testClass-unsynced.js'
-
-// function wait (time: number) {
-// 	return new Promise((resolve) => {
-// 		setTimeout(resolve, time)
-// 	})
-// }
+const TYPED_EVENT_EMITTER_PATH = '../../test-lib/typedEventEmitter.js'
 
 const doPerformanceTests = false
 
@@ -112,6 +107,79 @@ const getTests = (disableMultithreading: boolean) => {
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 		})
+		test('eventEmitter types', async () => {
+
+			expect(1).toBe(1)
+
+			// @ts-expect-error function is never used:
+			async function typeCheck () {
+
+				const typedEvent = await threadedClass<TypedEventEmitter, typeof TypedEventEmitter>(TYPED_EVENT_EMITTER_PATH, 'TypedEventEmitter', [], { disableMultithreading })
+				const typedEventOrg = new TypedEventEmitter()
+
+				// should be OK:
+				typedEventOrg.on('info', () => {
+					// nothing
+				})
+				// should be OK:
+				typedEventOrg.on('info', (_info: string) => {
+					// nothing
+				})
+				// @ts-expect-error wrong argument type:
+				typedEventOrg.on('info', (_info: number) => {
+					// nothing
+				})
+				// @ts-expect-error unknown event:
+				typedEventOrg.on('nonexistent', () => {
+					// nothing
+				})
+
+				// should be OK:
+				await typedEvent.on('info', () => {
+					// nothing
+				})
+				// should be OK:
+				await typedEvent.on('info', (_info: string) => {
+					// nothing
+				})
+				// should be OK:
+				await typedEvent.on('info', (_arg0: number, _arg1: string) => {
+					// nothing
+				})
+				// @ts-expect-error bad argument:
+				await typedEvent.on('info', (_arg0: number, _arg1: number) => {
+					// nothing
+				})
+
+				// An event listener must not return a value
+				// because if it does, it'll be sent over the wire into the child,
+				// and that might be a problem as instances of classes are not serializable.
+
+				// @ts-expect-error an event listener must not return a value:
+				await typedEvent.on('info', () => {
+					return 'something'
+				})
+
+				const defaultEvent = await threadedClass<DefaultEventEmitter, typeof DefaultEventEmitter>(TYPED_EVENT_EMITTER_PATH, 'DefaultEventEmitter', [], { disableMultithreading })
+				const defaultEventOrg = new DefaultEventEmitter()
+
+				// Should be OK:
+				defaultEventOrg.on('anyEvent', () => {
+					// Nothing
+				})
+
+				// Should be OK:
+				await defaultEvent.on('anyEvent', () => {
+					// Nothing
+				})
+
+				// @ts-expect-error an event listener must not return a value:
+				await defaultEvent.on('anyEvent', () => {
+					return 'something'
+				})
+			}
+
+		})
 
 		test('method with callback', async () => {
 
@@ -128,7 +196,7 @@ const getTests = (disableMultithreading: boolean) => {
 			let onEvent = jest.fn()
 			await threaded.on('test', onEvent)
 
-			result = await threaded.callCallback('parent', (str: any) => {
+			result = await threaded.callCallback('parent', async (str: any) => {
 				return str + ',parent2'
 			})
 
@@ -180,7 +248,6 @@ const getTests = (disableMultithreading: boolean) => {
 		})
 		if (doPerformanceTests) {
 			test('single-thread', async () => {
-				// let startTime = Date.now()
 				let results: Array<number> = []
 				for (let i = 0; i < 5; i++) {
 
@@ -188,13 +255,9 @@ const getTests = (disableMultithreading: boolean) => {
 
 					results.push(myHouse.slowFib(37))
 				}
-				// let endTime = Date.now()
-
-				// console.log('Single-thread: ', results.length, endTime - startTime)
 				expect(results).toHaveLength(5)
 			})
 			test('multi-thread', async () => {
-				// let startTime = Date.now()
 				let threads: ThreadedClass<House>[] = []
 				let results: Array<number> = []
 
@@ -213,12 +276,10 @@ const getTests = (disableMultithreading: boolean) => {
 					)
 				}
 				await Promise.all(ps)
-				// let endTime = Date.now()
 				await Promise.all(threads.map((thread) => {
 					return ThreadedClassManager.destroy(thread)
 				}))
 
-				// console.log('Multi-thread: ', results.length, endTime - startTime)
 				expect(results).toHaveLength(5)
 				expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			})

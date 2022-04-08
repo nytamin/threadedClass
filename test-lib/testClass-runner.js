@@ -4,8 +4,8 @@ const tslib_1 = require("tslib");
 const __1 = require("..");
 const TESTCLASS_PATH = './testClass.js';
 (function () {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const child = yield __1.threadedClass(TESTCLASS_PATH, 'TestClass', [], {});
+    return (0, tslib_1.__awaiter)(this, void 0, void 0, function* () {
+        const child = yield (0, __1.threadedClass)(TESTCLASS_PATH, 'TestClass', [], {});
         // Ensure the child is separate
         const childPid = yield child.getPid();
         if (childPid === process.pid) {
