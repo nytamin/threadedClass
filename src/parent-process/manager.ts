@@ -705,6 +705,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 		child.process.on('error', (err) => {
+			this.emit('error', child, err)
 			this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
