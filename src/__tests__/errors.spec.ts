@@ -50,10 +50,10 @@ const getTests = (disableMultithreading: boolean) => {
 		})
 		test('SyntaxError in called method', async () => {
 
-			await expect(threaded.doSyntaxError()).rejects.toMatch(/SyntaxError/)
+			await expect(threaded.doTypeError()).rejects.toMatch(/SyntaxError/)
 			// ensure that the original path is included in the stack-trace:
-			await expect(threaded.doSyntaxError()).rejects.toMatch(/testClassErrors.js/)
-			await expect(threaded.doSyntaxError()).rejects.toMatch(/errors.spec/)
+			await expect(threaded.doTypeError()).rejects.toMatch(/testClassErrors.js/)
+			await expect(threaded.doTypeError()).rejects.toMatch(/errors.spec/)
 		})
 		test('Error in callback', async () => {
 			// Pre-test: check that cbError throws an error:
