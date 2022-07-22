@@ -37,7 +37,7 @@ const getTests = (disableMultithreading: boolean) => {
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			onClosedListener.stop()
-			onErrorListener.stop();
+			onErrorListener.stop()
 			expect(onClosed).toHaveBeenCalledTimes(1)
 		})
 
@@ -167,9 +167,9 @@ const getTests = (disableMultithreading: boolean) => {
 			}
 
 			test('Error thrown in a setTimeout', async () => {
-				await expect(threaded.doAsyncError()).resolves.toBeTruthy();
-				await sleep(10);
-				expect(onError).toHaveBeenCalledTimes(1);
+				await expect(threaded.doAsyncError()).resolves.toBeTruthy()
+				await sleep(10)
+				expect(onError).toHaveBeenCalledTimes(1)
 				expect(onError.mock.calls[0][0].message).toMatch(/setTimeout/)
 			})
 		}

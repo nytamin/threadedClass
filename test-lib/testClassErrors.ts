@@ -23,9 +23,9 @@ export class TestClassErrors extends EventEmitter {
 	public doAsyncError (): boolean {
 		setTimeout(() => {
 			throw new Error('Error in setTimeout')
-		}, 1);
+		}, 1)
 
-		return true;
+		return true
 	}
 	public emitEvent (eventName: string): void {
 		this.emit(eventName, 'testData')
