@@ -27,9 +27,13 @@ describe('threadedclass', () => {
 		const onError = jest.fn(() => {
 			// we had a global uncaught error
 		})
+		const onRestarted = jest.fn(() => {
+			// the thread was restarted
+		})
 
 		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 		ThreadedClassManager.onEvent(threaded, 'error', onError)
+		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
 
 		expect(await threaded.doAsyncError()).toBeTruthy()
 		await sleep(10)
@@ -37,6 +41,7 @@ describe('threadedclass', () => {
 		expect(onError).toHaveBeenCalledTimes(1)
 
 		await sleep(RESTART_TIME)
+
 		let counter = 0
 		await threaded.on('test', () => {
 			counter = 1
@@ -44,6 +49,7 @@ describe('threadedclass', () => {
 		expect(threaded.emitEvent('test'))
 		await sleep(10)
 		expect(counter).toEqual(1)
+		expect(onRestarted).toHaveBeenCalledTimes(1)
 
 		expect(await threaded.doAsyncError()).toBeTruthy()
 		await sleep(10)
@@ -51,6 +57,7 @@ describe('threadedclass', () => {
 		expect(onError).toHaveBeenCalledTimes(2)
 
 		await sleep(RESTART_TIME)
+
 		expect(threaded.emitEvent('test'))
 		await sleep(10)
 		expect(counter).toEqual(1) // the underlying class has been reset, so we shouldn't expect to have the event handler registered
@@ -58,8 +65,10 @@ describe('threadedclass', () => {
 		await ThreadedClassManager.destroyAll()
 		expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 
+		expect(onRestarted).toHaveBeenCalledTimes(2)
 		expect(onClosed).toHaveBeenCalledTimes(3)
 		expect(onError).toHaveBeenCalledTimes(2)
+		expect(onRestarted).toHaveBeenCalledTimes(2)
 	})
 })
 
