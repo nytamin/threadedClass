@@ -16,7 +16,7 @@ export class TestClassErrors extends EventEmitter {
 	public doError (): void {
 		throw new Error('TestError in doError')
 	}
-	public doTypeError (): void {
+	public doSyntaxError (): void {
 		// @ts-ignore
 		DaleATuCuerpoAlegría(Macarena)
 	}
