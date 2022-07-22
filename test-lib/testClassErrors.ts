@@ -22,7 +22,7 @@ export class TestClassErrors extends EventEmitter {
 	}
 	public doAsyncError (): boolean {
 		setTimeout(() => {
-			throw new Error('Error in setTimeout');
+			throw new Error('Error in setTimeout')
 		}, 1);
 
 		return true;

@@ -17,7 +17,7 @@ class TestClassErrors extends events_1.EventEmitter {
         throw new Error('TestError in doError');
     }
     doSyntaxError() {
-		DaleATuCuerpoAlegría(Macarena)
+		DaleATuCuerpoAlegría(Macarena);
 	}
     doAsyncError() {
 		setTimeout(() => {
