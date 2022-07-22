@@ -16,6 +16,17 @@ export class TestClassErrors extends EventEmitter {
 	public doError (): void {
 		throw new Error('TestError in doError')
 	}
+	public doSyntaxError (): void {
+		// @ts-ignore
+		DaleATuCuerpoAlegría(Macarena)
+	}
+	public doAsyncError (): boolean {
+		setTimeout(() => {
+			throw new Error('Error in setTimeout');
+		}, 1);
+
+		return true;
+	}
 	public emitEvent (eventName: string): void {
 		this.emit(eventName, 'testData')
 		// await Promise.resolve(this.emit(eventName, 'testData'))

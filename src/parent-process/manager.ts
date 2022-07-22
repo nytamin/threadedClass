@@ -63,13 +63,13 @@ export class ThreadedClassManagerClass {
 		return this._internal.getMemoryUsage()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
-		const onEvent = (child: Child) => {
+		const onEvent = (child: Child, ...args: any[]) => {
 			let foundChild = Object.keys(child.instances).find((instanceId) => {
 				const instance = child.instances[instanceId]
 				return instance.proxy === proxy
 			})
 			if (foundChild) {
-				cb()
+				cb(...args)
 			}
 		}
 		this._internal.on(event, onEvent)

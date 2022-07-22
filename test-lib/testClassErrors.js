@@ -16,6 +16,15 @@ class TestClassErrors extends events_1.EventEmitter {
     doError() {
         throw new Error('TestError in doError');
     }
+    doSyntaxError() {
+		DaleATuCuerpoAlegría(Macarena)
+	}
+    doAsyncError() {
+		setTimeout(() => {
+			throw new Error('Error in setTimeout');
+		}, 1);
+        return true;
+	}
     emitEvent(eventName) {
         this.emit(eventName, 'testData');
         // await Promise.resolve(this.emit(eventName, 'testData'))
