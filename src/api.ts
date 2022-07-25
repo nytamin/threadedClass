@@ -29,6 +29,8 @@ export interface ThreadedClassConfig {
 	threadId?: string
 	/** If the process crashes or freezes it's automatically restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
+	/** If the process needs to restart, how long to wait for it to initalize, before failing. (default is 1000ms) */
+	restartTimeout?: number
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
 	/** Set path to worker, used in browser */
