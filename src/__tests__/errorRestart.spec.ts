@@ -4,14 +4,32 @@ import {
 } from '../index'
 import { TestClassErrors } from '../../test-lib/testClassErrors'
 import { RegisterExitHandlers } from '../parent-process/manager'
+import {tmpdir} from 'os'
+import {join} from 'path'
+import { promises } from 'fs'
 const TESTCLASS_PATH = '../../test-lib/testClassErrors.js'
 
 describe('threadedclass', () => {
+	const TMP_STATE_FILE = join(tmpdir(), 'test_state')
+
+	async function clearTestTempState(): Promise<void> {
+		try {
+			await promises.unlink(TMP_STATE_FILE);
+		} catch {
+
+		}
+	}
+	
 	beforeAll(async () => {
 
 		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 
+		await clearTestTempState();
+	})
+
+	afterAll(async () => {
+		await clearTestTempState();
 	})
 
 	test('restart after error', async () => {
@@ -19,7 +37,7 @@ describe('threadedclass', () => {
 
 		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [], {
 			autoRestart: true,
-			threadUsage: 0.5
+			threadUsage: 1
 		})
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
@@ -69,6 +87,46 @@ describe('threadedclass', () => {
 		expect(onClosed).toHaveBeenCalledTimes(3)
 		expect(onError).toHaveBeenCalledTimes(2)
 		expect(onRestarted).toHaveBeenCalledTimes(2)
+	})
+
+	test.only('emit error if constructor crashes on subsequent restart', async () => {
+		const RESTART_TIME = 100
+
+		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [1, TMP_STATE_FILE], {
+			autoRestart: true,
+			threadUsage: 1,
+			restartTimeout: 100,
+		})
+		let onClosed = jest.fn(() => {
+			// oh dear, the process was closed
+		})
+		const onError = jest.fn((_e) => {
+			// we had a global uncaught error
+		})
+		const onRestarted = jest.fn(() => {
+			// the thread was restarted
+		})
+
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'error', onError)
+		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
+
+		expect(await threaded.returnValue("test")).toBe("test");
+		await sleep(10)
+		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+		await sleep(RESTART_TIME)
+
+		expect(await threaded.doAsyncError()).toBeDefined()
+
+		await sleep(100)
+
+		expect(onClosed).toHaveBeenCalledTimes(2)
+		expect(onError).toHaveBeenCalledTimes(2)
+		expect(onError.mock.calls[1][0]).toMatch(/Error in constructor/)
+
+		await sleep(500)
 	})
 })
 

@@ -315,8 +315,15 @@ export abstract class Worker {
 				this.replyToInstanceMessage(handle, msg, props)
 				return
 			})
-			.catch((e: any) => {
-				console.log('INIT error', e)
+			.catch((err: any) => {
+				const errStack = stripStack(err.stack || err.toString(), [
+					/onMessageFromParent/,
+					/threadedclass-worker/
+				])
+
+				let errorResponse: string = `${errStack}\n executing constructor of instance "${m.instanceId}"`
+				this.replyInstanceError(handle, msg, errorResponse)
+				return
 			})
 
 			if (!m.config.disableMultithreading && !nodeSupportsWorkerThreads()) {
