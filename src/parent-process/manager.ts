@@ -47,6 +47,14 @@ export class ThreadedClassManagerClass {
 		return this._internal.handleExit
 	}
 
+	/** How quickly to time out when restarting the threads. Default is 1000ms. */
+	public set restartTimeout (v: number) {
+		this._internal.restartTimeout = v
+	}
+	public get restartTimeout (): number {
+		return this._internal.restartTimeout
+	}
+
 	/** Destroy a proxy class */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
 		return this._internal.killProxy(proxy)
@@ -158,6 +166,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
 	public handleExit = RegisterExitHandlers.AUTO
+	public restartTimeout = 1000
 	private isInitialized: boolean = false
 	private _threadId: number = 0
 	private _instanceId: number = 0
@@ -441,9 +450,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 			this.on('initialized', onInit)
 			setTimeout(() => {
-				reject('Timeout when trying to restart')
+				reject(`Timeout when trying to restart after ${this.restartTimeout}`)
 				this.removeListener('initialized', onInit)
-			}, 1000)
+			}, this.restartTimeout)
 		})
 		const promises: Array<Promise<void>> = []
 
