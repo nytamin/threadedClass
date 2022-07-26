@@ -4,6 +4,7 @@ import { ThreadedClassConfig } from '../api'
 
 export const DEFAULT_CHILD_FREEZE_TIME = 1000 // how long to wait before considering a child to be unresponsive
 export const DEFAULT_RESTART_TIMEOUT = 1000 // how long to wait for the child to come back after restart
+export const DEFAULT_KILL_TIMEOUT = 1000 // how long to wait for the thread to close when terminating it
 
 export type InitProps = Array<InitProp>
 export enum InitPropType {

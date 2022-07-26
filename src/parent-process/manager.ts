@@ -3,11 +3,12 @@ import {
 	InitProps,
 	DEFAULT_CHILD_FREEZE_TIME,
 	DEFAULT_RESTART_TIMEOUT,
+	DEFAULT_KILL_TIMEOUT,
 	encodeArguments,
 	CallbackFunction,
 	Message,
 	ArgDefinition,
-	decodeArguments
+	decodeArguments,
 } from '../shared/sharedApi'
 import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
@@ -835,6 +836,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					delete this._children[child.id]
 					resolve()
 				} else {
+					const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
 							// Clean up:
@@ -850,7 +853,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					setTimeout(() => {
 						delete this._children[child.id]
 						reject(`Timeout: Kill child process "${child.id}"`)
-					},1000)
+					},killTimeout)
 					if (!child.isClosing) {
 						child.isClosing = true
 						child.process.kill()

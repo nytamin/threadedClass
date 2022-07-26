@@ -31,6 +31,8 @@ export interface ThreadedClassConfig {
 	autoRestart?: boolean
 	/** If the process needs to restart, how long to wait for it to initalize, before failing. (default is 1000ms) */
 	restartTimeout?: number
+	/** If the process is being killed, how long to wait for it to terminate, before failing. (default is 1000ms) */
+	killTimeout?: number
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
 	/** Set path to worker, used in browser */
