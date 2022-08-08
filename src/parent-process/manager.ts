@@ -687,7 +687,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				})
 				.catch((err) => {
 					this.emit('error', child, err)
-					this.consoleError('Error when running restartChild()', err)
+					if (this.debug) this.consoleError('Error when running restartChild()', err)
 				})
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
@@ -695,7 +695,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.killChild(child, true)
 					.catch((err) => {
 						this.emit('error', child, err)
-						this.consoleError('Error when running killChild()', err)
+						if (this.debug) this.consoleError('Error when running killChild()', err)
 					})
 				}
 			}
@@ -728,15 +728,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 		child.process.on('error', (err) => {
 			this.emit('error', child, err)
-			this.consoleError('Error from child ' + child.id, err)
+			if (this.debug) this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
 			if (message.messageType === 'child') {
 				try {
 					this._onMessageFromChild(child, message)
 				} catch (e) {
-					this.consoleError(`Error in onMessageCallback in child ${child.id}`, message)
-					this.consoleError(e)
+					if (this.debug) this.consoleError(`Error in onMessageCallback in child ${child.id}`, message, e)
 					throw e
 				}
 			} else if (message.messageType === 'instance') {
@@ -745,15 +744,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance)
-						this.consoleError(e)
+						if (this.debug) this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance, e)
 						throw e
 					}
 				} else {
-					this.consoleError(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
+					const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
+					this.emit('error', child, err)
+					if (this.debug) this.consoleError(err)
 				}
 			} else {
-				this.consoleError(`Unknown messageType "${message['messageType']}"!`)
+				const err = new Error(`Unknown messageType "${message['messageType']}"!`)
+				this.emit('error', child, err)
+				if (this.debug) this.consoleError(err)
 			}
 		})
 	}
