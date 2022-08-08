@@ -4,32 +4,32 @@ import {
 } from '../index'
 import { TestClassErrors } from '../../test-lib/testClassErrors'
 import { RegisterExitHandlers } from '../parent-process/manager'
-import {tmpdir} from 'os'
-import {join} from 'path'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { promises } from 'fs'
 const TESTCLASS_PATH = '../../test-lib/testClassErrors.js'
 
 describe('threadedclass', () => {
 	const TMP_STATE_FILE = join(tmpdir(), 'test_state')
 
-	async function clearTestTempState(): Promise<void> {
+	async function clearTestTempState (): Promise<void> {
 		try {
-			await promises.unlink(TMP_STATE_FILE);
+			await promises.unlink(TMP_STATE_FILE)
 		} catch {
 
 		}
 	}
-	
+
 	beforeAll(async () => {
 
 		ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 		ThreadedClassManager.debug = false
 
-		await clearTestTempState();
+		await clearTestTempState()
 	})
 
 	afterAll(async () => {
-		await clearTestTempState();
+		await clearTestTempState()
 	})
 
 	test('restart after error', async () => {
@@ -95,7 +95,7 @@ describe('threadedclass', () => {
 		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [1, TMP_STATE_FILE], {
 			autoRestart: true,
 			threadUsage: 1,
-			restartTimeout: 100,
+			restartTimeout: 100
 		})
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
@@ -111,7 +111,7 @@ describe('threadedclass', () => {
 		ThreadedClassManager.onEvent(threaded, 'error', onError)
 		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
 
-		expect(await threaded.returnValue("test")).toBe("test");
+		expect(await threaded.returnValue('test')).toBe('test')
 		await sleep(10)
 		expect(onClosed).toHaveBeenCalledTimes(0)
 		expect(onError).toHaveBeenCalledTimes(0)

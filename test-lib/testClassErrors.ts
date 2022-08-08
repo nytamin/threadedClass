@@ -18,13 +18,13 @@ export class TestClassErrors extends EventEmitter {
 			let state = '0'
 			try {
 				state = readFileSync(counterFile, {
-					encoding: 'utf8',
+					encoding: 'utf8'
 				})
 			} catch {
-				
+
 			} finally {
 				writeFileSync(counterFile, String(Number.parseInt(state) + 1))
-	
+
 				if (state === String(failInConstructorAfter)) {
 					throw new Error('Error in constructor')
 				}
@@ -87,7 +87,7 @@ export class TestClassErrors extends EventEmitter {
 	public receiveValue (_value: any): void {
 		// Do nothing
 	}
-	public returnValue<T>(value: T): T {
+	public returnValue<T> (value: T): T {
 		return value
 	}
 	public returnInvalidValue (): any {
