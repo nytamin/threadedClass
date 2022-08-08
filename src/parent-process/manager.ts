@@ -444,20 +444,22 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			this._setupChildProcess(child)
 		}
 		let p = new Promise<void>((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				reject(`Timeout when trying to restart after ${restartTimeout}`)
+				this.killChild(child, 'timeout when restarting').catch((e) => {
+					this.consoleError(`Could not kill child: "${child.id}"`, e)
+				})
+				this.removeListener('initialized', onInit)
+			}, restartTimeout)
+
 			const onInit = (child: Child) => {
 				if (child === child) {
+					clearTimeout(timeout)
 					resolve()
 					this.removeListener('initialized', onInit)
 				}
 			}
 			this.on('initialized', onInit)
-			setTimeout(() => {
-				reject(`Timeout when trying to restart after ${restartTimeout}`)
-				this.killChild(child).catch((e) => {
-					this.consoleError(`Could not kill child: "${child.id}"`, e)
-				})
-				this.removeListener('initialized', onInit)
-			}, restartTimeout)
 		})
 		const promises: Array<Promise<void>> = []
 
