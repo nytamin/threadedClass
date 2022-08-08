@@ -15,8 +15,8 @@ describe('threadedclass', () => {
 	async function clearTestTempState (): Promise<void> {
 		try {
 			await promises.unlink(TMP_STATE_FILE)
-		} catch (e) {
-			console.error(e)
+		} catch {
+			// don't do anything
 		}
 	}
 
@@ -127,6 +127,12 @@ describe('threadedclass', () => {
 		expect(onError.mock.calls[1][0]).toMatch(/Error in constructor/)
 
 		await sleep(500)
+
+		try {
+			await ThreadedClassManager.destroy(threaded)
+		} catch (e) {
+			console.log('Could not close class proxy')
+		}
 	})
 })
 
