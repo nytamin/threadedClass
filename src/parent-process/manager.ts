@@ -446,7 +446,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			this.on('initialized', onInit)
 			setTimeout(() => {
 				reject(`Timeout when trying to restart after ${restartTimeout}`)
-				this.killChild(child)
+				this.killChild(child).catch((e) => {
+					this.consoleError(`Could not kill child: "${child.id}"`, e)
+				})
 				this.removeListener('initialized', onInit)
 			}, restartTimeout)
 		})
@@ -465,7 +467,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
-							this.killChild(child)
+							this.killChild(child).catch((e) => {
+								this.consoleError(`Could not kill child: "${child.id}"`, e)
+							})
 							reject(err)
 						} else {
 							resolve()

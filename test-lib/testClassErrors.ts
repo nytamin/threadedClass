@@ -20,10 +20,8 @@ export class TestClassErrors extends EventEmitter {
 				state = readFileSync(counterFile, {
 					encoding: 'utf8'
 				})
-			} catch {
-
 			} finally {
-				writeFileSync(counterFile, String(Number.parseInt(state) + 1))
+				writeFileSync(counterFile, String(Number.parseInt(state, 10) + 1))
 
 				if (state === String(failInConstructorAfter)) {
 					throw new Error('Error in constructor')

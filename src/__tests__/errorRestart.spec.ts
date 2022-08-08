@@ -15,8 +15,8 @@ describe('threadedclass', () => {
 	async function clearTestTempState (): Promise<void> {
 		try {
 			await promises.unlink(TMP_STATE_FILE)
-		} catch {
-
+		} catch (e) {
+			console.error(e)
 		}
 	}
 
