@@ -211,7 +211,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 
 								if (!instance.child) return Promise.reject(new Error(`Instance ${instance.id} has been detached from child process`))
 
-								return ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
+								return ThreadedClassManagerInternal.doMethod(instance.child, p.key, (resolve, reject) => {
 									if (!instance.child) throw new Error(`Instance ${instance.id} has been detached from child process`)
 									// Go through arguments and serialize them:
 									let encodedArgs = encodeArguments(instance, instance.child.callbacks, args, !!config.disableMultithreading)

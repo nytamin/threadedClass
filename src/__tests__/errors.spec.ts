@@ -13,7 +13,9 @@ const getTests = (disableMultithreading: boolean) => {
 
 		let threaded: ThreadedClass<TestClassErrors>
 		let onClosed = jest.fn()
+		let onError = jest.fn()
 		let onClosedListener: any
+		let onErrorListener: any
 
 		beforeAll(async () => {
 
@@ -22,6 +24,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 			threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [], { disableMultithreading })
 			onClosedListener = ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+			onErrorListener = ThreadedClassManager.onEvent(threaded, 'error', onError)
 
 		})
 		beforeEach(() => {
@@ -34,6 +37,7 @@ const getTests = (disableMultithreading: boolean) => {
 			await ThreadedClassManager.destroy(threaded)
 			expect(ThreadedClassManager.getThreadCount()).toEqual(0)
 			onClosedListener.stop()
+			onErrorListener.stop()
 			expect(onClosed).toHaveBeenCalledTimes(1)
 		})
 
@@ -43,6 +47,13 @@ const getTests = (disableMultithreading: boolean) => {
 			// ensure that the original path is included in the stack-trace:
 			await expect(threaded.doError()).rejects.toMatch(/testClassErrors.js/)
 			await expect(threaded.doError()).rejects.toMatch(/errors.spec/)
+		})
+		test('SyntaxError in called method', async () => {
+
+			await expect(threaded.doSyntaxError()).rejects.toMatch(/SyntaxError/)
+			// ensure that the original path is included in the stack-trace:
+			await expect(threaded.doSyntaxError()).rejects.toMatch(/testClassErrors.js/)
+			await expect(threaded.doSyntaxError()).rejects.toMatch(/errors.spec/)
 		})
 		test('Error in callback', async () => {
 			// Pre-test: check that cbError throws an error:
@@ -154,6 +165,13 @@ const getTests = (disableMultithreading: boolean) => {
 					expect(err).toMatch(/errors.spec/)
 				})
 			}
+
+			test('Error thrown in a setTimeout', async () => {
+				await expect(threaded.doAsyncError()).resolves.toBeTruthy()
+				await sleep(10)
+				expect(onError).toHaveBeenCalledTimes(1)
+				expect(onError.mock.calls[0][0].message).toMatch(/setTimeout/)
+			})
 		}
 	}
 }

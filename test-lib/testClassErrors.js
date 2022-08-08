@@ -3,8 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestClassErrors = void 0;
 const tslib_1 = require("tslib");
 const events_1 = require("events");
+const fs_1 = require("fs");
 class TestClassErrors extends events_1.EventEmitter {
-    constructor() {
+    constructor(failInConstructorAfter, counterFile) {
         super();
         this.lastAsyncError = null;
         this.unhandledPromiseRejections = [];
@@ -12,9 +13,35 @@ class TestClassErrors extends events_1.EventEmitter {
         process.on('unhandledRejection', (message) => {
             this.unhandledPromiseRejections.push(`${message}` + (typeof message === 'object' ? message.stack : ''));
         });
+        if (failInConstructorAfter && counterFile) {
+            let state = '0';
+            try {
+                state = (0, fs_1.readFileSync)(counterFile, {
+                    encoding: 'utf8',
+                });
+            }
+            catch (_a) {
+            }
+            finally {
+                (0, fs_1.writeFileSync)(counterFile, String(Number.parseInt(state) + 1));
+                if (state === String(failInConstructorAfter)) {
+                    throw new Error('Error in constructor');
+                }
+            }
+        }
     }
     doError() {
         throw new Error('TestError in doError');
+    }
+    doSyntaxError() {
+        // @ts-ignore
+        DaleATuCuerpoAlegría(Macarena);
+    }
+    doAsyncError() {
+        setTimeout(() => {
+            throw new Error('Error in setTimeout');
+        }, 1);
+        return true;
     }
     emitEvent(eventName) {
         this.emit(eventName, 'testData');
@@ -59,6 +86,9 @@ class TestClassErrors extends events_1.EventEmitter {
     }
     receiveValue(_value) {
         // Do nothing
+    }
+    returnValue(value) {
+        return value;
     }
     returnInvalidValue() {
         // Functions can't be returned

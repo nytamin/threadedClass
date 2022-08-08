@@ -1,20 +1,47 @@
 import { EventEmitter } from 'events'
+import { readFileSync, writeFileSync } from 'fs'
 
 export class TestClassErrors extends EventEmitter {
 
 	private lastAsyncError: Error | null = null
 	private unhandledPromiseRejections: string[] = []
 
-	constructor () {
+	constructor (failInConstructorAfter?: number, counterFile?: string) {
 		super()
 
 		// Catch unhandled promises:
 		process.on('unhandledRejection', (message) => {
 			this.unhandledPromiseRejections.push(`${message}` + (typeof message === 'object' ? (message as any).stack : ''))
 		})
+
+		if (failInConstructorAfter && counterFile) {
+			let state = '0'
+			try {
+				state = readFileSync(counterFile, {
+					encoding: 'utf8'
+				})
+			} finally {
+				writeFileSync(counterFile, String(Number.parseInt(state, 10) + 1))
+
+				if (state === String(failInConstructorAfter)) {
+					throw new Error('Error in constructor')
+				}
+			}
+		}
 	}
 	public doError (): void {
 		throw new Error('TestError in doError')
+	}
+	public doSyntaxError (): void {
+		// @ts-ignore
+		DaleATuCuerpoAlegría(Macarena)
+	}
+	public doAsyncError (): boolean {
+		setTimeout(() => {
+			throw new Error('Error in setTimeout')
+		}, 1)
+
+		return true
 	}
 	public emitEvent (eventName: string): void {
 		this.emit(eventName, 'testData')
@@ -57,6 +84,9 @@ export class TestClassErrors extends EventEmitter {
 
 	public receiveValue (_value: any): void {
 		// Do nothing
+	}
+	public returnValue<T> (value: T): T {
+		return value
 	}
 	public returnInvalidValue (): any {
 		// Functions can't be returned
