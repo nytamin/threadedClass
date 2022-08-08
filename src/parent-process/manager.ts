@@ -126,6 +126,7 @@ export interface Child {
 	usage: number
 	instances: {[id: string]: ChildInstance}
 	methods: {[id: string]: {
+		methodName: string
 		resolve: (result: any) => void,
 		reject: (error: any) => void
 	}}
@@ -267,7 +268,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					if (Object.keys(child.instances).length === 1) {
 						// if there is only one instance left, we can kill the child
-						this.killChild(childId)
+						this.killChild(childId, 'no instances left')
 						.then(resolve)
 						.catch(reject)
 
@@ -396,7 +397,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			Object.keys(this._children).map((id) => {
 				const child = this._children[id]
 				if (this.debug) this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`)
-				return this.killChild(id)
+				return this.killChild(id, 'killAllChildren')
 			})
 		).then(() => {
 			return
@@ -421,7 +422,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public async restartChild (child: Child, onlyInstances?: ChildInstance[], forceRestart?: boolean): Promise<void> {
 		if (child.alive && forceRestart) {
-			await this.killChild(child, true)
+			await this.killChild(child, 'restart child', true)
 		}
 
 		const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
@@ -473,7 +474,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
-							this.killChild(child).catch((e) => {
+							this.killChild(child, 'error on init').catch((e) => {
 								this.consoleError(`Could not kill child: "${child.id}"`, e)
 							})
 							reject(err)
@@ -549,14 +550,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			monitorChild()
 		}, pingTime)
 	}
-	public doMethod<T> (child: Child, cb: (resolve: (result: T | PromiseLike<T>) => void, reject: (error: any) => void) => void): Promise<T> {
+	public doMethod<T> (child: Child, methodName: string, cb: (resolve: (result: T | PromiseLike<T>) => void, reject: (error: any) => void) => void): Promise<T> {
 		// Return a promise that will execute the callback cb
 		// but also put the promise in child.methods, so that the promise can be aborted
 		// in the case of a child crash
 
 		const methodId: string = 'm' + this._methodId++
 		const p = new Promise<T>((resolve, reject) => {
-			child.methods[methodId] = { resolve, reject }
+			child.methods[methodId] = { methodName, resolve, reject }
 			cb(resolve, reject)
 		})
 		.then((result) => {
@@ -692,7 +693,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
 				if (child.alive) {
-					this.killChild(child, true)
+					this.killChild(child, `child has crashed (${reason})`, true)
 					.catch((err) => {
 						this.emit('error', child, err)
 						if (this.debug) this.consoleError('Error when running killChild()', err)
@@ -829,7 +830,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		return null
 	}
-	private killChild (idOrChild: string | Child, dontCleanUp?: boolean): Promise<void> {
+	private killChild (idOrChild: string | Child, reason: string, dontCleanUp?: boolean): Promise<void> {
 		return new Promise((resolve, reject) => {
 			let child: Child
 			if (typeof idOrChild === 'string') {
@@ -843,6 +844,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			} else {
 				child = idOrChild
 			}
+			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
 				if (!child.alive) {
 					delete this._children[child.id]
@@ -878,7 +880,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		Object.keys(child.methods).forEach((methodId) => {
 			const method = child.methods[methodId]
 
-			method.reject(Error('Method aborted due to: ' + reason))
+			method.reject(Error(`Method "${method.methodName}()" aborted due to: ${reason}`))
 		})
 		child.methods = {}
 	}
