@@ -79,3 +79,45 @@ export function combineErrorStacks (orgError: Error | string, ...stacks: string[
 		return orgError + '\n' + stacks.join('\n')
 	}
 }
+
+/** A specific type of Map which contains an array of values */
+export class ArrayMap<Key extends string, Value extends any> extends Map<Key, Value[]> {
+	constructor () {
+		super()
+	}
+	/** Appends new elements to the end of an array, and returns the new length of the array.  */
+	push (key: Key, value: Value): number {
+		const arr = this.get(key)
+		if (!arr) {
+			this.set(key, [value])
+			return 1
+		} else {
+			arr.push(value)
+			return arr.length
+		}
+	}
+	/** Removes an element from the array, returns true if the element was found and removed */
+	remove (key: Key, value: Value): boolean {
+		let removedSomething = false
+		const arr = this.get(key)
+		if (arr) {
+			const index = arr.indexOf(value)
+			if (index !== -1) {
+				arr.splice(index, 1)
+				removedSomething = true
+			}
+			if (arr.length === 0) {
+				this.delete(key)
+			}
+		}
+		return removedSomething
+	}
+	/** The total number of elements in all of the arrays  */
+	get totalSize (): number {
+		let total = 0
+		for (const arr of this.values()) {
+			total += arr.length
+		}
+		return total
+	}
+}

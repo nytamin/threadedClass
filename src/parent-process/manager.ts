@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events'
 import {
 	InitProps,
 	DEFAULT_CHILD_FREEZE_TIME,
@@ -11,7 +10,7 @@ import {
 	decodeArguments
 } from '../shared/sharedApi'
 import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner } from '../api'
-import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
+import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers, ArrayMap } from '../shared/lib'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
 import { WorkerPlatformBase } from './workerPlatform/_base'
@@ -38,7 +37,6 @@ export class ThreadedClassManagerClass {
 	private _internal: ThreadedClassManagerClassInternal
 	constructor (internal: ThreadedClassManagerClassInternal) {
 		this._internal = internal
-		this._internal.setMaxListeners(0)
 	}
 	/** Enable debug messages */
 	public set debug (v: boolean) {
@@ -70,22 +68,8 @@ export class ThreadedClassManagerClass {
 	public getThreadsMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
 		return this._internal.getMemoryUsage()
 	}
-	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
-		const onEvent = (child: Child, ...args: any[]) => {
-			let foundChild = Object.keys(child.instances).find((instanceId) => {
-				const instance = child.instances[instanceId]
-				return instance.proxy === proxy
-			})
-			if (foundChild) {
-				cb(...args)
-			}
-		}
-		this._internal.on(event, onEvent)
-		return {
-			stop: () => {
-				this._internal.removeListener(event, onEvent)
-			}
-		}
+	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function): { stop: () => void } {
+		return this._internal.onProxyEvent(proxy, event, cb)
 	}
 	/**
 	 * Restart the thread of the proxy instance
@@ -163,7 +147,7 @@ export interface ChildInstance {
 	initialized: boolean
 	child: Child
 }
-export class ThreadedClassManagerClassInternal extends EventEmitter {
+export class ThreadedClassManagerClassInternal {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
 	public handleExit = RegisterExitHandlers.AUTO
@@ -176,6 +160,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	public debug: boolean = false
 	/** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
 	private uniqueId: number = Date.now() % 10000
+	/** Two-dimensional map, which maps Proxy -> event -> listener functions */
+	private _proxyEventListeners: Map<
+		ThreadedClass<any>, // Proxy
+		ArrayMap<string, Function> // event, listener
+	> = new Map()
+	/** Contains a map of listeners, used to wait for a child to have been initialized */
+	private _childInitializedListeners: ArrayMap<string, () => void> = new ArrayMap()
 
 	public findNextAvailableChild (
 		config: ThreadedClassConfig,
@@ -274,7 +265,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					} else {
 						const cleanup = () => {
-							// delete instance.child
 							delete child.instances[instanceId]
 						}
 						this.sendMessageToInstance(instance, {
@@ -449,17 +439,19 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				this.killChild(child, 'timeout when restarting').catch((e) => {
 					this.consoleError(`Could not kill child: "${child.id}"`, e)
 				})
-				this.removeListener('initialized', onInit)
+				// Remove listener:
+				this._childInitializedListeners.remove(child.id, onInit)
+
 			}, restartTimeout)
 
-			const onInit = (child: Child) => {
-				if (child === child) {
-					clearTimeout(timeout)
-					resolve()
-					this.removeListener('initialized', onInit)
-				}
+			const onInit = () => {
+				clearTimeout(timeout)
+				resolve()
+				// Remove listener:
+				this._childInitializedListeners.remove(child.id, onInit)
 			}
-			this.on('initialized', onInit)
+
+			this._childInitializedListeners.push(child.id, onInit)
 		})
 		const promises: Array<Promise<void>> = []
 
@@ -515,7 +507,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				!cb ||
 				cb(instance, e, initProps)
 			) {
-				this.emit('initialized', child)
+				// Notify listeners that the instance is initialized:
+				const listeners = this._childInitializedListeners.get(child.id)
+				if (listeners) {
+					for (const listener of listeners) {
+						listener()
+					}
+				}
 			}
 		})
 	}
@@ -575,6 +573,52 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public getChildDescriptor (child: Child): string {
 		return `${child.id} (${Object.keys(child.instances).join(', ')})`
+	}
+	public onProxyEvent (proxy: ThreadedClass<any>, event: string, cb: Function): { stop: () => void } {
+		let events = this._proxyEventListeners.get(proxy)
+		if (!events) events = new ArrayMap()
+
+		events.push(event, cb)
+
+		// Save changes:
+		this._proxyEventListeners.set(proxy, events)
+
+		return {
+			stop: () => {
+
+				const events = this._proxyEventListeners.get(proxy)
+				if (!events) return
+
+				events.remove(event, cb)
+
+				// Save changes:
+				if (events.size > 0) {
+					this._proxyEventListeners.set(proxy, events)
+				} else {
+					this._proxyEventListeners.delete(proxy)
+				}
+			}
+		}
+	}
+	private _emitProxyEvent (child: Child, event: string, ...args: any[]) {
+
+		for (const instance of Object.values(child.instances)) {
+			const events = this._proxyEventListeners.get(instance.proxy)
+			if (events) {
+				const listeners = events.get(event)
+				if (listeners) {
+					for (const listener of listeners) {
+						try {
+							listener(...args)
+						} catch (err) {
+							this.consoleLog(`Error in event listener for "${event}":`, err)
+						}
+					}
+				}
+			}
+
+		}
+
 	}
 	/** Called before using internally */
 	private _init () {
@@ -686,10 +730,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (shouldRestart) {
 				this.restartChild(child, restartInstances, true)
 				.then(() => {
-					this.emit('restarted', child)
+					this._emitProxyEvent(child, 'restarted')
 				})
 				.catch((err) => {
-					this.emit('error', child, err)
+					this._emitProxyEvent(child, 'error', err)
 					if (this.debug) this.consoleError('Error when running restartChild()', err)
 				})
 			} else {
@@ -697,7 +741,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				if (child.alive) {
 					this.killChild(child, `child has crashed (${reason})`, true)
 					.catch((err) => {
-						this.emit('error', child, err)
+						this._emitProxyEvent(child, 'error', err)
 						if (this.debug) this.consoleError('Error when running killChild()', err)
 					})
 				}
@@ -724,13 +768,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.process.on('close', () => {
 			if (child.alive) {
 				child.alive = false
-				this.emit('thread_closed', child)
+				this._emitProxyEvent(child, 'thread_closed')
 
 				this._childHasCrashed(child, `Child process "${childName(child)}" was closed`)
 			}
 		})
 		child.process.on('error', (err) => {
-			this.emit('error', child, err)
+			this._emitProxyEvent(child, 'error', err)
 			if (this.debug) this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
@@ -752,12 +796,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					}
 				} else {
 					const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
-					this.emit('error', child, err)
+					this._emitProxyEvent(child, 'error', err)
 					if (this.debug) this.consoleError(err)
 				}
 			} else {
 				const err = new Error(`Unknown messageType "${message['messageType']}"!`)
-				this.emit('error', child, err)
+				this._emitProxyEvent(child, 'error', err)
 				if (this.debug) this.consoleError(err)
 			}
 		})
@@ -857,12 +901,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
 							// Clean up:
-							Object.keys(child.instances).forEach(instanceId => {
+							Object.entries(child.instances).forEach(([instanceId, instance]) => {
 								// const instance = child.instances[instanceId]
 								// delete instance.child
 								delete child.instances[instanceId]
+
+								const events = this._proxyEventListeners.get(instance.proxy)
+								events?.clear()
+								this._proxyEventListeners.delete(instance.proxy)
 							})
 							delete this._children[child.id]
+
+
 						}
 						resolve()
 					})
