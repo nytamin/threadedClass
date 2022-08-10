@@ -64,10 +64,11 @@ export class ThreadedClassManagerClass {
 		return this._internal.handleExit
 	}
 
-	/** Destroy a proxy class */
+	/** Destroy a proxy class instance */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
 		return this._internal.killProxy(proxy)
 	}
+	/** Destroys all proxy instances and closes all threads */
 	public destroyAll (): Promise<void> {
 		return this._internal.killAllChildren()
 	}
@@ -75,7 +76,7 @@ export class ThreadedClassManagerClass {
 	public getThreadCount (): number {
 		return this._internal.getChildrenCount()
 	}
-	/** Returns memory usage for all threads */
+	/** Returns memory usage for each thread */
 	public getThreadsMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
 		return this._internal.getMemoryUsage()
 	}
@@ -85,7 +86,7 @@ export class ThreadedClassManagerClass {
 	/**
 	 * Restart the thread of the proxy instance
 	 * @param proxy
-	 * @param forceRestart If true, will kill the thread and restart it
+	 * @param forceRestart If true, will kill the thread and restart it. If false, will only restart the thread if it is already dead.
 	 */
 	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		return this._internal.restart(proxy, forceRestart)
