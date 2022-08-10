@@ -112,6 +112,9 @@ export class ArrayMap<Key extends string, Value extends any> extends Map<Key, Va
 		}
 		return removedSomething
 	}
+	arraySize (key: Key): number {
+		return this.get(key)?.length ?? 0
+	}
 	/** The total number of elements in all of the arrays  */
 	get totalSize (): number {
 		let total = 0

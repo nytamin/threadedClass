@@ -45,6 +45,17 @@ export class ThreadedClassManagerClass {
 	public get debug (): boolean {
 		return this._internal.debug
 	}
+	/**
+	 * Enable strict mode.
+	 * When strict mode is enabled, checks will be done to ensure that best-practices are followed (such as listening to the proper events, etc).
+	 * Warnings will be output to the console if strict mode is enabled.
+	 */
+	public set strict (v: boolean) {
+		this._internal.strict = v
+	}
+	public get strict (): boolean {
+		return this._internal.strict
+	}
 	/** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
 	public set handleExit (v: RegisterExitHandlers) {
 		this._internal.handleExit = v
@@ -158,6 +169,7 @@ export class ThreadedClassManagerClassInternal {
 	private _children: {[id: string]: Child} = {}
 	private _pinging: boolean = true // for testing only
 	public debug: boolean = false
+	public strict: boolean = false
 	/** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
 	private uniqueId: number = Date.now() % 10000
 	/** Two-dimensional map, which maps Proxy -> event -> listener functions */
@@ -573,6 +585,44 @@ export class ThreadedClassManagerClassInternal {
 	}
 	public getChildDescriptor (child: Child): string {
 		return `${child.id} (${Object.keys(child.instances).join(', ')})`
+	}
+	public checkInstance (instance: ChildInstance, errStack: Error) {
+		if (!this.strict) return
+
+		const getStack = () => {
+			// strip first 2 lines of the stack:
+			return `${errStack.stack}`.split('\n').slice(2).join('\n')
+
+		}
+
+		// Wait a little bit, to allow for the events to have been set up asynchronously in user-land:
+		setTimeout(() => {
+
+			// Ensure that error events are set up:
+			const events = this._proxyEventListeners.get(instance.proxy)
+			if (!events || events.arraySize('error') === 0) {
+				this.consoleLog(`Warning: No listener for the 'error' event was registered,
+Solve this by adding
+ThreadedClassManager.onEvent(instance, 'error', (error) => {})
+${getStack()}`)
+			}
+
+			if (!instance.config.autoRestart) {
+				if (!events || events.arraySize('thread_closed') === 0) {
+					this.consoleLog(`Warning: autoRestart is disabled and no listener for the 'thread_closed' event was registered.
+Solve this by either set {autoRestart: true} in threadedClass() options, or set up an event listener to handle a restart:
+use ThreadedClassManager.onEvent(instance, 'thread_closed', () => {})
+at ${getStack()}`)
+				}
+			} else {
+				if (!events || events.arraySize('restarted') === 0) {
+					this.consoleLog(`Warning: No listener for the 'restarted' event was registered.
+It is recommended to set up an event listener for this, so you are aware of that an instance has been restarted:
+use ThreadedClassManager.onEvent(instance, 'restarted', () => {})
+${getStack()}`)
+				}
+			}
+		}, 1)
 	}
 	public onProxyEvent (proxy: ThreadedClass<any>, event: string, cb: Function): { stop: () => void } {
 		let events = this._proxyEventListeners.get(proxy)
