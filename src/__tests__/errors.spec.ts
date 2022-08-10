@@ -166,12 +166,19 @@ const getTests = (disableMultithreading: boolean) => {
 				})
 			}
 
-			test('Error thrown in a setTimeout', async () => {
+			test('Error thrown in an setTimeout function', async () => {
+				expect(onClosed).toHaveBeenCalledTimes(0)
 				await expect(threaded.doAsyncError()).resolves.toBeTruthy()
 				await sleep(10)
-				expect(onError).toHaveBeenCalledTimes(1)
-				expect(onError.mock.calls[0][0].message).toMatch(/setTimeout/)
+				expect(onClosed).toHaveBeenCalledTimes(1)
+
+				if (!process.version.startsWith('v10.')) {
+					// In Node 10, errors in setTimeout are only logged.
+					expect(onError).toHaveBeenCalledTimes(1)
+					expect(onError.mock.calls[0][0].message).toMatch(/DaleATuCuerpoAlegría/)
+				}
 			})
+			// }
 		}
 	}
 }

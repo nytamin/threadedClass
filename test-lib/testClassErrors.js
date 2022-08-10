@@ -17,16 +17,15 @@ class TestClassErrors extends events_1.EventEmitter {
             let state = '0';
             try {
                 state = (0, fs_1.readFileSync)(counterFile, {
-                    encoding: 'utf8',
+                    encoding: 'utf8'
                 });
             }
-            catch (_a) {
+            catch (_err) {
+                // ignore
             }
-            finally {
-                (0, fs_1.writeFileSync)(counterFile, String(Number.parseInt(state) + 1));
-                if (state === String(failInConstructorAfter)) {
-                    throw new Error('Error in constructor');
-                }
+            (0, fs_1.writeFileSync)(counterFile, String(Number.parseInt(state, 10) + 1));
+            if (state === String(failInConstructorAfter)) {
+                throw new Error('Error in constructor');
             }
         }
     }
@@ -39,7 +38,9 @@ class TestClassErrors extends events_1.EventEmitter {
     }
     doAsyncError() {
         setTimeout(() => {
-            throw new Error('Error in setTimeout');
+            // @ts-ignore
+            DaleATuCuerpoAlegría(Macarena);
+            // throw new Error('Error in setTimeout')
         }, 1);
         return true;
     }

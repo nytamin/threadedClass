@@ -20,12 +20,13 @@ export class TestClassErrors extends EventEmitter {
 				state = readFileSync(counterFile, {
 					encoding: 'utf8'
 				})
-			} finally {
-				writeFileSync(counterFile, String(Number.parseInt(state, 10) + 1))
+			} catch (_err) {
+				// ignore
+			}
+			writeFileSync(counterFile, String(Number.parseInt(state, 10) + 1))
 
-				if (state === String(failInConstructorAfter)) {
-					throw new Error('Error in constructor')
-				}
+			if (state === String(failInConstructorAfter)) {
+				throw new Error('Error in constructor')
 			}
 		}
 	}
@@ -38,7 +39,9 @@ export class TestClassErrors extends EventEmitter {
 	}
 	public doAsyncError (): boolean {
 		setTimeout(() => {
-			throw new Error('Error in setTimeout')
+			// @ts-ignore
+			DaleATuCuerpoAlegría(Macarena)
+			// throw new Error('Error in setTimeout')
 		}, 1)
 
 		return true
