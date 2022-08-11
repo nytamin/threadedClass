@@ -41,5 +41,5 @@ module.exports = {
 		"!**/__mocks__/**",
 		"!**/dist/**"
 	],
-	collectCoverage: true
+	collectCoverage: false
 }
