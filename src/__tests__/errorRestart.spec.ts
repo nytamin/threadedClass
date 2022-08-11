@@ -54,7 +54,7 @@ describe('threadedclass', () => {
 		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
 
 		expect(await threaded.doAsyncError()).toBeTruthy()
-		await sleep(10)
+		await sleep(100)
 		expect(onClosed).toHaveBeenCalledTimes(1)
 		if (process.version.startsWith('v10.')) {
 			// In Node 10, errors in setTimeout are only logged
@@ -70,18 +70,18 @@ describe('threadedclass', () => {
 			counter = 1
 		})
 		expect(threaded.emitEvent('test'))
-		await sleep(10)
+		await sleep(100)
 		expect(counter).toEqual(1)
 		expect(onRestarted).toHaveBeenCalledTimes(1)
 
 		expect(await threaded.doAsyncError()).toBeTruthy()
-		await sleep(10)
+		await sleep(100)
 		expect(onClosed).toHaveBeenCalledTimes(2)
 
 		await sleep(RESTART_TIME)
 
 		expect(threaded.emitEvent('test'))
-		await sleep(10)
+		await sleep(100)
 		expect(counter).toEqual(1) // the underlying class has been reset, so we shouldn't expect to have the event handler registered
 
 		await ThreadedClassManager.destroyAll()
@@ -121,7 +121,7 @@ describe('threadedclass', () => {
 		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
 
 		expect(await threaded.returnValue('test')).toBe('test')
-		await sleep(10)
+		await sleep(100)
 		expect(onClosed).toHaveBeenCalledTimes(0)
 		expect(onError).toHaveBeenCalledTimes(0)
 

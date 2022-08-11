@@ -80,7 +80,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 				// This sets up an unhandled promise on in the child thread, and causes it to reject:
 				await threaded.rejectUnhandledPromise()
-				await sleep(10) // Ensure that the promise has been rejected
+				await sleep(100) // Ensure that the promise has been rejected
 
 				const unhandled = await threaded.getUnhandledPromiseRejections()
 				expect(unhandled).toHaveLength(1)
@@ -173,7 +173,7 @@ const getTests = (disableMultithreading: boolean) => {
 			test('Error thrown in an setTimeout function', async () => {
 				expect(onClosed).toHaveBeenCalledTimes(0)
 				await expect(threaded.doAsyncError()).resolves.toBeTruthy()
-				await sleep(10)
+				await sleep(100)
 				expect(onClosed).toHaveBeenCalledTimes(1)
 
 				if (!process.version.startsWith('v10.')) {
