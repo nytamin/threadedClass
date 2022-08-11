@@ -2,6 +2,8 @@ import { EventEmitter } from 'events'
 import {
 	InitProps,
 	DEFAULT_CHILD_FREEZE_TIME,
+	DEFAULT_RESTART_TIMEOUT,
+	DEFAULT_KILL_TIMEOUT,
 	encodeArguments,
 	CallbackFunction,
 	Message,
@@ -17,11 +19,17 @@ import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
 
 export enum RegisterExitHandlers {
-	/** Do a check if any exit handlers have been registered by someone else, and if so */
+	/**
+	 * Do a check if any exit handlers have been registered by someone else.
+	 * If not, will set up exit handlers to ensure child processes are killed on exit signal.
+	 */
 	AUTO = -1,
 	/** Set up exit handlers to ensure child processes are killed on exit signal. */
 	YES = 1,
-	/** Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed). */
+	/**
+	 * Don't set up any exit handlers (depending on your environment and Node version,
+	 * children might need to be manually killed).
+	 */
 	NO = 0
 }
 
@@ -63,13 +71,13 @@ export class ThreadedClassManagerClass {
 		return this._internal.getMemoryUsage()
 	}
 	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
-		const onEvent = (child: Child) => {
+		const onEvent = (child: Child, ...args: any[]) => {
 			let foundChild = Object.keys(child.instances).find((instanceId) => {
 				const instance = child.instances[instanceId]
 				return instance.proxy === proxy
 			})
 			if (foundChild) {
-				cb()
+				cb(...args)
 			}
 		}
 		this._internal.on(event, onEvent)
@@ -118,6 +126,7 @@ export interface Child {
 	usage: number
 	instances: {[id: string]: ChildInstance}
 	methods: {[id: string]: {
+		methodName: string
 		resolve: (result: any) => void,
 		reject: (error: any) => void
 	}}
@@ -259,7 +268,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					if (Object.keys(child.instances).length === 1) {
 						// if there is only one instance left, we can kill the child
-						this.killChild(childId)
+						this.killChild(childId, 'no instances left')
 						.then(resolve)
 						.catch(reject)
 
@@ -388,7 +397,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			Object.keys(this._children).map((id) => {
 				const child = this._children[id]
 				if (this.debug) this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`)
-				return this.killChild(id)
+				return this.killChild(id, 'killAllChildren')
 			})
 		).then(() => {
 			return
@@ -413,8 +422,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public async restartChild (child: Child, onlyInstances?: ChildInstance[], forceRestart?: boolean): Promise<void> {
 		if (child.alive && forceRestart) {
-			await this.killChild(child, true)
+			await this.killChild(child, 'restart child', true)
 		}
+
+		const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
 
 		if (!child.alive) {
 			// clear old process:
@@ -433,17 +444,22 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			this._setupChildProcess(child)
 		}
 		let p = new Promise<void>((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				reject(`Timeout when trying to restart after ${restartTimeout}`)
+				this.killChild(child, 'timeout when restarting').catch((e) => {
+					this.consoleError(`Could not kill child: "${child.id}"`, e)
+				})
+				this.removeListener('initialized', onInit)
+			}, restartTimeout)
+
 			const onInit = (child: Child) => {
 				if (child === child) {
+					clearTimeout(timeout)
 					resolve()
 					this.removeListener('initialized', onInit)
 				}
 			}
 			this.on('initialized', onInit)
-			setTimeout(() => {
-				reject('Timeout when trying to restart')
-				this.removeListener('initialized', onInit)
-			}, 1000)
 		})
 		const promises: Array<Promise<void>> = []
 
@@ -460,6 +476,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
+							this.killChild(child, 'error on init').catch((e) => {
+								this.consoleError(`Could not kill child: "${child.id}"`, e)
+							})
 							reject(err)
 						} else {
 							resolve()
@@ -533,14 +552,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			monitorChild()
 		}, pingTime)
 	}
-	public doMethod<T> (child: Child, cb: (resolve: (result: T | PromiseLike<T>) => void, reject: (error: any) => void) => void): Promise<T> {
+	public doMethod<T> (child: Child, methodName: string, cb: (resolve: (result: T | PromiseLike<T>) => void, reject: (error: any) => void) => void): Promise<T> {
 		// Return a promise that will execute the callback cb
 		// but also put the promise in child.methods, so that the promise can be aborted
 		// in the case of a child crash
 
 		const methodId: string = 'm' + this._methodId++
 		const p = new Promise<T>((resolve, reject) => {
-			child.methods[methodId] = { resolve, reject }
+			child.methods[methodId] = { methodName, resolve, reject }
 			cb(resolve, reject)
 		})
 		.then((result) => {
@@ -669,12 +688,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				.then(() => {
 					this.emit('restarted', child)
 				})
-				.catch((err) => this.consoleError('Error when running restartChild()', err))
+				.catch((err) => {
+					this.emit('error', child, err)
+					if (this.debug) this.consoleError('Error when running restartChild()', err)
+				})
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
 				if (child.alive) {
-					this.killChild(child, true)
-					.catch((err) => this.consoleError('Error when running killChild()', err))
+					this.killChild(child, `child has crashed (${reason})`, true)
+					.catch((err) => {
+						this.emit('error', child, err)
+						if (this.debug) this.consoleError('Error when running killChild()', err)
+					})
 				}
 			}
 		}
@@ -705,15 +730,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 		})
 		child.process.on('error', (err) => {
-			this.consoleError('Error from child ' + child.id, err)
+			this.emit('error', child, err)
+			if (this.debug) this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
 			if (message.messageType === 'child') {
 				try {
 					this._onMessageFromChild(child, message)
 				} catch (e) {
-					this.consoleError(`Error in onMessageCallback in child ${child.id}`, message)
-					this.consoleError(e)
+					if (this.debug) this.consoleError(`Error in onMessageCallback in child ${child.id}`, message, e)
 					throw e
 				}
 			} else if (message.messageType === 'instance') {
@@ -722,15 +747,18 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance)
-						this.consoleError(e)
+						if (this.debug) this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance, e)
 						throw e
 					}
 				} else {
-					this.consoleError(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
+					const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
+					this.emit('error', child, err)
+					if (this.debug) this.consoleError(err)
 				}
 			} else {
-				this.consoleError(`Unknown messageType "${message['messageType']}"!`)
+				const err = new Error(`Unknown messageType "${message['messageType']}"!`)
+				this.emit('error', child, err)
+				if (this.debug) this.consoleError(err)
 			}
 		})
 	}
@@ -804,7 +832,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		return null
 	}
-	private killChild (idOrChild: string | Child, dontCleanUp?: boolean): Promise<void> {
+	private killChild (idOrChild: string | Child, reason: string, dontCleanUp?: boolean): Promise<void> {
 		return new Promise((resolve, reject) => {
 			let child: Child
 			if (typeof idOrChild === 'string') {
@@ -818,11 +846,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			} else {
 				child = idOrChild
 			}
+			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
 				if (!child.alive) {
 					delete this._children[child.id]
 					resolve()
 				} else {
+					const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
 							// Clean up:
@@ -838,7 +869,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					setTimeout(() => {
 						delete this._children[child.id]
 						reject(`Timeout: Kill child process "${child.id}"`)
-					},1000)
+					},killTimeout)
 					if (!child.isClosing) {
 						child.isClosing = true
 						child.process.kill()
@@ -851,7 +882,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		Object.keys(child.methods).forEach((methodId) => {
 			const method = child.methods[methodId]
 
-			method.reject(Error('Method aborted due to: ' + reason))
+			method.reject(Error(`Method "${method.methodName}()" aborted due to: ${reason}`))
 		})
 		child.methods = {}
 	}

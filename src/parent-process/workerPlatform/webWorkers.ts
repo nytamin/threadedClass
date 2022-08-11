@@ -19,10 +19,10 @@ export class WebWorkerProcess extends WorkerPlatformBase {
 				} else console.log('unknown message type', message)
 			}
 			this.worker.onmessageerror = (error: any) => {
-				console.error('ww message error', error)
+				this.emit('error', error)
 			}
 			this.worker.onerror = (error: any) => {
-				console.error('ww error', error)
+				this.emit('error', error)
 			}
 		} catch (error) {
 			let str = (error.stack || error).toString() + ''

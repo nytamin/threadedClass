@@ -32,15 +32,14 @@ describe('lib', () => {
 				childProcess.kill('SIGKILL')
 				// childProcess.send('ba')
 				await sleep(100)
+
 				expect(isRunning(parentPid)).toBeFalsy()
-				expect(isRunning(childPid)).toBeTruthy()
 
-				// Still alive
-				await sleep(1000)
-				expect(isRunning(childPid)).toBeTruthy()
-
-				// Now gone
-				await sleep(5000)
+				// Should be gone in a while
+				for (let i = 0; i < 5; i++) {
+					if (!isRunning(childPid)) break
+					await sleep(1000)
+				}
 				expect(isRunning(childPid)).toBeFalsy()
 
 			} finally {

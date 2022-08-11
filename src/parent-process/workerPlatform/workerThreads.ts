@@ -49,8 +49,11 @@ export class WorkerThread extends WorkerPlatformBase {
 			// if (message.type === 'message') {
 			// } else console.log('unknown message type', message)
 		})
+		this.worker.on('messageerror', (error: any) => {
+			this.emit('error', error)
+		})
 		this.worker.on('error', (error: any) => {
-			console.error('Worker Thread error', error)
+			this.emit('error', error)
 		})
 		this.worker.on('exit', (_code: number) => {
 			this.emit('close')

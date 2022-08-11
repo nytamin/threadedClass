@@ -1,9 +1,12 @@
-import { threadedClass } from '..'
+import { RegisterExitHandlers, threadedClass, ThreadedClassManager } from '..'
 import { TestClass } from './testClass'
 
 const TESTCLASS_PATH = './testClass.js';
 
 (async function() {
+
+	ThreadedClassManager.handleExit = RegisterExitHandlers.NO
+
 	const child = await threadedClass<TestClass, typeof TestClass>(TESTCLASS_PATH, 'TestClass', [], { })
 
 	// Ensure the child is separate
