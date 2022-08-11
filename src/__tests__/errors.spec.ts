@@ -80,7 +80,7 @@ const getTests = (disableMultithreading: boolean) => {
 
 				// This sets up an unhandled promise on in the child thread, and causes it to reject:
 				await threaded.rejectUnhandledPromise()
-				await sleep(10) // Ensure that the promise has been rejected
+				await sleep(100) // Ensure that the promise has been rejected
 
 				const unhandled = await threaded.getUnhandledPromiseRejections()
 				expect(unhandled).toHaveLength(1)
@@ -89,45 +89,44 @@ const getTests = (disableMultithreading: boolean) => {
 
 				await threaded.clearUnhandledPromiseRejections()
 			})
-			if (process.version.startsWith('v10.')) {
-				// For some unknown reason, this test fails on node 10.x in CI.
-				// Since Node 10 is on it's way out, we'll just skip it for now.
 
-				test('Error in event listener', async () => {
-					expect(await threaded.getUnhandledPromiseRejections()).toHaveLength(0)
+			test('Error in event listener', async () => {
+				expect(await threaded.getUnhandledPromiseRejections()).toHaveLength(0)
 
-					// Set up an event listener that throws an error, on the parent thread:
-					await threaded.on('testEvent', () => {
-						throw new Error('TestError in event listener')
-					})
-					console.log(process.version)
-
-					// await expect(threaded.emitEvent('testEvent')).rejects.toMatch(/TestError in event listener/)
-					await threaded.emitEvent('testEvent')
-					// Because event emit/listeners don't handle promises, there should be an unhandled Promise rejection in the client:
-					const unhandled = await threaded.getUnhandledPromiseRejections()
-					expect(unhandled).toHaveLength(1)
-
-					/*
-					Error: TestError in event listener
-						at threadedClass\src\__tests__\errors.spec.ts:84:11
-						at Object.onMessageFromInstance [as onMessageCallback] (threadedClass\src\parent-process\threadedClass.ts:131:23)
-						at TestClassErrors.emit (events.js:400:28)
-						at TestClassErrors.emitEvent (threadedClass\test-lib\testClassErrors.js:18:14)
-						at ThreadedWorker.handleInstanceMessageFromParent (threadedClass\dist\child-process\worker.js:311:34)
-						...
-					*/
-					const errorLines = unhandled[0].split('\n')
-
-					expect(errorLines[0]).toMatch(/TestError in event listener/)
-					expect(errorLines[1]).toMatch(/errors.spec/)
-					expect(errorLines[2]).toMatch(/threadedClass/)
-					expect(errorLines[3]).toMatch(/emit/)
-					expect(errorLines[4]).toMatch(/testClassErrors/)
-
-					await threaded.clearUnhandledPromiseRejections()
+				// Set up an event listener that throws an error, on the parent thread:
+				await threaded.on('testEvent', () => {
+					throw new Error('TestError in event listener')
 				})
-			}
+
+				// await expect(threaded.emitEvent('testEvent')).rejects.toMatch(/TestError in event listener/)
+				await threaded.emitEvent('testEvent')
+
+				await sleep(100) // Ensure that the unhandled promise has been caught
+
+				// Because event emit/listeners don't handle promises, there should be an unhandled Promise rejection in the client:
+				const unhandled = await threaded.getUnhandledPromiseRejections()
+				expect(unhandled).toHaveLength(1)
+
+				/*
+				Error: TestError in event listener
+					at threadedClass\src\__tests__\errors.spec.ts:84:11
+					at Object.onMessageFromInstance [as onMessageCallback] (threadedClass\src\parent-process\threadedClass.ts:131:23)
+					at TestClassErrors.emit (events.js:400:28)
+					at TestClassErrors.emitEvent (threadedClass\test-lib\testClassErrors.js:18:14)
+					at ThreadedWorker.handleInstanceMessageFromParent (threadedClass\dist\child-process\worker.js:311:34)
+					...
+				*/
+				const errorLines = unhandled[0].split('\n')
+
+				expect(errorLines[0]).toMatch(/TestError in event listener/)
+				expect(errorLines[1]).toMatch(/errors.spec/)
+				expect(errorLines[2]).toMatch(/threadedClass/)
+				expect(errorLines[3]).toMatch(/emit/)
+				expect(errorLines[4]).toMatch(/testClassErrors/)
+
+				await threaded.clearUnhandledPromiseRejections()
+			})
+
 			const m = (process.version + '').match(/(\d+)\.(\d+)\.(\d+)/)
 			if (
 				m &&
@@ -174,7 +173,7 @@ const getTests = (disableMultithreading: boolean) => {
 			test('Error thrown in an setTimeout function', async () => {
 				expect(onClosed).toHaveBeenCalledTimes(0)
 				await expect(threaded.doAsyncError()).resolves.toBeTruthy()
-				await sleep(10)
+				await sleep(100)
 				expect(onClosed).toHaveBeenCalledTimes(1)
 
 				if (!process.version.startsWith('v10.')) {

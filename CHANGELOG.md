@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/nytamin/threadedClass/compare/1.0.2...1.1.0) (2022-08-11)
+
+
+### Features
+
+* add custom killTimeout option ([ff9847c](https://github.com/nytamin/threadedClass/commit/ff9847c4fbb035bc005877b5a2d8115a11566cf7))
+* add event to allow listening to side-effect errors ([4ce09c9](https://github.com/nytamin/threadedClass/commit/4ce09c90ee3ff6d58fc6bb5cd93fe85059fda2a0))
+* allow changing restart timeout ([73057ac](https://github.com/nytamin/threadedClass/commit/73057ac65d1aaed28db1f19706b47cc0b4559ec2))
+
+
+### Bug Fixes
+
+* crash/failed test after restarted child ([cbb37a1](https://github.com/nytamin/threadedClass/commit/cbb37a1cce4e3c7fa45395358bc97a75fae450d4))
+* forward errors from WorkerThreads to consumers ([9a36299](https://github.com/nytamin/threadedClass/commit/9a36299382345489f1c1cdd02ae9f61ebf526bed))
+* forward errors upwards so that they can be caught ([75685ae](https://github.com/nytamin/threadedClass/commit/75685ae2d7b2f80cce9eca3d0dc896252e56177b))
+* improve logging for when rejecting all methods ([34a5fd2](https://github.com/nytamin/threadedClass/commit/34a5fd27cdc658cce3c60448afd6585d8b32a96f))
+* kill children if they crash during init ([16c0427](https://github.com/nytamin/threadedClass/commit/16c04277d42e480eb3dfa1280b415e012d0ace6e))
+* move restartTimeout to class options ([dd5703e](https://github.com/nytamin/threadedClass/commit/dd5703eea37396dba75fdbe73728a9de652fbf7e))
+* verify that restarted event is emitted correctly ([64dac40](https://github.com/nytamin/threadedClass/commit/64dac4009a4de8fe8919039812dd69c576670984))
+* when emitting or throwing errors, only do additional writes to console when the debug is enabled ([4df8586](https://github.com/nytamin/threadedClass/commit/4df858687aaca4caf8d8dd63720402a07568f1c4))
+
 ### [1.0.2](https://github.com/nytamin/threadedClass/compare/1.0.1...1.0.2) (2022-04-08)
 
 
