@@ -67,7 +67,7 @@ jobs:
           yarn build
         env:
           CI: true
-      - name: Run unit tests
+      - name: Run unit tests and collect coverage
         run: |
           yarn unit --coverage=true
         env:
