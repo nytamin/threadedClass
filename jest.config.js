@@ -21,7 +21,10 @@ module.exports = {
 		'integrationTests'
 	],
 	coveragePathIgnorePatterns: [
-        "src/webWorkers.ts"
+        "src/webWorkers.ts",
+        "src/asar-loader.ts",
+        "src/parent-process/workerPlatform/webWorkers.ts",
+        "src/child-process/threadedclass-worker.ts",
     ],
 	testEnvironment: 'node',
 	coverageThreshold: {
