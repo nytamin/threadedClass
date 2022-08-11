@@ -962,8 +962,6 @@ ${getStack()}`)
 								this._proxyEventListeners.delete(instance.proxy)
 							})
 							delete this._children[child.id]
-
-
 						}
 						resolve()
 					})
