@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node_version: ['10', '12', '16'] # Note: Node 14 is used in send-coverage
+        node_version: ['10', '12', '14', '16']
         os: [ubuntu-latest] # [windows-latest, macOS-latest]
     timeout-minutes: 10
     steps:
@@ -72,36 +72,7 @@ jobs:
           yarn unit
         env:
           CI: true
-
-  send-coverage:
-    name: Test and send coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js 14.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14.x
-      - name: Prepare Environment
-        run: yarn
-        env:
-          CI: true
-      - name: Fix codecov version issue
-      # This is to fix an issue in codecov, doing it here because it requires Node>=10 and threadedclass still supports >=8
-        run: yarn add codecov@^3.8.3
-        env:
-          CI: true
-      - name: Build
-        run: yarn build
-        env:
-          CI: true
-      - name: Run unit tests
-        run: |
-          yarn unit
-        env:
-          CI: true
-      - name: Send test coverage
+      - name: Send test coverage # Note: codecov will merge the coverage reports automatically. This is good, since different node-versions utilize different code paths.
         run: |
           yarn send-coverage
         env:
