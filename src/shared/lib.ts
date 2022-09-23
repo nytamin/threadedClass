@@ -50,7 +50,7 @@ export function stripStack (stack: string | undefined, matchLines: RegExp[]): st
 	for (let i = 0; i < stackLines.length; i++) {
 		let matching = false
 		for (const line of matchLines) {
-			if (stackLines[i].match(line)) {
+			if (stackLines[i] && stackLines[i].match(line)) {
 				if (matchIndex === -1) matchIndex = i
 				matching = true
 				i += 1
