@@ -207,7 +207,8 @@ export namespace Message {
 			export enum CommandType {
 				LOG = 'log',
 				REPLY = 'reply',
-				CALLBACK = 'callback'
+				CALLBACK = 'callback',
+				CALLBACK_FINALIZE = 'callback_finalize'
 			}
 
 			export interface LogConstr {
@@ -231,8 +232,15 @@ export namespace Message {
 			}
 			export type Callback = CallbackConstr & ChildBase
 
-			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr
-			export type Any 		= Reply			| Callback			| Log
+			export interface CallbackFinalizeConstr {
+				cmd: CommandType.CALLBACK_FINALIZE
+				callbackId: string
+				count: number
+			}
+			export type CallbackFinalize = CallbackFinalizeConstr & ChildBase
+
+			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr 	| CallbackFinalizeConstr
+			export type Any 		= Reply			| Callback			| Log			| CallbackFinalize
 		}
 	}
 }
@@ -256,7 +264,7 @@ enum ArgumentType {
 }
 
 let argumentsCallbackId: number = 0
-export function encodeArguments (instance: any, callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
+export function encodeArguments (instance: any, callbacks: {[key: string]: { fun: Function, count: number }}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
 	try {
 		return args.map((arg, i): ArgDefinition => {
 			try {
@@ -277,14 +285,14 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 				if (typeof arg === 'function') {
 					// have we seen this one before?
 					for (const id in callbacks) {
-						if (callbacks[id] === arg) {
-							return { type: ArgumentType.FUNCTION, value: id + '' }
+						if (callbacks[id].fun === arg) {
+							return { type: ArgumentType.FUNCTION, value: [ id + '', ++callbacks[id].count ] }
 						}
 					}
 					// new function, so add it to our list
 					const callbackId = argumentsCallbackId++
-					callbacks[callbackId + ''] = arg
-					return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+					callbacks[callbackId + ''] = { fun: arg, count: 0 }
+					return { type: ArgumentType.FUNCTION, value: [ callbackId + '', 0 ] }
 				}
 				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 				if (arg === null) return { type: ArgumentType.NULL, value: arg }

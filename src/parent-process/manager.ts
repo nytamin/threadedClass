@@ -139,7 +139,7 @@ export interface Child {
 	childMessageQueue: {[cmdId: string]: CallbackFunction }
 
 	callbackId: number
-	callbacks: {[key: string]: Function}
+	callbacks: {[key: string]: { fun: Function, count: number }}
 }
 export function childName (child: Child) {
 	return `Child_ ${Object.keys(child.instances).join(',')}`
@@ -782,7 +782,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			let callback = child.callbacks[msg.callbackId]
 			if (callback) {
 				try {
-					Promise.resolve(callback(...msg.args))
+					Promise.resolve(callback.fun(...msg.args))
 					.then((result: any) => {
 						let encodedResult = encodeArguments({}, child.callbacks, [result], !!child.process.isFakeProcess)
 						this._sendReplyToChild(
@@ -799,6 +799,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this._replyErrorToChild(child, msg, err)
 				}
 			} else throw Error(`callback "${msg.callbackId}" not found in child ${child.id}`)
+		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK_FINALIZE) {
+			let msg: Message.From.Child.CallbackFinalize = message
+			const currentCallback = child.callbacks[msg.callbackId]
+			if (currentCallback && msg.count >= currentCallback.count) {
+				delete child.callbacks[msg.callbackId]
+			}
 		}
 	}
 	private _replyErrorToChild (child: Child, messageToReplyTo: Message.From.Child.Callback, error: Error) {

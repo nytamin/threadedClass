@@ -127,8 +127,6 @@ The loader can be overridden by defining the `THREADEDCLASS_WORKERTHREAD_LOADER`
 
 ## Known limitations
 * The to-be-threaded class must not be referencing any global variables, as the class is run in its own sandbox.
-* **No garbage-collection of callback-functions**
-    Currently, if you give a callback to a method (like so: `threaded.myMethod(() => {})`) a reference to the method will be stored indefinitely, because we cannot determine if the reference is valid in the child process.
 * There is a noticable delay when spawning a new thread, and since each thread is its own Node-process it uses up a few Megabytes of memory. If you intend to spawn many instances of a class, consider using the _threadUsage_ option (for example `threadUsage: 0.1` will put 10 instances in a thread before spawning a new).
 
 ## Under the hood

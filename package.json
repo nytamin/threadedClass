@@ -58,7 +58,7 @@
     "reset": "Delete all untracked files and reset the repo to the last commit"
   },
   "engines": {
-    "node": ">=8.0"
+    "node": ">=14.6.0"
   },
   "files": [
     "/dist",

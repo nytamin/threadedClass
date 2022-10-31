@@ -97,7 +97,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 						// Function result function is called from parent
 						sendCallback(
 							instance,
-							a.value,
+							a.value[0],
 							args, (_instance, err, encodedResult) => {
 								// Function result is returned from worker
 								if (err) {
@@ -130,7 +130,7 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				let callback = instance.child.callbacks[msg.callbackId]
 				if (callback) {
 					try {
-						Promise.resolve(callback(...msg.args))
+						Promise.resolve(callback.fun(...msg.args))
 						.then((result: any) => {
 							let encodedResult = encodeArguments(instance, instance.child.callbacks, [result], !!config.disableMultithreading)
 							sendReplyToInstance(
