@@ -148,6 +148,54 @@ describe('threadedclass', () => {
 			// console.log('Could not close class proxy')
 		}
 	})
+	test('Manually restart instance', async () => {
+		const KILL_TIMEOUT = 100
+
+		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [0, undefined], {
+			autoRestart: true,
+			threadUsage: 1,
+			restartTimeout: 100,
+			killTimeout: KILL_TIMEOUT
+		})
+		let onClosed = jest.fn(() => {
+			// oh dear, the process was closed
+		})
+		const onError = jest.fn((_e) => {
+			// we had a global uncaught error
+		})
+		const onRestarted = jest.fn(() => {
+			// the thread was restarted
+		})
+
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'error', onError)
+		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
+
+		expect(await threaded.returnValue('test')).toBe('test')
+		await sleep(100)
+		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+		await ThreadedClassManager.restart(threaded, true)
+
+		await sleep(100)
+
+		expect(onRestarted).toHaveBeenCalledTimes(0) // because it was manually restarted
+		expect(onClosed).toHaveBeenCalledTimes(1)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+		// Wait long enough so that any timeouts have run:
+		await sleep(100 + KILL_TIMEOUT)
+
+		// Restart it again, to ensure that the proxy is still found:
+		await ThreadedClassManager.restart(threaded, true)
+
+		await sleep(100)
+
+		expect(onClosed).toHaveBeenCalledTimes(2)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+	})
 })
 
 function sleep (ms: number): Promise<void> {
