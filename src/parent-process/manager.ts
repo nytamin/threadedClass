@@ -944,11 +944,19 @@ ${getStack()}`)
 			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
 				if (!child.alive) {
-					delete this._children[child.id]
+					if (!dontCleanUp) {
+						delete this._children[child.id]
+					}
 					resolve()
 				} else {
 					const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
 
+					const timeout: NodeJS.Timeout = setTimeout(() => {
+						if (!dontCleanUp) {
+							delete this._children[child.id]
+						}
+						reject(`Timeout: Kill child process "${child.id}"`)
+					},killTimeout)
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
 							// Clean up:
@@ -963,12 +971,10 @@ ${getStack()}`)
 							})
 							delete this._children[child.id]
 						}
+						clearTimeout(timeout)
 						resolve()
 					})
-					setTimeout(() => {
-						delete this._children[child.id]
-						reject(`Timeout: Kill child process "${child.id}"`)
-					},killTimeout)
+
 					if (!child.isClosing) {
 						child.isClosing = true
 						child.process.kill()

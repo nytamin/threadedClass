@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2](https://github.com/nytamin/threadedClass/compare/1.1.0...1.1.2) (2022-11-02)
+
+
+### Bug Fixes
+
+* bug fix: it wasn't possible to call ThreadedClassManager.restart multiple times for the same instance ([e93e5c5](https://github.com/nytamin/threadedClass/commit/e93e5c5688b851656d3f573c4dec0a768d078aee))
+
+### [1.1.1](https://github.com/nytamin/threadedClass/compare/1.1.0...1.1.1) (2022-09-23)
+
+
+### Bug Fixes
+
+* fatal error in stripSack ([e9c568e](https://github.com/nytamin/threadedClass/commit/e9c568efd66fe81961fd427aa9e3f662b5476bfa))
+
 ## [1.1.0](https://github.com/nytamin/threadedClass/compare/1.0.2...1.1.0) (2022-08-11)
 
 
