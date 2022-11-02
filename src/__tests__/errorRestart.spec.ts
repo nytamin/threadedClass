@@ -129,7 +129,7 @@ describe('threadedclass', () => {
 
 		expect(await threaded.doAsyncError()).toBeDefined()
 
-		await sleep(500)
+		await sleep(1000)
 
 		expect(onClosed).toHaveBeenCalledTimes(2)
 		if (process.version.startsWith('v10.')) {
