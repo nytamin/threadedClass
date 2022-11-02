@@ -195,6 +195,11 @@ describe('threadedclass', () => {
 		expect(onClosed).toHaveBeenCalledTimes(2)
 		expect(onError).toHaveBeenCalledTimes(0)
 
+		try {
+			await ThreadedClassManager.destroy(threaded)
+		} catch (e) {
+			// console.log('Could not close class proxy')
+		}
 	})
 })
 
