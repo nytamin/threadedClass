@@ -10,7 +10,7 @@ import {
 	ArgDefinition,
 	decodeArguments
 } from '../shared/sharedApi'
-import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner } from '../api'
+import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner, RestartTimeoutError, KillTimeoutError } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
@@ -425,8 +425,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			await this.killChild(child, 'restart child', true)
 		}
 
-		const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
-
 		if (!child.alive) {
 			// clear old process:
 			child.process.removeAllListeners()
@@ -444,17 +442,23 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			this._setupChildProcess(child)
 		}
 		let p = new Promise<void>((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				reject(`Timeout when trying to restart after ${restartTimeout}`)
-				this.killChild(child, 'timeout when restarting').catch((e) => {
-					this.consoleError(`Could not kill child: "${child.id}"`, e)
-				})
-				this.removeListener('initialized', onInit)
-			}, restartTimeout)
+			let timeout: NodeJS.Timeout | undefined
+			if (child.config.restartTimeout !== 0) {
+				const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
+				timeout = setTimeout(() => {
+					reject(new RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`))
+					this.killChild(child, 'timeout when restarting').catch((e) => {
+						this.consoleError(`Could not kill child: "${child.id}"`, e)
+					})
+					this.removeListener('initialized', onInit)
+				}, restartTimeout)
+			}
 
 			const onInit = (child: Child) => {
 				if (child === child) {
-					clearTimeout(timeout)
+					if (timeout) {
+						clearTimeout(timeout)
+					}
 					resolve()
 					this.removeListener('initialized', onInit)
 				}
@@ -520,6 +524,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 	}
 	public startMonitoringChild (instance: ChildInstance) {
+		if (instance.freezeLimit === 0) {
+			return
+		}
 		const pingTime: number = instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME
 		const monitorChild = () => {
 
@@ -852,7 +859,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					delete this._children[child.id]
 					resolve()
 				} else {
-					const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
 
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
@@ -866,13 +872,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						}
 						resolve()
 					})
-					setTimeout(() => {
-						delete this._children[child.id]
-						reject(`Timeout: Kill child process "${child.id}"`)
-					},killTimeout)
-					if (!child.isClosing) {
-						child.isClosing = true
-						child.process.kill()
+					if (child.config.killTimeout !== 0) {
+						const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+						setTimeout(() => {
+							delete this._children[child.id]
+							reject(new KillTimeoutError(`Timeout: Kill child process "${child.id}"`))
+						}, killTimeout)
+						if (!child.isClosing) {
+							child.isClosing = true
+							child.process.kill()
+						}
 					}
 				}
 			}
