@@ -1,4 +1,5 @@
 import isRunning = require('is-running')
+import { CallbackMap } from '../shared/callbackMap'
 import {
 	MemUsageReportInner,
 	ThreadedClassConfig,
@@ -24,9 +25,9 @@ export abstract class Worker {
 	}
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
-	private callbacks: {[key: string]: { fun: Function, count: number }} = {}
+	private callbacks = new CallbackMap()
 	private remoteFns: {[key: string]: { ref: WeakRef<(...args: any[]) => Promise<any>>; count: number }} = {}
-	private finalizationRegistry = new FinalizationRegistry(this.finalizeRemoteFunction)
+	private finalizationRegistry = new FinalizationRegistry(this.finalizeRemoteFunction.bind(this))
 
 	protected disabledMultithreading: boolean = false
 
@@ -182,7 +183,7 @@ export abstract class Worker {
 	private sendCallbackFinalize (handle: ChildHandle, callbackId: string, count: number) {
 		let msg: Message.From.Child.CallbackFinalizeConstr = {
 			cmd: Message.From.Child.CommandType.CALLBACK_FINALIZE,
-			callbackId: callbackId,
+			callbackId,
 			count
 		}
 		this.sendChildMessageToParent(handle, msg)
@@ -418,7 +419,7 @@ export abstract class Worker {
 			// A "callback" is a function that has been sent to the parent process from the child instance.
 
 			let msg: Message.To.Instance.Callback = m
-			let callback = this.callbacks[msg.callbackId]
+			let callback = this.callbacks.get(msg.callbackId)
 			if (callback) {
 				try {
 					Promise.resolve(callback.fun(...msg.args))
@@ -455,6 +456,12 @@ export abstract class Worker {
 			)
 			const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0]
 			this.replyToChildMessage(handle, m, encodedResult)
+		} else if (m.cmd === Message.To.Child.CommandType.CALLBACK_FINALIZE) {
+			let msg: Message.To.Child.CallbackFinalize = m
+			const currentCallback = this.callbacks.get(msg.callbackId)
+			if (currentCallback && msg.count >= currentCallback.count) {
+				this.callbacks.delete(msg.callbackId)
+			}
 		}
 	}
 	private startOrphanMonitoring () {

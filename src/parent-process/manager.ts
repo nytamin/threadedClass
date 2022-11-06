@@ -17,6 +17,7 @@ import { forkWorkerThread } from './workerPlatform/workerThreads'
 import { WorkerPlatformBase } from './workerPlatform/_base'
 import { forkChildProcess } from './workerPlatform/childProcess'
 import { FakeProcess } from './workerPlatform/fakeWorker'
+import { CallbackMap } from '../shared/callbackMap'
 
 export enum RegisterExitHandlers {
 	/**
@@ -139,7 +140,9 @@ export interface Child {
 	childMessageQueue: {[cmdId: string]: CallbackFunction }
 
 	callbackId: number
-	callbacks: {[key: string]: { fun: Function, count: number }}
+	callbacks: CallbackMap
+	remoteFns: {[key: string]: { ref: WeakRef<(...args: any[]) => Promise<any>>; count: number }}
+	finalizationRegistry: FinalizationRegistry<string>
 }
 export function childName (child: Child) {
 	return `Child_ ${Object.keys(child.instances).join(',')}`
@@ -191,8 +194,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		if (!child) {
 			// Create new child process:
+			const newChildId = config.threadId || (`process_${this.uniqueId}_${this._threadId++}`)
 			const newChild: Child = {
-				id: config.threadId || (`process_${this.uniqueId}_${this._threadId++}`),
+				id: newChildId,
 				isNamed: !!config.threadId,
 				pathToWorker: pathToWorker,
 
@@ -208,13 +212,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				instanceMessageQueue: {},
 				childMessageQueue: {},
 				callbackId: 0,
-				callbacks: {}
+				callbacks: new CallbackMap(),
+				remoteFns: {},
+				finalizationRegistry: new FinalizationRegistry<string>(this.finalizeCallback.bind(this, newChildId))
 			}
 			this._setupChildProcess(newChild)
-			this._children[newChild.id] = newChild
+			this._children[newChildId] = newChild
 			child = newChild
 
-			if (this.debug) this.consoleLog(`New child: "${newChild.id}"`)
+			if (this.debug) this.consoleLog(`New child: "${newChildId}"`)
 		}
 
 		return child
@@ -779,7 +785,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK) {
 			// Callback function is called by worker
 			let msg: Message.From.Child.Callback = message
-			let callback = child.callbacks[msg.callbackId]
+			let callback = child.callbacks.get(msg.callbackId)
 			if (callback) {
 				try {
 					Promise.resolve(callback.fun(...msg.args))
@@ -801,9 +807,9 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			} else throw Error(`callback "${msg.callbackId}" not found in child ${child.id}`)
 		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK_FINALIZE) {
 			let msg: Message.From.Child.CallbackFinalize = message
-			const currentCallback = child.callbacks[msg.callbackId]
+			const currentCallback = child.callbacks.get(msg.callbackId)
 			if (currentCallback && msg.count >= currentCallback.count) {
-				delete child.callbacks[msg.callbackId]
+				child.callbacks.delete(msg.callbackId)
 			}
 		}
 	}
@@ -818,6 +824,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			error: error ? (error.stack || error).toString() : error
 		}
 		this.sendMessageToChild(child, msg, cb)
+	}
+	private _sendCallbackFinalizeToChild (child: Child, callbackId: string, count: number) {
+		let msg: Message.To.Child.CallbackFinalizeConstr = {
+			cmd: Message.To.Child.CommandType.CALLBACK_FINALIZE,
+			callbackId,
+			count
+		}
+		this.sendMessageToChild(child, msg)
 	}
 	private _findFreeChild (threadUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {
@@ -910,6 +924,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (instance.proxy === proxy) return instanceId
 		}
 		return undefined
+	}
+	private finalizeCallback(childId: string, callbackId: string) {
+		const child = this._children[childId]
+		if (!child) return
+		const remoteFun = child.remoteFns[callbackId]
+		if (!remoteFun?.ref.deref()) {
+			this._sendCallbackFinalizeToChild(child, callbackId, remoteFun.count)
+			delete child.remoteFns[callbackId]
+		}
 	}
 }
 
