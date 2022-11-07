@@ -5,7 +5,8 @@ const tslib_1 = require("tslib");
 const events_1 = require("events");
 const fs_1 = require("fs");
 class TestClassErrors extends events_1.EventEmitter {
-    constructor(failInConstructorAfter, counterFile) {
+    constructor(options) {
+        var _a;
         super();
         this.lastAsyncError = null;
         this.unhandledPromiseRejections = [];
@@ -13,18 +14,26 @@ class TestClassErrors extends events_1.EventEmitter {
         process.on('unhandledRejection', (message) => {
             this.unhandledPromiseRejections.push(`${message}` + (typeof message === 'object' ? message.stack : ''));
         });
-        if (failInConstructorAfter && counterFile) {
+        if (options.counterFile) {
             let state = '0';
             try {
-                state = (0, fs_1.readFileSync)(counterFile, {
+                state = (0, fs_1.readFileSync)(options.counterFile, {
                     encoding: 'utf8'
                 });
             }
             catch (_err) {
                 // ignore
             }
-            (0, fs_1.writeFileSync)(counterFile, String(Number.parseInt(state, 10) + 1));
-            if (state === String(failInConstructorAfter)) {
+            (0, fs_1.writeFileSync)(options.counterFile, String(Number.parseInt(state, 10) + 1));
+            if (options.busyConstructorAfter && state === String(options.busyConstructorAfter)) {
+                const start = Date.now();
+                let i = 0;
+                while (Date.now() < start + ((_a = options.busyConstructorTimeMs) !== null && _a !== void 0 ? _a : 200)) {
+                    i++;
+                }
+                console.log(i);
+            }
+            if (options.failInConstructorAfter && state === String(options.failInConstructorAfter)) {
                 throw new Error('Error in constructor');
             }
         }

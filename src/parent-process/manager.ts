@@ -447,7 +447,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
 				timeout = setTimeout(() => {
 					reject(new RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`))
-					this.killChild(child, 'timeout when restarting').catch((e) => {
+					this.killChild(child, 'timeout when restarting', true).catch((e) => {
 						this.consoleError(`Could not kill child: "${child.id}"`, e)
 					})
 					this.removeListener('initialized', onInit)
@@ -465,7 +465,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 			this.on('initialized', onInit)
 		})
-		const promises: Array<Promise<void>> = []
+
+		const promises: Array<Promise<void>> = [p]
 
 		let instances: ChildInstance[] = (
 			onlyInstances ||
@@ -480,7 +481,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
-							this.killChild(child, 'error on init').catch((e) => {
+							this.killChild(child, 'error on init', true).catch((e) => {
 								this.consoleError(`Could not kill child: "${child.id}"`, e)
 							})
 							reject(err)
@@ -494,8 +495,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 
 		await Promise.all(promises)
-
-		await p
 	}
 	public sendInit (
 		child: Child,
