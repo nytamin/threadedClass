@@ -856,10 +856,21 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
 				if (!child.alive) {
-					delete this._children[child.id]
+					if (!dontCleanUp) {
+						delete this._children[child.id]
+					}
 					resolve()
 				} else {
-
+					let timeout: NodeJS.Timeout | undefined
+					if (child.config.killTimeout !== 0) {
+						const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+						timeout = setTimeout(() => {
+							if (!dontCleanUp) {
+								delete this._children[child.id]
+							}
+							reject(new KillTimeoutError(`Timeout: Kill child process "${child.id}"`))
+						}, killTimeout)
+					}
 					child.process.once('close', () => {
 						if (!dontCleanUp) {
 							// Clean up:
@@ -870,18 +881,15 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 							})
 							delete this._children[child.id]
 						}
+						if (timeout) {
+							clearTimeout(timeout)
+						}
 						resolve()
 					})
-					if (child.config.killTimeout !== 0) {
-						const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
-						setTimeout(() => {
-							delete this._children[child.id]
-							reject(new KillTimeoutError(`Timeout: Kill child process "${child.id}"`))
-						}, killTimeout)
-						if (!child.isClosing) {
-							child.isClosing = true
-							child.process.kill()
-						}
+
+					if (!child.isClosing) {
+						child.isClosing = true
+						child.process.kill()
 					}
 				}
 			}

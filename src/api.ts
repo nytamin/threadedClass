@@ -23,7 +23,7 @@ type PromisifyEventEmitterOn<
 export type ThreadedClass<T> = Promisify<T>
 
 export interface ThreadedClassConfig {
-	/** A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. */
+	/** A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. If not set, a new thread will be created for each instance. */
 	threadUsage?: number
 	/** Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread. */
 	threadId?: string
