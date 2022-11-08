@@ -13,7 +13,7 @@ describe('threadedclass', () => {
 	const TMP_STATE_FILES: string[] = []
 	let fileCount = 0
 
-	function getStateFile() {
+	function getStateFile () {
 		const file = join(tmpdir(), 'test_state_' + fileCount++)
 		TMP_STATE_FILES.push(file)
 		return file
@@ -216,7 +216,7 @@ describe('threadedclass', () => {
 
 		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{
 			busyConstructorAfter: 1,
-			busyConstructorTimeMs: RESTART_TIME+50,
+			busyConstructorTimeMs: RESTART_TIME + 50,
 			counterFile: getStateFile()
 		}], {
 			autoRestart: true,
@@ -265,7 +265,7 @@ describe('threadedclass', () => {
 			// console.log('Could not close class proxy')
 		}
 	})
-	
+
 	test('0 disables restartTimeout', async () => {
 		const RESTART_TIME = 1500
 
@@ -276,7 +276,8 @@ describe('threadedclass', () => {
 		}], {
 			autoRestart: true,
 			threadUsage: 1,
-			restartTimeout: 0
+			restartTimeout: 0,
+			freezeLimit: RESTART_TIME + 1000
 		})
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
@@ -299,9 +300,9 @@ describe('threadedclass', () => {
 
 		expect(await threaded.doAsyncError()).toBeDefined()
 
-		await sleep(RESTART_TIME+500)
+		await sleep(RESTART_TIME + 1000)
 
-		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(onClosed).toHaveBeenCalledTimes(1)
 		if (process.version.startsWith('v10.')) {
 			// In Node 10, errors in setTimeout are only logged
 			expect(onError).toHaveBeenCalledTimes(0)
@@ -325,7 +326,7 @@ describe('threadedclass', () => {
 		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{
 			busyConstructorAfter: 1,
 			busyConstructorTimeMs:
-			RESTART_TIME+50,
+			RESTART_TIME + 50,
 			counterFile: getStateFile()
 		}], {
 			autoRestart: true,
@@ -379,7 +380,7 @@ describe('threadedclass', () => {
 			// console.log('Could not close class proxy')
 		}
 	})
-	
+
 	test('manually restart instance after error in constructor', async () => {
 		const RESTART_TIME = 100
 
