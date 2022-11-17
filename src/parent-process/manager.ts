@@ -8,7 +8,9 @@ import {
 	CallbackFunction,
 	Message,
 	ArgDefinition,
-	decodeArguments
+	decodeArguments,
+	DEFAULT_AUTO_RESTART_RETRY_COUNT,
+	DEFAULT_AUTO_RESTART_RETRY_DELAY
 } from '../shared/sharedApi'
 import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner, RestartTimeoutError, KillTimeoutError } from '../api'
 import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
@@ -133,6 +135,8 @@ export interface Child {
 	alive: boolean
 	isClosing: boolean
 	config: ThreadedClassConfig
+	autoRestartFailCount: number
+	autoRestartRetryTimeout: ReturnType<typeof setTimeout> | undefined
 
 	cmdId: number
 	instanceMessageQueue: {[cmdId: string]: InstanceCallbackFunction }
@@ -203,6 +207,8 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				alive: true,
 				isClosing: false,
 				config,
+				autoRestartFailCount: 0,
+				autoRestartRetryTimeout: undefined,
 
 				cmdId: 0,
 				instanceMessageQueue: {},
@@ -422,8 +428,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public async restartChild (child: Child, onlyInstances?: ChildInstance[], forceRestart?: boolean): Promise<void> {
 		if (child.alive && forceRestart) {
-			await this.killChild(child, 'restart child', true)
+			await this.killChild(child, 'restart child', false)
 		}
+
+		this.clearRestartTimeout(child)
 
 		if (!child.alive) {
 			// clear old process:
@@ -447,7 +455,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
 				timeout = setTimeout(() => {
 					reject(new RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`))
-					this.killChild(child, 'timeout when restarting', true).catch((e) => {
+					this.killChild(child, 'timeout when restarting', !this.canRetryRestart(child)).catch((e) => {
 						this.consoleError(`Could not kill child: "${child.id}"`, e)
 					})
 					this.removeListener('initialized', onInit)
@@ -481,7 +489,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
-							this.killChild(child, 'error on init', true).catch((e) => {
+							this.killChild(child, 'error on init', !this.canRetryRestart(child)).catch((e) => {
 								this.consoleError(`Could not kill child: "${child.id}"`, e)
 							})
 							reject(err)
@@ -496,6 +504,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 		await Promise.all(promises)
 	}
+	private canRetryRestart (child: Child) {
+		return child.config.autoRestartRetryCount === 0 || (child.autoRestartFailCount + 1 < (child.config.autoRestartRetryCount ?? DEFAULT_AUTO_RESTART_RETRY_COUNT))
+	}
+
 	public sendInit (
 		child: Child,
 		instance: ChildInstance,
@@ -523,15 +535,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		})
 	}
 	public startMonitoringChild (instance: ChildInstance) {
-		if (instance.freezeLimit === 0) {
-			return
-		}
-		const pingTime: number = instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME
+		const pingTime: number = instance.freezeLimit ?? DEFAULT_CHILD_FREEZE_TIME
+		if (pingTime === 0) return // 0 disables the monitoring
+
 		const monitorChild = () => {
 
 			if (instance.child && instance.child.alive && this._pinging) {
 
-				this._pingChild(instance)
+				this._pingChild(instance, pingTime)
 				.then(() => {
 					// ping successful
 
@@ -655,12 +666,17 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		this.isInitialized = true
 	}
-	private _pingChild (instance: ChildInstance): Promise<void> {
+	private _pingChild (instance: ChildInstance, timeoutTime: number): Promise<void> {
 		return new Promise((resolve, reject) => {
 			let msg: Message.To.Instance.PingConstr = {
 				cmd: Message.To.Instance.CommandType.PING
 			}
+			const timeout = setTimeout(() => {
+				reject() // timeout
+			}, timeoutTime)
+
 			ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (_instance: ChildInstance, err: Error | null) => {
+				clearTimeout(timeout)
 				if (!err) {
 					resolve()
 				} else {
@@ -668,9 +684,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					reject(err)
 				}
 			})
-			setTimeout(() => {
-				reject() // timeout
-			}, instance.freezeLimit || DEFAULT_CHILD_FREEZE_TIME)
+
 		})
 	}
 	private _childHasCrashed (child: Child, reason: string) {
@@ -692,22 +706,39 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			if (shouldRestart) {
 				this.restartChild(child, restartInstances, true)
 				.then(() => {
+					child.autoRestartFailCount = 0
 					this.emit('restarted', child)
 				})
 				.catch((err) => {
-					this.emit('error', child, err)
-					if (this.debug) this.consoleError('Error when running restartChild()', err)
+					if (this.canRetryRestart(child)) {
+						// Try to restart it again:
+						this.emit('warning', child, `Error when restarting child, trying again... Original error: ${err}`)
+						const autoRestartRetryDelay = child.config.autoRestartRetryDelay ?? DEFAULT_AUTO_RESTART_RETRY_DELAY
+						child.autoRestartRetryTimeout = setTimeout(() => {
+							this._childHasCrashed(child, `restart failed`)
+						}, autoRestartRetryDelay)
+					} else {
+						this.emit('error', child, err)
+						if (this.debug) this.consoleError('Error when running restartChild()', err)
+					}
+					child.autoRestartFailCount++
 				})
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
 				if (child.alive) {
-					this.killChild(child, `child has crashed (${reason})`, true)
+					this.killChild(child, `child has crashed (${reason})`, false)
 					.catch((err) => {
 						this.emit('error', child, err)
 						if (this.debug) this.consoleError('Error when running killChild()', err)
 					})
 				}
 			}
+		}
+	}
+	private clearRestartTimeout (child: Child) {
+		if (child.autoRestartRetryTimeout !== undefined) {
+			clearTimeout(child.autoRestartRetryTimeout)
+			child.autoRestartRetryTimeout = undefined
 		}
 	}
 	private _createFork (config: ThreadedClassConfig, pathToWorker: string): WorkerPlatformBase {
@@ -838,7 +869,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		}
 		return null
 	}
-	private killChild (idOrChild: string | Child, reason: string, dontCleanUp?: boolean): Promise<void> {
+	private killChild (idOrChild: string | Child, reason: string, cleanUp: boolean = true): Promise<void> {
 		return new Promise((resolve, reject) => {
 			let child: Child
 			if (typeof idOrChild === 'string') {
@@ -854,24 +885,28 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 			}
 			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
+				if (cleanUp) {
+					this.clearRestartTimeout(child)
+				}
 				if (!child.alive) {
-					if (!dontCleanUp) {
+					if (cleanUp) {
 						delete this._children[child.id]
 					}
+					child.isClosing = false
 					resolve()
 				} else {
 					let timeout: NodeJS.Timeout | undefined
-					if (child.config.killTimeout !== 0) {
-						const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+					const killTimeout = child.config.killTimeout ?? DEFAULT_KILL_TIMEOUT
+					if (killTimeout !== 0) {
 						timeout = setTimeout(() => {
-							if (!dontCleanUp) {
+							if (cleanUp) {
 								delete this._children[child.id]
 							}
 							reject(new KillTimeoutError(`Timeout: Kill child process "${child.id}"`))
 						}, killTimeout)
 					}
 					child.process.once('close', () => {
-						if (!dontCleanUp) {
+						if (cleanUp) {
 							// Clean up:
 							Object.keys(child.instances).forEach(instanceId => {
 								// const instance = child.instances[instanceId]
@@ -883,6 +918,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						if (timeout) {
 							clearTimeout(timeout)
 						}
+						child.isClosing = false
 						resolve()
 					})
 
