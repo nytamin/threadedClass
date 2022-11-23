@@ -620,6 +620,13 @@ ThreadedClassManager.onEvent(instance, 'error', (error) => {})
 ${getStack()}`)
 			}
 
+			if (!events || events.arraySize('warning') === 0) {
+				this.consoleLog(`Warning: No listener for the 'warning' event was registered,
+Solve this by adding
+ThreadedClassManager.onEvent(instance, 'warning', (warning) => {})
+${getStack()}`)
+			}
+
 			if (!instance.config.autoRestart) {
 				if (!events || events.arraySize('thread_closed') === 0) {
 					this.consoleLog(`Warning: autoRestart is disabled and no listener for the 'thread_closed' event was registered.
