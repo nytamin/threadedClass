@@ -455,9 +455,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
 				timeout = setTimeout(() => {
 					reject(new RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`))
-					this.killChild(child, 'timeout when restarting', !this.canRetryRestart(child)).catch((e) => {
-						this.consoleError(`Could not kill child: "${child.id}"`, e)
-					})
 					this.removeListener('initialized', onInit)
 				}, restartTimeout)
 			}
@@ -489,9 +486,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					this.sendInit(child, instance, instance.config, (_instance: ChildInstance, err: Error | null) => {
 						// no need to do anything, the proxy is already initialized from earlier
 						if (err) {
-							this.killChild(child, 'error on init', !this.canRetryRestart(child)).catch((e) => {
-								this.consoleError(`Could not kill child: "${child.id}"`, e)
-							})
 							reject(err)
 						} else {
 							resolve()
@@ -505,7 +499,10 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		await Promise.all(promises)
 	}
 	private canRetryRestart (child: Child) {
-		return child.config.autoRestartRetryCount === 0 || (child.autoRestartFailCount + 1 < (child.config.autoRestartRetryCount ?? DEFAULT_AUTO_RESTART_RETRY_COUNT))
+		const autoRestartRetryCount = child.config.autoRestartRetryCount ?? DEFAULT_AUTO_RESTART_RETRY_COUNT
+
+		if (autoRestartRetryCount === 0) return true // restart indefinitely
+		return child.autoRestartFailCount < autoRestartRetryCount
 	}
 
 	public sendInit (
@@ -707,21 +704,41 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				this.restartChild(child, restartInstances, true)
 				.then(() => {
 					child.autoRestartFailCount = 0
+
 					this.emit('restarted', child)
 				})
 				.catch((err) => {
+					// The restart failed
+					child.autoRestartFailCount++
+
+					// Try to restart it again:
 					if (this.canRetryRestart(child)) {
-						// Try to restart it again:
 						this.emit('warning', child, `Error when restarting child, trying again... Original error: ${err}`)
-						const autoRestartRetryDelay = child.config.autoRestartRetryDelay ?? DEFAULT_AUTO_RESTART_RETRY_DELAY
-						child.autoRestartRetryTimeout = setTimeout(() => {
-							this._childHasCrashed(child, `restart failed`)
-						}, autoRestartRetryDelay)
+
+						// Kill the child, so we can to restart it later:
+						this.killChild(child, 'error when restarting', false)
+						.catch((e) => {
+							this.consoleError(`Could not kill child: "${child.id}"`, e)
+						})
+						.then(() => {
+							const autoRestartRetryDelay = child.config.autoRestartRetryDelay ?? DEFAULT_AUTO_RESTART_RETRY_DELAY
+							child.autoRestartRetryTimeout = setTimeout(() => {
+								this._childHasCrashed(child, `restart failed`)
+							}, autoRestartRetryDelay)
+						})
+						.catch((e) => {
+							this.consoleError(`Unknown error: "${child.id}"`, e)
+						})
+
 					} else {
 						this.emit('error', child, err)
 						if (this.debug) this.consoleError('Error when running restartChild()', err)
+
+						// Clean up the child:
+						this.killChild(child, 'timeout when restarting', true).catch((e) => {
+							this.consoleError(`Could not kill child: "${child.id}"`, e)
+						})
 					}
-					child.autoRestartFailCount++
 				})
 			} else {
 				// No instance wants to be restarted, make sure the child is killed then:
