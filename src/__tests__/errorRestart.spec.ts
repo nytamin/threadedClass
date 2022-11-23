@@ -110,13 +110,19 @@ describe('threadedclass', () => {
 	test('emit error if constructor crashes on subsequent restart', async () => {
 		const RESTART_TIME = 100
 
-		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{ failInConstructorAfter: 1, counterFile: getStateFile() }], {
+		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{
+			failInConstructorAfter: 1,
+			counterFile: getStateFile()
+		}], {
 			autoRestart: true,
 			threadUsage: 1,
 			restartTimeout: 200
 		})
 		let onClosed = jest.fn(() => {
 			// oh dear, the process was closed
+		})
+		const onWarning = jest.fn((_w) => {
+			// we received a warning
 		})
 		const onError = jest.fn((_e) => {
 			// we had a global uncaught error
@@ -126,6 +132,7 @@ describe('threadedclass', () => {
 		})
 
 		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'warning', onWarning)
 		ThreadedClassManager.onEvent(threaded, 'error', onError)
 		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
 
@@ -377,6 +384,143 @@ describe('threadedclass', () => {
 		}
 	})
 
+	test('autoRestartRetryCount=1 retries restarting instance exactly once', async () => {
+		const RESTART_TIME = 200
+
+		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{
+			busyConstructorAfter: 1,
+			busyConstructorCount: 999,
+			busyConstructorTimeMs: RESTART_TIME + 100,
+			counterFile: getStateFile()
+		}], {
+			autoRestart: true,
+			threadUsage: 1,
+			autoRestartRetryCount: 1,
+			autoRestartRetryDelay: 500,
+			restartTimeout: RESTART_TIME
+		})
+		const onClosed = jest.fn(() => {
+			// oh dear, the process was closed
+		})
+		const onWarning = jest.fn((_w) => {
+			// we received a warning
+		})
+		const onError = jest.fn((_e) => {
+			// we had a global uncaught error
+		})
+		const onRestarted = jest.fn(() => {
+			// the thread was restarted
+		})
+
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'warning', onWarning)
+		ThreadedClassManager.onEvent(threaded, 'error', onError)
+		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
+
+		expect(await threaded.returnValue('test')).toBe('test')
+		await sleep(100)
+		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+		await sleep(RESTART_TIME)
+
+		expect(await threaded.doAsyncError()).toBeDefined()
+
+		await sleep(1000)
+
+		// We expect the following events to happen:
+		// 1. error from threaded.doAsyncError (crash + restart)
+		// 3. error when trying to restart child (giving up)
+
+		if (process.version.startsWith('v10.')) {
+			// In Node 10, errors in doAsyncError (setTimeout) are only logged
+			expect(onError).toHaveBeenCalledTimes(1)
+			expect(onError.mock.calls[0][0].toString()).toMatch(/Timeout when trying to restart/)
+			expect(onError.mock.calls[0][0].name).toBe('RestartTimeoutError')
+		} else {
+			expect(onError).toHaveBeenCalledTimes(2)
+			expect(onError.mock.calls[0][0].toString()).toMatch(/is not defined/)
+			expect(onError.mock.calls[1][0].toString()).toMatch(/Timeout when trying to restart/)
+			expect(onError.mock.calls[1][0].name).toBe('RestartTimeoutError')
+		}
+		expect(onWarning).toHaveBeenCalledTimes(0)
+		// expect(onWarning.mock.calls[0][0]).toMatch(/Error when restarting child/)
+
+		try {
+			await ThreadedClassManager.destroy(threaded)
+		} catch (e) {
+			// console.log('Could not close class proxy')
+		}
+	})
+	test('autoRestartRetryCount=3 retries restarting instance exactly three times', async () => {
+		const RESTART_TIME = 200
+
+		let threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{
+			busyConstructorAfter: 1,
+			busyConstructorCount: 999,
+			busyConstructorTimeMs: RESTART_TIME + 100,
+			counterFile: getStateFile()
+		}], {
+			autoRestart: true,
+			threadUsage: 1,
+			autoRestartRetryCount: 3,
+			autoRestartRetryDelay: 500,
+			restartTimeout: RESTART_TIME
+		})
+		const onClosed = jest.fn(() => {
+			// oh dear, the process was closed
+		})
+		const onWarning = jest.fn((_w) => {
+			// we received a warning
+		})
+		const onError = jest.fn((_e) => {
+			// we had a global uncaught error
+		})
+		const onRestarted = jest.fn(() => {
+			// the thread was restarted
+		})
+
+		ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
+		ThreadedClassManager.onEvent(threaded, 'warning', onWarning)
+		ThreadedClassManager.onEvent(threaded, 'error', onError)
+		ThreadedClassManager.onEvent(threaded, 'restarted', onRestarted)
+
+		expect(await threaded.returnValue('test')).toBe('test')
+		await sleep(100)
+		expect(onClosed).toHaveBeenCalledTimes(0)
+		expect(onError).toHaveBeenCalledTimes(0)
+
+		await sleep(RESTART_TIME)
+
+		expect(await threaded.doAsyncError()).toBeDefined()
+
+		await sleep(3000)
+
+		// We expect the following events to happen:
+		// 1. error from threaded.doAsyncError (crash + first restart)
+		// 2. warning when trying to restart child (trying restart again)
+		// 3. warning when trying to restart child (trying restart again)
+		// 4. error when trying to restart child (giving up)
+
+		if (process.version.startsWith('v10.')) {
+			// In Node 10, errors in doAsyncError (setTimeout) are only logged
+			expect(onError).toHaveBeenCalledTimes(1)
+			expect(onError.mock.calls[0][0].toString()).toMatch(/Timeout when trying to restart/)
+		} else {
+			expect(onError).toHaveBeenCalledTimes(2)
+			expect(onError.mock.calls[0][0].toString()).toMatch(/is not defined/)
+			expect(onError.mock.calls[1][0].toString()).toMatch(/Timeout when trying to restart/)
+		}
+		expect(onWarning).toHaveBeenCalledTimes(2)
+		expect(onWarning.mock.calls[0][0]).toMatch(/Error when restarting child/)
+		expect(onWarning.mock.calls[1][0]).toMatch(/Error when restarting child/)
+
+		try {
+			await ThreadedClassManager.destroy(threaded)
+		} catch (e) {
+			// console.log('Could not close class proxy')
+		}
+	})
 	test('autoRestartRetryCount=2 retries restarting instance after timeout in constructor', async () => {
 		const RESTART_TIME = 200
 
