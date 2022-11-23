@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/nytamin/threadedClass/compare/1.1.2...1.2.0) (2022-11-23)
+
+
+### Features
+
+* add autoRestart retry options ([52e4591](https://github.com/nytamin/threadedClass/commit/52e45913d7b68e4bf6d713da32f14dcb8eb35a83))
+* add strict mode ([75c4d4d](https://github.com/nytamin/threadedClass/commit/75c4d4dc72a2f0943bb87f6d1f7abe2a60c8d227))
+* allow disabling timeouts and add error types ([5616a1a](https://github.com/nytamin/threadedClass/commit/5616a1a105948b28391ca62759c138686d91b0a3))
+
+
+### Bug Fixes
+
+* promise returned from `restartChild` ([7b025f7](https://github.com/nytamin/threadedClass/commit/7b025f75db89be3930565bb8272ff53e71bbca61))
+* refactor and fix an issue with autoRestartFailCount ([e32dd03](https://github.com/nytamin/threadedClass/commit/e32dd0343235e33982b5b34fa031f89ea20ead4f))
+* test failing inconsistently, and lint ([5760962](https://github.com/nytamin/threadedClass/commit/576096228267c6236c0ba1fd2c6b59188c385f36))
+
 ### [1.1.2](https://github.com/nytamin/threadedClass/compare/1.1.0...1.1.2) (2022-11-02)
 
 
