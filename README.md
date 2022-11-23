@@ -42,31 +42,26 @@ The instance returned by `threadedClass()` has methods equivalent to the origina
 import { threadedClass} from  'threadedclass'
 import { Professor } from './professor'
 
-threadedClass<Professor>(
+const mrSmith = await threadedClass<Professor>(
    './professor.js',     // Path to imported module (this should be the same path as is in require('XX') or import {class} from 'XX'} )
    'Professor' ,        // The export name for the class to be forked
    ['maths', 'greek'], // Array of arguments to be fed into the class constructor
    {} // Config (see below)
 )
-.then((instance) => {
-   return mrSmith.talkAboutAncientGreece() // All methods returns a Promise
-})
-.then((story) => {
-   console.log(story)
-})
+const story = await mrSmith.talkAboutAncientGreece() // All methods returns a Promise now
+console.log(story)
+
 ```
 ### NodeJS: Javascript example
 ```javascript
 var threadedClass = require('threadedclass').threadedClass
 var Professor = require('./professor')
 
-threadedClass('./professor.js', Professor, ['maths', 'greek'])
-.then((instance) => {
-   return mrSmith.talkAboutAncientGreece() // All methods returns a Promise
-})
-.then((story) => {
-   console.log(story)
-})
+const mrSmith = await threadedClass('./professor.js', Professor, ['maths', 'greek'])
+
+const story = await mrSmith.talkAboutAncientGreece() // All methods returns a Promise now
+console.log(story)
+
 ```
 ### Browser: Javascript example
 [Example](https://nytamin.github.io/threadedClass/examples/browser.html)
@@ -79,10 +74,8 @@ threadedClass('./professor.js', Professor, ['maths', 'greek'])
    threadedClass('../professor.js', Professor, ['maths', 'greek'], { // path to module is relative to threadedClass.js
       pathToWorker: 'lib/threadedclass-worker.js' // in browser, a path to the worker-scrip must also be provided
    })
-   .then((instance) => {
-   return mrSmith.talkAboutAncientGreece() // All methods returns a Promise
-   })
-   .then((story) => {
+   .then(async (mrSmith) => {
+      const story = await mrSmith.talkAboutAncientGreece() // All methods returns a Promise now
       console.log(story)
    })
 </script>
@@ -102,6 +95,92 @@ An optional options object can be passed to threadedClass() with the following p
 | `disableMultithreading` | boolean | Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. |
 | `pathToWorker` | string | Set path to worker, used in browser |
 | `freezeLimit` | number | (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms, 0 disables this timeout) |
+| `instanceName` | string | Optional: Set a custom name of the instance (used for debugging). Defaults to the class name |
+
+### ThreadedClassManager API
+
+```typescript
+
+ // Debug mode, will log stuff to console
+ThreadedClassManagerClass.debug = true
+
+// Enable strict mode.
+// When strict mode is enabled, checks will be done to ensure that best-practices are followed (such as listening to the proper events, etc).
+// Warnings will be output to the console if strict mode is enabled.
+ThreadedClassManagerClass.strict = true
+
+// Whether ThreadedClass will register exit handlers. If not, then the application should ensure the threads are aborted on process exit
+ThreadedClassManagerClass.handleExit = RegisterExitHandlers.AUTO // Default, checks if exit handlers have been set up by user before first threadedClass() call.
+ThreadedClassManagerClass.handleExit = RegisterExitHandlers.YES // Will set up exit handlers to ensure child processes are killed on exit signal.
+ThreadedClassManagerClass.handleExit = RegisterExitHandlers.NO // Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed).
+
+// Destroy a proxy instance
+await ThreadedClassManagerClass.destroy(mrSmith)
+
+// Destroys all proxy instances and closes all threads
+await ThreadedClassManagerClass.destroyAll()
+
+// Returns the number of threads / child processes
+ThreadedClassManagerClass.getThreadCount()
+
+// Returns memory usage for each thread
+const memUsage = await ThreadedClassManagerClass.getThreadsMemoryUsage()
+
+// Set up an event listener for an instance
+ThreadedClassManager.onEvent(mrSmith, 'thread_closed', () => {}) // This event is fired if a thread has closed. If autoRestart is set, an attempt to auto-restart the thread will be made after this
+ThreadedClassManager.onEvent(mrSmith, 'restarted', () => {}) // This event is fired after an instance has been successfully restarted
+ThreadedClassManager.onEvent(mrSmith, 'error', (error) => {}) // This event is fired if there is an unhandled error in the thread
+
+// Restart the thread of the proxy instance, useful if you don't use autoRestart and want to handle restarts manually.
+await ThreadedClassManagerClass.restart(mrSmith)
+
+// Returns how the threads are implemented ( not_supported, web_worker, worker_threads, child_process )
+const mode = ThreadedClassManagerClass.getThreadMode()
+
+```
+
+### Recommended usage
+
+To avoid bugs and unexpected behaviours, it is recommended that you follow the pattern below:
+
+```typescript
+import { threadedClass} from  'threadedclass'
+import { Professor } from './professor'
+
+
+ThreadedClassManager.strict = true // This activates a few checks that the events are listened to, etc..
+
+const mrSmith = await threadedClass<Professor>('./professor.js', 'Professor', ['maths', 'greek'], {
+   threadUsage: 1, // Optional, set this to 1 if there should only be 1 instance per thread (and 0.1 will allow up to 10 instances per thread)
+   autoRestart: true, // Set this to true to auto-restart the class upon a process crash. You'll be notified with the "restarted" event after an auto-restart.
+})
+await mrSmith.loadInitialData() // An example of an asyncronous initializing procedure
+
+ThreadedClassManager.onEvent(mrSmith, 'thread_closed', () => {
+   // This event is fired if a thread has closed.
+   // If autoRestart is set, an attempt to auto-restart the thread will be made after this
+})
+ThreadedClassManager.onEvent(mrSmith, 'restarted', () => {
+   // This event is fired after an instance has been successfully restarted
+
+   // If applicable, you might want to re-initialize the instance at this point:
+   await mrSmith.loadInitialData()
+})
+ThreadedClassManager.onEvent(mrSmith, 'error', (error) => {
+   // This event is fired if there is an unhandled error in the thread
+   console.error(error)
+})
+
+await mrSmith.talkAboutAncientGreece() // All methods returns a Promise
+
+
+function onShutdown() {
+   // If ThreadedClassManagerClass.handleExit is set to RegisterExitHandlers.NO
+   // You should call this when shutting down, to ensure that any child processes are closed properly:
+   await ThreadedClassManager.destroyAll()
+}
+
+```
 
 ## Features
 

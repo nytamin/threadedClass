@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events'
 import {
 	InitProps,
 	DEFAULT_CHILD_FREEZE_TIME,
@@ -13,7 +12,7 @@ import {
 	DEFAULT_AUTO_RESTART_RETRY_DELAY
 } from '../shared/sharedApi'
 import { ThreadedClassConfig, ThreadedClass, MemUsageReport, MemUsageReportInner, RestartTimeoutError, KillTimeoutError } from '../api'
-import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers } from '../shared/lib'
+import { isBrowser, nodeSupportsWorkerThreads, browserSupportsWebWorkers, ArrayMap } from '../shared/lib'
 import { forkWebWorker } from './workerPlatform/webWorkers'
 import { forkWorkerThread } from './workerPlatform/workerThreads'
 import { WorkerPlatformBase } from './workerPlatform/_base'
@@ -40,7 +39,6 @@ export class ThreadedClassManagerClass {
 	private _internal: ThreadedClassManagerClassInternal
 	constructor (internal: ThreadedClassManagerClassInternal) {
 		this._internal = internal
-		this._internal.setMaxListeners(0)
 	}
 	/** Enable debug messages */
 	public set debug (v: boolean) {
@@ -48,6 +46,17 @@ export class ThreadedClassManagerClass {
 	}
 	public get debug (): boolean {
 		return this._internal.debug
+	}
+	/**
+	 * Enable strict mode.
+	 * When strict mode is enabled, checks will be done to ensure that best-practices are followed (such as listening to the proper events, etc).
+	 * Warnings will be output to the console if strict mode is enabled.
+	 */
+	public set strict (v: boolean) {
+		this._internal.strict = v
+	}
+	public get strict (): boolean {
+		return this._internal.strict
 	}
 	/** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
 	public set handleExit (v: RegisterExitHandlers) {
@@ -57,10 +66,11 @@ export class ThreadedClassManagerClass {
 		return this._internal.handleExit
 	}
 
-	/** Destroy a proxy class */
+	/** Destroy a proxy class instance */
 	public destroy (proxy: ThreadedClass<any>): Promise<void> {
 		return this._internal.killProxy(proxy)
 	}
+	/** Destroys all proxy instances and closes all threads */
 	public destroyAll (): Promise<void> {
 		return this._internal.killAllChildren()
 	}
@@ -68,31 +78,17 @@ export class ThreadedClassManagerClass {
 	public getThreadCount (): number {
 		return this._internal.getChildrenCount()
 	}
-	/** Returns memory usage for all threads */
+	/** Returns memory usage for each thread */
 	public getThreadsMemoryUsage (): Promise<{[childId: string]: MemUsageReport}> {
 		return this._internal.getMemoryUsage()
 	}
-	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function) {
-		const onEvent = (child: Child, ...args: any[]) => {
-			let foundChild = Object.keys(child.instances).find((instanceId) => {
-				const instance = child.instances[instanceId]
-				return instance.proxy === proxy
-			})
-			if (foundChild) {
-				cb(...args)
-			}
-		}
-		this._internal.on(event, onEvent)
-		return {
-			stop: () => {
-				this._internal.removeListener(event, onEvent)
-			}
-		}
+	public onEvent (proxy: ThreadedClass<any>, event: string, cb: Function): { stop: () => void } {
+		return this._internal.onProxyEvent(proxy, event, cb)
 	}
 	/**
 	 * Restart the thread of the proxy instance
 	 * @param proxy
-	 * @param forceRestart If true, will kill the thread and restart it
+	 * @param forceRestart If true, will kill the thread and restart it. If false, will only restart the thread if it is already dead.
 	 */
 	public restart (proxy: ThreadedClass<any>, forceRestart?: boolean): Promise<void> {
 		return this._internal.restart(proxy, forceRestart)
@@ -167,7 +163,7 @@ export interface ChildInstance {
 	initialized: boolean
 	child: Child
 }
-export class ThreadedClassManagerClassInternal extends EventEmitter {
+export class ThreadedClassManagerClassInternal {
 
 	/** Set to true if you want to handle the exiting of child process yourselt */
 	public handleExit = RegisterExitHandlers.AUTO
@@ -178,8 +174,16 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	private _children: {[id: string]: Child} = {}
 	private _pinging: boolean = true // for testing only
 	public debug: boolean = false
+	public strict: boolean = false
 	/** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
 	private uniqueId: number = Date.now() % 10000
+	/** Two-dimensional map, which maps Proxy -> event -> listener functions */
+	private _proxyEventListeners: Map<
+		ThreadedClass<any>, // Proxy
+		ArrayMap<string, Function> // event, listener
+	> = new Map()
+	/** Contains a map of listeners, used to wait for a child to have been initialized */
+	private _childInitializedListeners: ArrayMap<string, () => void> = new ArrayMap()
 
 	public findNextAvailableChild (
 		config: ThreadedClassConfig,
@@ -280,7 +284,6 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					} else {
 						const cleanup = () => {
-							// delete instance.child
 							delete child.instances[instanceId]
 						}
 						this.sendMessageToInstance(instance, {
@@ -455,20 +458,20 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				const restartTimeout = child.config.restartTimeout ?? DEFAULT_RESTART_TIMEOUT
 				timeout = setTimeout(() => {
 					reject(new RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`))
-					this.removeListener('initialized', onInit)
+					// Remove listener:
+					this._childInitializedListeners.remove(child.id, onInit)
+
 				}, restartTimeout)
 			}
 
-			const onInit = (child: Child) => {
-				if (child === child) {
-					if (timeout) {
-						clearTimeout(timeout)
-					}
-					resolve()
-					this.removeListener('initialized', onInit)
-				}
+			const onInit = () => {
+				if (timeout) clearTimeout(timeout)
+				resolve()
+				// Remove listener:
+				this._childInitializedListeners.remove(child.id, onInit)
 			}
-			this.on('initialized', onInit)
+
+			this._childInitializedListeners.push(child.id, onInit)
 		})
 
 		const promises: Array<Promise<void>> = [p]
@@ -527,7 +530,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				!cb ||
 				cb(instance, e, initProps)
 			) {
-				this.emit('initialized', child)
+				// Notify listeners that the instance is initialized:
+				const listeners = this._childInitializedListeners.get(child.id)
+				if (listeners) {
+					for (const listener of listeners) {
+						listener()
+					}
+				}
 			}
 		})
 	}
@@ -589,6 +598,90 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 	}
 	public getChildDescriptor (child: Child): string {
 		return `${child.id} (${Object.keys(child.instances).join(', ')})`
+	}
+	public checkInstance (instance: ChildInstance, errStack: Error) {
+		if (!this.strict) return
+
+		const getStack = () => {
+			// strip first 2 lines of the stack:
+			return `${errStack.stack}`.split('\n').slice(2).join('\n')
+
+		}
+
+		// Wait a little bit, to allow for the events to have been set up asynchronously in user-land:
+		setTimeout(() => {
+
+			// Ensure that error events are set up:
+			const events = this._proxyEventListeners.get(instance.proxy)
+			if (!events || events.arraySize('error') === 0) {
+				this.consoleLog(`Warning: No listener for the 'error' event was registered,
+Solve this by adding
+ThreadedClassManager.onEvent(instance, 'error', (error) => {})
+${getStack()}`)
+			}
+
+			if (!instance.config.autoRestart) {
+				if (!events || events.arraySize('thread_closed') === 0) {
+					this.consoleLog(`Warning: autoRestart is disabled and no listener for the 'thread_closed' event was registered.
+Solve this by either set {autoRestart: true} in threadedClass() options, or set up an event listener to handle a restart:
+use ThreadedClassManager.onEvent(instance, 'thread_closed', () => {})
+at ${getStack()}`)
+				}
+			} else {
+				if (!events || events.arraySize('restarted') === 0) {
+					this.consoleLog(`Warning: No listener for the 'restarted' event was registered.
+It is recommended to set up an event listener for this, so you are aware of that an instance has been restarted:
+use ThreadedClassManager.onEvent(instance, 'restarted', () => {})
+${getStack()}`)
+				}
+			}
+		}, 1)
+	}
+	public onProxyEvent (proxy: ThreadedClass<any>, event: string, cb: Function): { stop: () => void } {
+		let events = this._proxyEventListeners.get(proxy)
+		if (!events) events = new ArrayMap()
+
+		events.push(event, cb)
+
+		// Save changes:
+		this._proxyEventListeners.set(proxy, events)
+
+		return {
+			stop: () => {
+
+				const events = this._proxyEventListeners.get(proxy)
+				if (!events) return
+
+				events.remove(event, cb)
+
+				// Save changes:
+				if (events.size > 0) {
+					this._proxyEventListeners.set(proxy, events)
+				} else {
+					this._proxyEventListeners.delete(proxy)
+				}
+			}
+		}
+	}
+	private _emitProxyEvent (child: Child, event: string, ...args: any[]) {
+
+		for (const instance of Object.values(child.instances)) {
+			const events = this._proxyEventListeners.get(instance.proxy)
+			if (events) {
+				const listeners = events.get(event)
+				if (listeners) {
+					for (const listener of listeners) {
+						try {
+							listener(...args)
+						} catch (err) {
+							this.consoleLog(`Error in event listener for "${event}":`, err)
+						}
+					}
+				}
+			}
+
+		}
+
 	}
 	/** Called before using internally */
 	private _init () {
@@ -705,7 +798,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				.then(() => {
 					child.autoRestartFailCount = 0
 
-					this.emit('restarted', child)
+					this._emitProxyEvent(child, 'restarted')
 				})
 				.catch((err) => {
 					// The restart failed
@@ -713,7 +806,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 
 					// Try to restart it again:
 					if (this.canRetryRestart(child)) {
-						this.emit('warning', child, `Error when restarting child, trying again... Original error: ${err}`)
+						this._emitProxyEvent(child, 'warning', `Error when restarting child, trying again... Original error: ${err}`)
 
 						// Kill the child, so we can to restart it later:
 						this.killChild(child, 'error when restarting', false)
@@ -731,7 +824,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 						})
 
 					} else {
-						this.emit('error', child, err)
+						this._emitProxyEvent(child, 'error', err)
 						if (this.debug) this.consoleError('Error when running restartChild()', err)
 
 						// Clean up the child:
@@ -745,7 +838,7 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 				if (child.alive) {
 					this.killChild(child, `child has crashed (${reason})`, false)
 					.catch((err) => {
-						this.emit('error', child, err)
+						this._emitProxyEvent(child, 'error', err)
 						if (this.debug) this.consoleError('Error when running killChild()', err)
 					})
 				}
@@ -778,13 +871,13 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 		child.process.on('close', () => {
 			if (child.alive) {
 				child.alive = false
-				this.emit('thread_closed', child)
+				this._emitProxyEvent(child, 'thread_closed')
 
 				this._childHasCrashed(child, `Child process "${childName(child)}" was closed`)
 			}
 		})
 		child.process.on('error', (err) => {
-			this.emit('error', child, err)
+			this._emitProxyEvent(child, 'error', err)
 			if (this.debug) this.consoleError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
@@ -806,12 +899,12 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					}
 				} else {
 					const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
-					this.emit('error', child, err)
+					this._emitProxyEvent(child, 'error', err)
 					if (this.debug) this.consoleError(err)
 				}
 			} else {
 				const err = new Error(`Unknown messageType "${message['messageType']}"!`)
-				this.emit('error', child, err)
+				this._emitProxyEvent(child, 'error', err)
 				if (this.debug) this.consoleError(err)
 			}
 		})
@@ -925,10 +1018,14 @@ export class ThreadedClassManagerClassInternal extends EventEmitter {
 					child.process.once('close', () => {
 						if (cleanUp) {
 							// Clean up:
-							Object.keys(child.instances).forEach(instanceId => {
+							Object.entries(child.instances).forEach(([instanceId, instance]) => {
 								// const instance = child.instances[instanceId]
 								// delete instance.child
 								delete child.instances[instanceId]
+
+								const events = this._proxyEventListeners.get(instance.proxy)
+								events?.clear()
+								this._proxyEventListeners.delete(instance.proxy)
 							})
 							delete this._children[child.id]
 						}
