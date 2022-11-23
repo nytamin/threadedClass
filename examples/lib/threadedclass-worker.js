@@ -406,8 +406,14 @@ class Worker {
                 this.replyToInstanceMessage(handle, msg, props);
                 return;
             })
-                .catch((e) => {
-                console.log('INIT error', e);
+                .catch((err) => {
+                const errStack = (0, lib_1.stripStack)(err.stack || err.toString(), [
+                    /onMessageFromParent/,
+                    /threadedclass-worker/
+                ]);
+                let errorResponse = `${errStack}\n executing constructor of instance "${m.instanceId}"`;
+                this.replyInstanceError(handle, msg, errorResponse);
+                return;
             });
             if (!m.config.disableMultithreading && !(0, lib_1.nodeSupportsWorkerThreads)()) {
                 this.startOrphanMonitoring();
@@ -542,7 +548,7 @@ exports.Worker = Worker;
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.combineErrorStacks = exports.stripStack = exports.getErrorStack = exports.assertNever = exports.getWorkerThreads = exports.nodeSupportsWorkerThreads = exports.browserSupportsWebWorkers = exports.isBrowser = void 0;
+exports.ArrayMap = exports.combineErrorStacks = exports.stripStack = exports.getErrorStack = exports.assertNever = exports.getWorkerThreads = exports.nodeSupportsWorkerThreads = exports.browserSupportsWebWorkers = exports.isBrowser = void 0;
 /**
  * Returns true if running in th browser (if not, then we're in NodeJS)
  */
@@ -598,7 +604,7 @@ function stripStack(stack, matchLines) {
     for (let i = 0; i < stackLines.length; i++) {
         let matching = false;
         for (const line of matchLines) {
-            if (stackLines[i].match(line)) {
+            if (stackLines[i] && stackLines[i].match(line)) {
                 if (matchIndex === -1)
                     matchIndex = i;
                 matching = true;
@@ -628,6 +634,53 @@ function combineErrorStacks(orgError, ...stacks) {
     }
 }
 exports.combineErrorStacks = combineErrorStacks;
+/** A specific type of Map which contains an array of values */
+class ArrayMap extends Map {
+    constructor() {
+        super();
+    }
+    /** Appends new elements to the end of an array, and returns the new length of the array.  */
+    push(key, value) {
+        const arr = this.get(key);
+        if (!arr) {
+            this.set(key, [value]);
+            return 1;
+        }
+        else {
+            arr.push(value);
+            return arr.length;
+        }
+    }
+    /** Removes an element from the array, returns true if the element was found and removed */
+    remove(key, value) {
+        let removedSomething = false;
+        const arr = this.get(key);
+        if (arr) {
+            const index = arr.indexOf(value);
+            if (index !== -1) {
+                arr.splice(index, 1);
+                removedSomething = true;
+            }
+            if (arr.length === 0) {
+                this.delete(key);
+            }
+        }
+        return removedSomething;
+    }
+    arraySize(key) {
+        var _a, _b;
+        return (_b = (_a = this.get(key)) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+    }
+    /** The total number of elements in all of the arrays  */
+    get totalSize() {
+        let total = 0;
+        for (const arr of this.values()) {
+            total += arr.length;
+        }
+        return total;
+    }
+}
+exports.ArrayMap = ArrayMap;
 
 }).call(this,require('_process'))
 
@@ -635,9 +688,13 @@ exports.combineErrorStacks = combineErrorStacks;
 (function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.decodeArguments = exports.encodeArguments = exports.Message = exports.InitPropType = exports.DEFAULT_CHILD_FREEZE_TIME = void 0;
+exports.decodeArguments = exports.encodeArguments = exports.Message = exports.InitPropType = exports.DEFAULT_AUTO_RESTART_RETRY_DELAY = exports.DEFAULT_AUTO_RESTART_RETRY_COUNT = exports.DEFAULT_KILL_TIMEOUT = exports.DEFAULT_RESTART_TIMEOUT = exports.DEFAULT_CHILD_FREEZE_TIME = void 0;
 // This file contains definitions for the API between the child and parent process.
 exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
+exports.DEFAULT_RESTART_TIMEOUT = 1000; // how long to wait for the child to come back after restart
+exports.DEFAULT_KILL_TIMEOUT = 1000; // how long to wait for the thread to close when terminating it
+exports.DEFAULT_AUTO_RESTART_RETRY_COUNT = 1; // after how many failed restarts to give up
+exports.DEFAULT_AUTO_RESTART_RETRY_DELAY = 1000; // how long to wait before retrying a failed restart
 var InitPropType;
 (function (InitPropType) {
     InitPropType["FUNCTION"] = "function";

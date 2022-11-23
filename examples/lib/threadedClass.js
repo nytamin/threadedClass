@@ -1,6 +1,21 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.ThreadedClass = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.KillTimeoutError = exports.RestartTimeoutError = void 0;
+class RestartTimeoutError extends Error {
+    constructor() {
+        super(...arguments);
+        this.name = 'RestartTimeoutError';
+    }
+}
+exports.RestartTimeoutError = RestartTimeoutError;
+class KillTimeoutError extends Error {
+    constructor() {
+        super(...arguments);
+        this.name = 'KillTimeoutError';
+    }
+}
+exports.KillTimeoutError = KillTimeoutError;
 
 },{}],2:[function(require,module,exports){
 "use strict";
@@ -327,8 +342,14 @@ class Worker {
                 this.replyToInstanceMessage(handle, msg, props);
                 return;
             })
-                .catch((e) => {
-                console.log('INIT error', e);
+                .catch((err) => {
+                const errStack = (0, lib_1.stripStack)(err.stack || err.toString(), [
+                    /onMessageFromParent/,
+                    /threadedclass-worker/
+                ]);
+                let errorResponse = `${errStack}\n executing constructor of instance "${m.instanceId}"`;
+                this.replyInstanceError(handle, msg, errorResponse);
+                return;
             });
             if (!m.config.disableMultithreading && !(0, lib_1.nodeSupportsWorkerThreads)()) {
                 this.startOrphanMonitoring();
@@ -459,7 +480,7 @@ exports.Worker = Worker;
 
 }).call(this,require('_process'))
 
-},{"../shared/lib":12,"../shared/sharedApi":13,"_process":23,"is-running":21}],4:[function(require,module,exports){
+},{"../shared/lib":12,"../shared/sharedApi":13,"_process":22,"is-running":20}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterExitHandlers = exports.ThreadedClassManager = void 0;
@@ -470,14 +491,14 @@ Object.defineProperty(exports, "RegisterExitHandlers", { enumerable: true, get: 
 (0, tslib_1.__exportStar)(require("./api"), exports);
 (0, tslib_1.__exportStar)(require("./parent-process/threadedClass"), exports);
 
-},{"./api":1,"./parent-process/manager":5,"./parent-process/threadedClass":6,"tslib":24}],5:[function(require,module,exports){
+},{"./api":1,"./parent-process/manager":5,"./parent-process/threadedClass":6,"tslib":23}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThreadedClassManager = exports.ThreadedClassManagerInternal = exports.ThreadMode = exports.ThreadedClassManagerClassInternal = exports.childName = exports.ThreadedClassManagerClass = exports.RegisterExitHandlers = void 0;
 const tslib_1 = require("tslib");
-const events_1 = require("events");
 const sharedApi_1 = require("../shared/sharedApi");
+const api_1 = require("../api");
 const lib_1 = require("../shared/lib");
 const webWorkers_1 = require("./workerPlatform/webWorkers");
 const workerThreads_1 = require("./workerPlatform/workerThreads");
@@ -485,17 +506,22 @@ const childProcess_1 = require("./workerPlatform/childProcess");
 const fakeWorker_1 = require("./workerPlatform/fakeWorker");
 var RegisterExitHandlers;
 (function (RegisterExitHandlers) {
-    /** Do a check if any exit handlers have been registered by someone else, and if so */
+    /**
+     * Do a check if any exit handlers have been registered by someone else.
+     * If not, will set up exit handlers to ensure child processes are killed on exit signal.
+     */
     RegisterExitHandlers[RegisterExitHandlers["AUTO"] = -1] = "AUTO";
     /** Set up exit handlers to ensure child processes are killed on exit signal. */
     RegisterExitHandlers[RegisterExitHandlers["YES"] = 1] = "YES";
-    /** Don't set up any exit handlers (depending on your environment and Node version, children might need to be manually killed). */
+    /**
+     * Don't set up any exit handlers (depending on your environment and Node version,
+     * children might need to be manually killed).
+     */
     RegisterExitHandlers[RegisterExitHandlers["NO"] = 0] = "NO";
 })(RegisterExitHandlers = exports.RegisterExitHandlers || (exports.RegisterExitHandlers = {}));
 class ThreadedClassManagerClass {
     constructor(internal) {
         this._internal = internal;
-        this._internal.setMaxListeners(0);
     }
     /** Enable debug messages */
     set debug(v) {
@@ -504,6 +530,17 @@ class ThreadedClassManagerClass {
     get debug() {
         return this._internal.debug;
     }
+    /**
+     * Enable strict mode.
+     * When strict mode is enabled, checks will be done to ensure that best-practices are followed (such as listening to the proper events, etc).
+     * Warnings will be output to the console if strict mode is enabled.
+     */
+    set strict(v) {
+        this._internal.strict = v;
+    }
+    get strict() {
+        return this._internal.strict;
+    }
     /** Whether to register exit handlers. If not, then the application should ensure the threads are aborted on process exit */
     set handleExit(v) {
         this._internal.handleExit = v;
@@ -511,10 +548,11 @@ class ThreadedClassManagerClass {
     get handleExit() {
         return this._internal.handleExit;
     }
-    /** Destroy a proxy class */
+    /** Destroy a proxy class instance */
     destroy(proxy) {
         return this._internal.killProxy(proxy);
     }
+    /** Destroys all proxy instances and closes all threads */
     destroyAll() {
         return this._internal.killAllChildren();
     }
@@ -522,31 +560,17 @@ class ThreadedClassManagerClass {
     getThreadCount() {
         return this._internal.getChildrenCount();
     }
-    /** Returns memory usage for all threads */
+    /** Returns memory usage for each thread */
     getThreadsMemoryUsage() {
         return this._internal.getMemoryUsage();
     }
     onEvent(proxy, event, cb) {
-        const onEvent = (child) => {
-            let foundChild = Object.keys(child.instances).find((instanceId) => {
-                const instance = child.instances[instanceId];
-                return instance.proxy === proxy;
-            });
-            if (foundChild) {
-                cb();
-            }
-        };
-        this._internal.on(event, onEvent);
-        return {
-            stop: () => {
-                this._internal.removeListener(event, onEvent);
-            }
-        };
+        return this._internal.onProxyEvent(proxy, event, cb);
     }
     /**
      * Restart the thread of the proxy instance
      * @param proxy
-     * @param forceRestart If true, will kill the thread and restart it
+     * @param forceRestart If true, will kill the thread and restart it. If false, will only restart the thread if it is already dead.
      */
     restart(proxy, forceRestart) {
         return this._internal.restart(proxy, forceRestart);
@@ -578,9 +602,8 @@ function childName(child) {
     return `Child_ ${Object.keys(child.instances).join(',')}`;
 }
 exports.childName = childName;
-class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
+class ThreadedClassManagerClassInternal {
     constructor() {
-        super(...arguments);
         /** Set to true if you want to handle the exiting of child process yourselt */
         this.handleExit = RegisterExitHandlers.AUTO;
         this.isInitialized = false;
@@ -590,8 +613,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         this._children = {};
         this._pinging = true; // for testing only
         this.debug = false;
+        this.strict = false;
         /** Pseudo-unique id to identify the parent ThreadedClass (for debugging) */
         this.uniqueId = Date.now() % 10000;
+        /** Two-dimensional map, which maps Proxy -> event -> listener functions */
+        this._proxyEventListeners = new Map();
+        /** Contains a map of listeners, used to wait for a child to have been initialized */
+        this._childInitializedListeners = new lib_1.ArrayMap();
     }
     findNextAvailableChild(config, pathToWorker) {
         this._init();
@@ -615,6 +643,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 alive: true,
                 isClosing: false,
                 config,
+                autoRestartFailCount: 0,
+                autoRestartRetryTimeout: undefined,
                 cmdId: 0,
                 instanceMessageQueue: {},
                 childMessageQueue: {},
@@ -665,13 +695,12 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     foundProxy = true;
                     if (Object.keys(child.instances).length === 1) {
                         // if there is only one instance left, we can kill the child
-                        this.killChild(childId)
+                        this.killChild(childId, 'no instances left')
                             .then(resolve)
                             .catch(reject);
                     }
                     else {
                         const cleanup = () => {
-                            // delete instance.child
                             delete child.instances[instanceId];
                         };
                         this.sendMessageToInstance(instance, {
@@ -797,7 +826,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             const child = this._children[id];
             if (this.debug)
                 this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`);
-            return this.killChild(id);
+            return this.killChild(id, 'killAllChildren');
         })).then(() => {
             return;
         });
@@ -825,8 +854,9 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     restartChild(child, onlyInstances, forceRestart) {
         return (0, tslib_1.__awaiter)(this, void 0, void 0, function* () {
             if (child.alive && forceRestart) {
-                yield this.killChild(child, true);
+                yield this.killChild(child, 'restart child', false);
             }
+            this.clearRestartTimeout(child);
             if (!child.alive) {
                 // clear old process:
                 child.process.removeAllListeners();
@@ -842,19 +872,26 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 this._setupChildProcess(child);
             }
             let p = new Promise((resolve, reject) => {
-                const onInit = (child) => {
-                    if (child === child) {
-                        resolve();
-                        this.removeListener('initialized', onInit);
-                    }
+                var _a;
+                let timeout;
+                if (child.config.restartTimeout !== 0) {
+                    const restartTimeout = (_a = child.config.restartTimeout) !== null && _a !== void 0 ? _a : sharedApi_1.DEFAULT_RESTART_TIMEOUT;
+                    timeout = setTimeout(() => {
+                        reject(new api_1.RestartTimeoutError(`Timeout when trying to restart after ${restartTimeout}`));
+                        // Remove listener:
+                        this._childInitializedListeners.remove(child.id, onInit);
+                    }, restartTimeout);
+                }
+                const onInit = () => {
+                    if (timeout)
+                        clearTimeout(timeout);
+                    resolve();
+                    // Remove listener:
+                    this._childInitializedListeners.remove(child.id, onInit);
                 };
-                this.on('initialized', onInit);
-                setTimeout(() => {
-                    reject('Timeout when trying to restart');
-                    this.removeListener('initialized', onInit);
-                }, 1000);
+                this._childInitializedListeners.push(child.id, onInit);
             });
-            const promises = [];
+            const promises = [p];
             let instances = (onlyInstances ||
                 Object.keys(child.instances).map((instanceId) => {
                     return child.instances[instanceId];
@@ -874,8 +911,14 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                 }));
             });
             yield Promise.all(promises);
-            yield p;
         });
+    }
+    canRetryRestart(child) {
+        var _a;
+        const autoRestartRetryCount = (_a = child.config.autoRestartRetryCount) !== null && _a !== void 0 ? _a : sharedApi_1.DEFAULT_AUTO_RESTART_RETRY_COUNT;
+        if (autoRestartRetryCount === 0)
+            return true; // restart indefinitely
+        return child.autoRestartFailCount < autoRestartRetryCount;
     }
     sendInit(child, instance, config, cb) {
         let encodedArgs = (0, sharedApi_1.encodeArguments)(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading);
@@ -891,15 +934,24 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         exports.ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (instance, e, initProps) => {
             if (!cb ||
                 cb(instance, e, initProps)) {
-                this.emit('initialized', child);
+                // Notify listeners that the instance is initialized:
+                const listeners = this._childInitializedListeners.get(child.id);
+                if (listeners) {
+                    for (const listener of listeners) {
+                        listener();
+                    }
+                }
             }
         });
     }
     startMonitoringChild(instance) {
-        const pingTime = instance.freezeLimit || sharedApi_1.DEFAULT_CHILD_FREEZE_TIME;
+        var _a;
+        const pingTime = (_a = instance.freezeLimit) !== null && _a !== void 0 ? _a : sharedApi_1.DEFAULT_CHILD_FREEZE_TIME;
+        if (pingTime === 0)
+            return; // 0 disables the monitoring
         const monitorChild = () => {
             if (instance.child && instance.child.alive && this._pinging) {
-                this._pingChild(instance)
+                this._pingChild(instance, pingTime)
                     .then(() => {
                     // ping successful
                     // ping again later:
@@ -922,13 +974,13 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             monitorChild();
         }, pingTime);
     }
-    doMethod(child, cb) {
+    doMethod(child, methodName, cb) {
         // Return a promise that will execute the callback cb
         // but also put the promise in child.methods, so that the promise can be aborted
         // in the case of a child crash
         const methodId = 'm' + this._methodId++;
         const p = new Promise((resolve, reject) => {
-            child.methods[methodId] = { resolve, reject };
+            child.methods[methodId] = { methodName, resolve, reject };
             cb(resolve, reject);
         })
             .then((result) => {
@@ -943,6 +995,88 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     }
     getChildDescriptor(child) {
         return `${child.id} (${Object.keys(child.instances).join(', ')})`;
+    }
+    checkInstance(instance, errStack) {
+        if (!this.strict)
+            return;
+        const getStack = () => {
+            // strip first 2 lines of the stack:
+            return `${errStack.stack}`.split('\n').slice(2).join('\n');
+        };
+        // Wait a little bit, to allow for the events to have been set up asynchronously in user-land:
+        setTimeout(() => {
+            // Ensure that error events are set up:
+            const events = this._proxyEventListeners.get(instance.proxy);
+            if (!events || events.arraySize('error') === 0) {
+                this.consoleLog(`Warning: No listener for the 'error' event was registered,
+Solve this by adding
+ThreadedClassManager.onEvent(instance, 'error', (error) => {})
+${getStack()}`);
+            }
+            if (!events || events.arraySize('warning') === 0) {
+                this.consoleLog(`Warning: No listener for the 'warning' event was registered,
+Solve this by adding
+ThreadedClassManager.onEvent(instance, 'warning', (warning) => {})
+${getStack()}`);
+            }
+            if (!instance.config.autoRestart) {
+                if (!events || events.arraySize('thread_closed') === 0) {
+                    this.consoleLog(`Warning: autoRestart is disabled and no listener for the 'thread_closed' event was registered.
+Solve this by either set {autoRestart: true} in threadedClass() options, or set up an event listener to handle a restart:
+use ThreadedClassManager.onEvent(instance, 'thread_closed', () => {})
+at ${getStack()}`);
+                }
+            }
+            else {
+                if (!events || events.arraySize('restarted') === 0) {
+                    this.consoleLog(`Warning: No listener for the 'restarted' event was registered.
+It is recommended to set up an event listener for this, so you are aware of that an instance has been restarted:
+use ThreadedClassManager.onEvent(instance, 'restarted', () => {})
+${getStack()}`);
+                }
+            }
+        }, 1);
+    }
+    onProxyEvent(proxy, event, cb) {
+        let events = this._proxyEventListeners.get(proxy);
+        if (!events)
+            events = new lib_1.ArrayMap();
+        events.push(event, cb);
+        // Save changes:
+        this._proxyEventListeners.set(proxy, events);
+        return {
+            stop: () => {
+                const events = this._proxyEventListeners.get(proxy);
+                if (!events)
+                    return;
+                events.remove(event, cb);
+                // Save changes:
+                if (events.size > 0) {
+                    this._proxyEventListeners.set(proxy, events);
+                }
+                else {
+                    this._proxyEventListeners.delete(proxy);
+                }
+            }
+        };
+    }
+    _emitProxyEvent(child, event, ...args) {
+        for (const instance of Object.values(child.instances)) {
+            const events = this._proxyEventListeners.get(instance.proxy);
+            if (events) {
+                const listeners = events.get(event);
+                if (listeners) {
+                    for (const listener of listeners) {
+                        try {
+                            listener(...args);
+                        }
+                        catch (err) {
+                            this.consoleLog(`Error in event listener for "${event}":`, err);
+                        }
+                    }
+                }
+            }
+        }
     }
     /** Called before using internally */
     _init() {
@@ -1009,12 +1143,16 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         }
         this.isInitialized = true;
     }
-    _pingChild(instance) {
+    _pingChild(instance, timeoutTime) {
         return new Promise((resolve, reject) => {
             let msg = {
                 cmd: sharedApi_1.Message.To.Instance.CommandType.PING
             };
+            const timeout = setTimeout(() => {
+                reject(); // timeout
+            }, timeoutTime);
             exports.ThreadedClassManagerInternal.sendMessageToInstance(instance, msg, (_instance, err) => {
+                clearTimeout(timeout);
                 if (!err) {
                     resolve();
                 }
@@ -1023,9 +1161,6 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     reject(err);
                 }
             });
-            setTimeout(() => {
-                reject(); // timeout
-            }, instance.freezeLimit || sharedApi_1.DEFAULT_CHILD_FREEZE_TIME);
         });
     }
     _childHasCrashed(child, reason) {
@@ -1044,17 +1179,59 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             if (shouldRestart) {
                 this.restartChild(child, restartInstances, true)
                     .then(() => {
-                    this.emit('restarted', child);
+                    child.autoRestartFailCount = 0;
+                    this._emitProxyEvent(child, 'restarted');
                 })
-                    .catch((err) => this.consoleError('Error when running restartChild()', err));
+                    .catch((err) => {
+                    // The restart failed
+                    child.autoRestartFailCount++;
+                    // Try to restart it again:
+                    if (this.canRetryRestart(child)) {
+                        this._emitProxyEvent(child, 'warning', `Error when restarting child, trying again... Original error: ${err}`);
+                        // Kill the child, so we can to restart it later:
+                        this.killChild(child, 'error when restarting', false)
+                            .catch((e) => {
+                            this.consoleError(`Could not kill child: "${child.id}"`, e);
+                        })
+                            .then(() => {
+                            var _a;
+                            const autoRestartRetryDelay = (_a = child.config.autoRestartRetryDelay) !== null && _a !== void 0 ? _a : sharedApi_1.DEFAULT_AUTO_RESTART_RETRY_DELAY;
+                            child.autoRestartRetryTimeout = setTimeout(() => {
+                                this._childHasCrashed(child, `restart failed`);
+                            }, autoRestartRetryDelay);
+                        })
+                            .catch((e) => {
+                            this.consoleError(`Unknown error: "${child.id}"`, e);
+                        });
+                    }
+                    else {
+                        this._emitProxyEvent(child, 'error', err);
+                        if (this.debug)
+                            this.consoleError('Error when running restartChild()', err);
+                        // Clean up the child:
+                        this.killChild(child, 'timeout when restarting', true).catch((e) => {
+                            this.consoleError(`Could not kill child: "${child.id}"`, e);
+                        });
+                    }
+                });
             }
             else {
                 // No instance wants to be restarted, make sure the child is killed then:
                 if (child.alive) {
-                    this.killChild(child, true)
-                        .catch((err) => this.consoleError('Error when running killChild()', err));
+                    this.killChild(child, `child has crashed (${reason})`, false)
+                        .catch((err) => {
+                        this._emitProxyEvent(child, 'error', err);
+                        if (this.debug)
+                            this.consoleError('Error when running killChild()', err);
+                    });
                 }
             }
+        }
+    }
+    clearRestartTimeout(child) {
+        if (child.autoRestartRetryTimeout !== undefined) {
+            clearTimeout(child.autoRestartRetryTimeout);
+            child.autoRestartRetryTimeout = undefined;
         }
     }
     _createFork(config, pathToWorker) {
@@ -1080,12 +1257,14 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         child.process.on('close', () => {
             if (child.alive) {
                 child.alive = false;
-                this.emit('thread_closed', child);
+                this._emitProxyEvent(child, 'thread_closed');
                 this._childHasCrashed(child, `Child process "${childName(child)}" was closed`);
             }
         });
         child.process.on('error', (err) => {
-            this.consoleError('Error from child ' + child.id, err);
+            this._emitProxyEvent(child, 'error', err);
+            if (this.debug)
+                this.consoleError('Error from child ' + child.id, err);
         });
         child.process.on('message', (message) => {
             if (message.messageType === 'child') {
@@ -1093,8 +1272,8 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                     this._onMessageFromChild(child, message);
                 }
                 catch (e) {
-                    this.consoleError(`Error in onMessageCallback in child ${child.id}`, message);
-                    this.consoleError(e);
+                    if (this.debug)
+                        this.consoleError(`Error in onMessageCallback in child ${child.id}`, message, e);
                     throw e;
                 }
             }
@@ -1105,17 +1284,23 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
                         instance.onMessageCallback(instance, message);
                     }
                     catch (e) {
-                        this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance);
-                        this.consoleError(e);
+                        if (this.debug)
+                            this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance, e);
                         throw e;
                     }
                 }
                 else {
-                    this.consoleError(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`);
+                    const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`);
+                    this._emitProxyEvent(child, 'error', err);
+                    if (this.debug)
+                        this.consoleError(err);
                 }
             }
             else {
-                this.consoleError(`Unknown messageType "${message['messageType']}"!`);
+                const err = new Error(`Unknown messageType "${message['messageType']}"!`);
+                this._emitProxyEvent(child, 'error', err);
+                if (this.debug)
+                    this.consoleError(err);
             }
         });
     }
@@ -1187,8 +1372,9 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
         }
         return null;
     }
-    killChild(idOrChild, dontCleanUp) {
+    killChild(idOrChild, reason, cleanUp = true) {
         return new Promise((resolve, reject) => {
+            var _a;
             let child;
             if (typeof idOrChild === 'string') {
                 const id = idOrChild;
@@ -1201,28 +1387,49 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
             else {
                 child = idOrChild;
             }
+            if (this.debug)
+                this.consoleLog(`Killing child ${child.id} due to: ${reason}`);
             if (child) {
+                if (cleanUp) {
+                    this.clearRestartTimeout(child);
+                }
                 if (!child.alive) {
-                    delete this._children[child.id];
+                    if (cleanUp) {
+                        delete this._children[child.id];
+                    }
+                    child.isClosing = false;
                     resolve();
                 }
                 else {
+                    let timeout;
+                    const killTimeout = (_a = child.config.killTimeout) !== null && _a !== void 0 ? _a : sharedApi_1.DEFAULT_KILL_TIMEOUT;
+                    if (killTimeout !== 0) {
+                        timeout = setTimeout(() => {
+                            if (cleanUp) {
+                                delete this._children[child.id];
+                            }
+                            reject(new api_1.KillTimeoutError(`Timeout: Kill child process "${child.id}"`));
+                        }, killTimeout);
+                    }
                     child.process.once('close', () => {
-                        if (!dontCleanUp) {
+                        if (cleanUp) {
                             // Clean up:
-                            Object.keys(child.instances).forEach(instanceId => {
+                            Object.entries(child.instances).forEach(([instanceId, instance]) => {
                                 // const instance = child.instances[instanceId]
                                 // delete instance.child
                                 delete child.instances[instanceId];
+                                const events = this._proxyEventListeners.get(instance.proxy);
+                                events === null || events === void 0 ? void 0 : events.clear();
+                                this._proxyEventListeners.delete(instance.proxy);
                             });
                             delete this._children[child.id];
                         }
+                        if (timeout) {
+                            clearTimeout(timeout);
+                        }
+                        child.isClosing = false;
                         resolve();
                     });
-                    setTimeout(() => {
-                        delete this._children[child.id];
-                        reject(`Timeout: Kill child process "${child.id}"`);
-                    }, 1000);
                     if (!child.isClosing) {
                         child.isClosing = true;
                         child.process.kill();
@@ -1234,7 +1441,7 @@ class ThreadedClassManagerClassInternal extends events_1.EventEmitter {
     rejectChildMethods(child, reason) {
         Object.keys(child.methods).forEach((methodId) => {
             const method = child.methods[methodId];
-            method.reject(Error('Method aborted due to: ' + reason));
+            method.reject(Error(`Method "${method.methodName}()" aborted due to: ${reason}`));
         });
         child.methods = {};
     }
@@ -1274,7 +1481,7 @@ exports.ThreadedClassManager = new ThreadedClassManagerClass(exports.ThreadedCla
 
 }).call(this,require('_process'))
 
-},{"../shared/lib":12,"../shared/sharedApi":13,"./workerPlatform/childProcess":8,"./workerPlatform/fakeWorker":9,"./workerPlatform/webWorkers":10,"./workerPlatform/workerThreads":11,"_process":23,"events":19,"tslib":24}],6:[function(require,module,exports){
+},{"../api":1,"../shared/lib":12,"../shared/sharedApi":13,"./workerPlatform/childProcess":8,"./workerPlatform/fakeWorker":9,"./workerPlatform/webWorkers":10,"./workerPlatform/workerThreads":11,"_process":22,"tslib":23}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.threadedClass = void 0;
@@ -1291,6 +1498,8 @@ const manager_1 = require("./manager");
  */
 function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
     let exportName = orgExport;
+    /** Used to  extrack the original stack */
+    const errStack = new Error();
     if (typeof orgModule !== 'string')
         throw new Error('threadedClass parameter orgModule must be a string!');
     if (typeof orgExport !== 'string')
@@ -1445,7 +1654,7 @@ function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
                                 const originalError = new Error();
                                 if (!instance.child)
                                     return Promise.reject(new Error(`Instance ${instance.id} has been detached from child process`));
-                                return manager_1.ThreadedClassManagerInternal.doMethod(instance.child, (resolve, reject) => {
+                                return manager_1.ThreadedClassManagerInternal.doMethod(instance.child, p.key, (resolve, reject) => {
                                     if (!instance.child)
                                         throw new Error(`Instance ${instance.id} has been detached from child process`);
                                     // Go through arguments and serialize them:
@@ -1508,6 +1717,7 @@ function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
                     });
                     manager_1.ThreadedClassManagerInternal.startMonitoringChild(instanceInChild);
                     resolve(proxy);
+                    manager_1.ThreadedClassManagerInternal.checkInstance(instanceInChild, errStack);
                     return true;
                 }
             });
@@ -1519,7 +1729,7 @@ function threadedClass(orgModule, orgExport, constructorArgs, configOrg = {}) {
 }
 exports.threadedClass = threadedClass;
 
-},{"../shared/lib":12,"../shared/sharedApi":13,"./manager":5,"callsites":17,"path":22}],7:[function(require,module,exports){
+},{"../shared/lib":12,"../shared/sharedApi":13,"./manager":5,"callsites":17,"path":21}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkerPlatformBase = void 0;
@@ -1607,10 +1817,10 @@ class WebWorkerProcess extends _base_1.WorkerPlatformBase {
                     console.log('unknown message type', message);
             };
             this.worker.onmessageerror = (error) => {
-                console.error('ww message error', error);
+                this.emit('error', error);
             };
             this.worker.onerror = (error) => {
-                console.error('ww error', error);
+                this.emit('error', error);
             };
         }
         catch (error) {
@@ -1684,8 +1894,11 @@ class WorkerThread extends _base_1.WorkerPlatformBase {
             // if (message.type === 'message') {
             // } else console.log('unknown message type', message)
         });
+        this.worker.on('messageerror', (error) => {
+            this.emit('error', error);
+        });
         this.worker.on('error', (error) => {
-            console.error('Worker Thread error', error);
+            this.emit('error', error);
         });
         this.worker.on('exit', (_code) => {
             this.emit('close');
@@ -1720,11 +1933,11 @@ exports.forkWorkerThread = forkWorkerThread;
 
 }).call(this,require('_process'),"/dist/parent-process/workerPlatform")
 
-},{"../../shared/lib":12,"./_base":7,"_process":23,"fs":15,"path":22}],12:[function(require,module,exports){
+},{"../../shared/lib":12,"./_base":7,"_process":22,"fs":15,"path":21}],12:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.combineErrorStacks = exports.stripStack = exports.getErrorStack = exports.assertNever = exports.getWorkerThreads = exports.nodeSupportsWorkerThreads = exports.browserSupportsWebWorkers = exports.isBrowser = void 0;
+exports.ArrayMap = exports.combineErrorStacks = exports.stripStack = exports.getErrorStack = exports.assertNever = exports.getWorkerThreads = exports.nodeSupportsWorkerThreads = exports.browserSupportsWebWorkers = exports.isBrowser = void 0;
 /**
  * Returns true if running in th browser (if not, then we're in NodeJS)
  */
@@ -1780,7 +1993,7 @@ function stripStack(stack, matchLines) {
     for (let i = 0; i < stackLines.length; i++) {
         let matching = false;
         for (const line of matchLines) {
-            if (stackLines[i].match(line)) {
+            if (stackLines[i] && stackLines[i].match(line)) {
                 if (matchIndex === -1)
                     matchIndex = i;
                 matching = true;
@@ -1810,16 +2023,67 @@ function combineErrorStacks(orgError, ...stacks) {
     }
 }
 exports.combineErrorStacks = combineErrorStacks;
+/** A specific type of Map which contains an array of values */
+class ArrayMap extends Map {
+    constructor() {
+        super();
+    }
+    /** Appends new elements to the end of an array, and returns the new length of the array.  */
+    push(key, value) {
+        const arr = this.get(key);
+        if (!arr) {
+            this.set(key, [value]);
+            return 1;
+        }
+        else {
+            arr.push(value);
+            return arr.length;
+        }
+    }
+    /** Removes an element from the array, returns true if the element was found and removed */
+    remove(key, value) {
+        let removedSomething = false;
+        const arr = this.get(key);
+        if (arr) {
+            const index = arr.indexOf(value);
+            if (index !== -1) {
+                arr.splice(index, 1);
+                removedSomething = true;
+            }
+            if (arr.length === 0) {
+                this.delete(key);
+            }
+        }
+        return removedSomething;
+    }
+    arraySize(key) {
+        var _a, _b;
+        return (_b = (_a = this.get(key)) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+    }
+    /** The total number of elements in all of the arrays  */
+    get totalSize() {
+        let total = 0;
+        for (const arr of this.values()) {
+            total += arr.length;
+        }
+        return total;
+    }
+}
+exports.ArrayMap = ArrayMap;
 
 }).call(this,require('_process'))
 
-},{"_process":23,"worker_threads":undefined}],13:[function(require,module,exports){
+},{"_process":22,"worker_threads":undefined}],13:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.decodeArguments = exports.encodeArguments = exports.Message = exports.InitPropType = exports.DEFAULT_CHILD_FREEZE_TIME = void 0;
+exports.decodeArguments = exports.encodeArguments = exports.Message = exports.InitPropType = exports.DEFAULT_AUTO_RESTART_RETRY_DELAY = exports.DEFAULT_AUTO_RESTART_RETRY_COUNT = exports.DEFAULT_KILL_TIMEOUT = exports.DEFAULT_RESTART_TIMEOUT = exports.DEFAULT_CHILD_FREEZE_TIME = void 0;
 // This file contains definitions for the API between the child and parent process.
 exports.DEFAULT_CHILD_FREEZE_TIME = 1000; // how long to wait before considering a child to be unresponsive
+exports.DEFAULT_RESTART_TIMEOUT = 1000; // how long to wait for the child to come back after restart
+exports.DEFAULT_KILL_TIMEOUT = 1000; // how long to wait for the thread to close when terminating it
+exports.DEFAULT_AUTO_RESTART_RETRY_COUNT = 1; // after how many failed restarts to give up
+exports.DEFAULT_AUTO_RESTART_RETRY_DELAY = 1000; // how long to wait before retrying a failed restart
 var InitPropType;
 (function (InitPropType) {
     InitPropType["FUNCTION"] = "function";
@@ -3917,7 +4181,7 @@ function numberIsNaN (obj) {
 
 }).call(this,require("buffer").Buffer)
 
-},{"base64-js":14,"buffer":16,"ieee754":20}],17:[function(require,module,exports){
+},{"base64-js":14,"buffer":16,"ieee754":19}],17:[function(require,module,exports){
 'use strict';
 
 const callsites = () => {
@@ -4271,531 +4535,6 @@ if ('undefined' !== typeof module) {
 }
 
 },{}],19:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-var objectCreate = Object.create || objectCreatePolyfill
-var objectKeys = Object.keys || objectKeysPolyfill
-var bind = Function.prototype.bind || functionBindPolyfill
-
-function EventEmitter() {
-  if (!this._events || !Object.prototype.hasOwnProperty.call(this, '_events')) {
-    this._events = objectCreate(null);
-    this._eventsCount = 0;
-  }
-
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
-
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-var defaultMaxListeners = 10;
-
-var hasDefineProperty;
-try {
-  var o = {};
-  if (Object.defineProperty) Object.defineProperty(o, 'x', { value: 0 });
-  hasDefineProperty = o.x === 0;
-} catch (err) { hasDefineProperty = false }
-if (hasDefineProperty) {
-  Object.defineProperty(EventEmitter, 'defaultMaxListeners', {
-    enumerable: true,
-    get: function() {
-      return defaultMaxListeners;
-    },
-    set: function(arg) {
-      // check whether the input is a positive number (whose value is zero or
-      // greater and not a NaN).
-      if (typeof arg !== 'number' || arg < 0 || arg !== arg)
-        throw new TypeError('"defaultMaxListeners" must be a positive number');
-      defaultMaxListeners = arg;
-    }
-  });
-} else {
-  EventEmitter.defaultMaxListeners = defaultMaxListeners;
-}
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function setMaxListeners(n) {
-  if (typeof n !== 'number' || n < 0 || isNaN(n))
-    throw new TypeError('"n" argument must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-function $getMaxListeners(that) {
-  if (that._maxListeners === undefined)
-    return EventEmitter.defaultMaxListeners;
-  return that._maxListeners;
-}
-
-EventEmitter.prototype.getMaxListeners = function getMaxListeners() {
-  return $getMaxListeners(this);
-};
-
-// These standalone emit* functions are used to optimize calling of event
-// handlers for fast cases because emit() itself often has a variable number of
-// arguments and can be deoptimized because of that. These functions always have
-// the same number of arguments and thus do not get deoptimized, so the code
-// inside them can execute faster.
-function emitNone(handler, isFn, self) {
-  if (isFn)
-    handler.call(self);
-  else {
-    var len = handler.length;
-    var listeners = arrayClone(handler, len);
-    for (var i = 0; i < len; ++i)
-      listeners[i].call(self);
-  }
-}
-function emitOne(handler, isFn, self, arg1) {
-  if (isFn)
-    handler.call(self, arg1);
-  else {
-    var len = handler.length;
-    var listeners = arrayClone(handler, len);
-    for (var i = 0; i < len; ++i)
-      listeners[i].call(self, arg1);
-  }
-}
-function emitTwo(handler, isFn, self, arg1, arg2) {
-  if (isFn)
-    handler.call(self, arg1, arg2);
-  else {
-    var len = handler.length;
-    var listeners = arrayClone(handler, len);
-    for (var i = 0; i < len; ++i)
-      listeners[i].call(self, arg1, arg2);
-  }
-}
-function emitThree(handler, isFn, self, arg1, arg2, arg3) {
-  if (isFn)
-    handler.call(self, arg1, arg2, arg3);
-  else {
-    var len = handler.length;
-    var listeners = arrayClone(handler, len);
-    for (var i = 0; i < len; ++i)
-      listeners[i].call(self, arg1, arg2, arg3);
-  }
-}
-
-function emitMany(handler, isFn, self, args) {
-  if (isFn)
-    handler.apply(self, args);
-  else {
-    var len = handler.length;
-    var listeners = arrayClone(handler, len);
-    for (var i = 0; i < len; ++i)
-      listeners[i].apply(self, args);
-  }
-}
-
-EventEmitter.prototype.emit = function emit(type) {
-  var er, handler, len, args, i, events;
-  var doError = (type === 'error');
-
-  events = this._events;
-  if (events)
-    doError = (doError && events.error == null);
-  else if (!doError)
-    return false;
-
-  // If there is no 'error' event listener then throw.
-  if (doError) {
-    if (arguments.length > 1)
-      er = arguments[1];
-    if (er instanceof Error) {
-      throw er; // Unhandled 'error' event
-    } else {
-      // At least give some kind of context to the user
-      var err = new Error('Unhandled "error" event. (' + er + ')');
-      err.context = er;
-      throw err;
-    }
-    return false;
-  }
-
-  handler = events[type];
-
-  if (!handler)
-    return false;
-
-  var isFn = typeof handler === 'function';
-  len = arguments.length;
-  switch (len) {
-      // fast cases
-    case 1:
-      emitNone(handler, isFn, this);
-      break;
-    case 2:
-      emitOne(handler, isFn, this, arguments[1]);
-      break;
-    case 3:
-      emitTwo(handler, isFn, this, arguments[1], arguments[2]);
-      break;
-    case 4:
-      emitThree(handler, isFn, this, arguments[1], arguments[2], arguments[3]);
-      break;
-      // slower
-    default:
-      args = new Array(len - 1);
-      for (i = 1; i < len; i++)
-        args[i - 1] = arguments[i];
-      emitMany(handler, isFn, this, args);
-  }
-
-  return true;
-};
-
-function _addListener(target, type, listener, prepend) {
-  var m;
-  var events;
-  var existing;
-
-  if (typeof listener !== 'function')
-    throw new TypeError('"listener" argument must be a function');
-
-  events = target._events;
-  if (!events) {
-    events = target._events = objectCreate(null);
-    target._eventsCount = 0;
-  } else {
-    // To avoid recursion in the case that type === "newListener"! Before
-    // adding it to the listeners, first emit "newListener".
-    if (events.newListener) {
-      target.emit('newListener', type,
-          listener.listener ? listener.listener : listener);
-
-      // Re-assign `events` because a newListener handler could have caused the
-      // this._events to be assigned to a new object
-      events = target._events;
-    }
-    existing = events[type];
-  }
-
-  if (!existing) {
-    // Optimize the case of one listener. Don't need the extra array object.
-    existing = events[type] = listener;
-    ++target._eventsCount;
-  } else {
-    if (typeof existing === 'function') {
-      // Adding the second element, need to change to array.
-      existing = events[type] =
-          prepend ? [listener, existing] : [existing, listener];
-    } else {
-      // If we've already got an array, just append.
-      if (prepend) {
-        existing.unshift(listener);
-      } else {
-        existing.push(listener);
-      }
-    }
-
-    // Check for listener leak
-    if (!existing.warned) {
-      m = $getMaxListeners(target);
-      if (m && m > 0 && existing.length > m) {
-        existing.warned = true;
-        var w = new Error('Possible EventEmitter memory leak detected. ' +
-            existing.length + ' "' + String(type) + '" listeners ' +
-            'added. Use emitter.setMaxListeners() to ' +
-            'increase limit.');
-        w.name = 'MaxListenersExceededWarning';
-        w.emitter = target;
-        w.type = type;
-        w.count = existing.length;
-        if (typeof console === 'object' && console.warn) {
-          console.warn('%s: %s', w.name, w.message);
-        }
-      }
-    }
-  }
-
-  return target;
-}
-
-EventEmitter.prototype.addListener = function addListener(type, listener) {
-  return _addListener(this, type, listener, false);
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.prependListener =
-    function prependListener(type, listener) {
-      return _addListener(this, type, listener, true);
-    };
-
-function onceWrapper() {
-  if (!this.fired) {
-    this.target.removeListener(this.type, this.wrapFn);
-    this.fired = true;
-    switch (arguments.length) {
-      case 0:
-        return this.listener.call(this.target);
-      case 1:
-        return this.listener.call(this.target, arguments[0]);
-      case 2:
-        return this.listener.call(this.target, arguments[0], arguments[1]);
-      case 3:
-        return this.listener.call(this.target, arguments[0], arguments[1],
-            arguments[2]);
-      default:
-        var args = new Array(arguments.length);
-        for (var i = 0; i < args.length; ++i)
-          args[i] = arguments[i];
-        this.listener.apply(this.target, args);
-    }
-  }
-}
-
-function _onceWrap(target, type, listener) {
-  var state = { fired: false, wrapFn: undefined, target: target, type: type, listener: listener };
-  var wrapped = bind.call(onceWrapper, state);
-  wrapped.listener = listener;
-  state.wrapFn = wrapped;
-  return wrapped;
-}
-
-EventEmitter.prototype.once = function once(type, listener) {
-  if (typeof listener !== 'function')
-    throw new TypeError('"listener" argument must be a function');
-  this.on(type, _onceWrap(this, type, listener));
-  return this;
-};
-
-EventEmitter.prototype.prependOnceListener =
-    function prependOnceListener(type, listener) {
-      if (typeof listener !== 'function')
-        throw new TypeError('"listener" argument must be a function');
-      this.prependListener(type, _onceWrap(this, type, listener));
-      return this;
-    };
-
-// Emits a 'removeListener' event if and only if the listener was removed.
-EventEmitter.prototype.removeListener =
-    function removeListener(type, listener) {
-      var list, events, position, i, originalListener;
-
-      if (typeof listener !== 'function')
-        throw new TypeError('"listener" argument must be a function');
-
-      events = this._events;
-      if (!events)
-        return this;
-
-      list = events[type];
-      if (!list)
-        return this;
-
-      if (list === listener || list.listener === listener) {
-        if (--this._eventsCount === 0)
-          this._events = objectCreate(null);
-        else {
-          delete events[type];
-          if (events.removeListener)
-            this.emit('removeListener', type, list.listener || listener);
-        }
-      } else if (typeof list !== 'function') {
-        position = -1;
-
-        for (i = list.length - 1; i >= 0; i--) {
-          if (list[i] === listener || list[i].listener === listener) {
-            originalListener = list[i].listener;
-            position = i;
-            break;
-          }
-        }
-
-        if (position < 0)
-          return this;
-
-        if (position === 0)
-          list.shift();
-        else
-          spliceOne(list, position);
-
-        if (list.length === 1)
-          events[type] = list[0];
-
-        if (events.removeListener)
-          this.emit('removeListener', type, originalListener || listener);
-      }
-
-      return this;
-    };
-
-EventEmitter.prototype.removeAllListeners =
-    function removeAllListeners(type) {
-      var listeners, events, i;
-
-      events = this._events;
-      if (!events)
-        return this;
-
-      // not listening for removeListener, no need to emit
-      if (!events.removeListener) {
-        if (arguments.length === 0) {
-          this._events = objectCreate(null);
-          this._eventsCount = 0;
-        } else if (events[type]) {
-          if (--this._eventsCount === 0)
-            this._events = objectCreate(null);
-          else
-            delete events[type];
-        }
-        return this;
-      }
-
-      // emit removeListener for all listeners on all events
-      if (arguments.length === 0) {
-        var keys = objectKeys(events);
-        var key;
-        for (i = 0; i < keys.length; ++i) {
-          key = keys[i];
-          if (key === 'removeListener') continue;
-          this.removeAllListeners(key);
-        }
-        this.removeAllListeners('removeListener');
-        this._events = objectCreate(null);
-        this._eventsCount = 0;
-        return this;
-      }
-
-      listeners = events[type];
-
-      if (typeof listeners === 'function') {
-        this.removeListener(type, listeners);
-      } else if (listeners) {
-        // LIFO order
-        for (i = listeners.length - 1; i >= 0; i--) {
-          this.removeListener(type, listeners[i]);
-        }
-      }
-
-      return this;
-    };
-
-function _listeners(target, type, unwrap) {
-  var events = target._events;
-
-  if (!events)
-    return [];
-
-  var evlistener = events[type];
-  if (!evlistener)
-    return [];
-
-  if (typeof evlistener === 'function')
-    return unwrap ? [evlistener.listener || evlistener] : [evlistener];
-
-  return unwrap ? unwrapListeners(evlistener) : arrayClone(evlistener, evlistener.length);
-}
-
-EventEmitter.prototype.listeners = function listeners(type) {
-  return _listeners(this, type, true);
-};
-
-EventEmitter.prototype.rawListeners = function rawListeners(type) {
-  return _listeners(this, type, false);
-};
-
-EventEmitter.listenerCount = function(emitter, type) {
-  if (typeof emitter.listenerCount === 'function') {
-    return emitter.listenerCount(type);
-  } else {
-    return listenerCount.call(emitter, type);
-  }
-};
-
-EventEmitter.prototype.listenerCount = listenerCount;
-function listenerCount(type) {
-  var events = this._events;
-
-  if (events) {
-    var evlistener = events[type];
-
-    if (typeof evlistener === 'function') {
-      return 1;
-    } else if (evlistener) {
-      return evlistener.length;
-    }
-  }
-
-  return 0;
-}
-
-EventEmitter.prototype.eventNames = function eventNames() {
-  return this._eventsCount > 0 ? Reflect.ownKeys(this._events) : [];
-};
-
-// About 1.5x faster than the two-arg version of Array#splice().
-function spliceOne(list, index) {
-  for (var i = index, k = i + 1, n = list.length; k < n; i += 1, k += 1)
-    list[i] = list[k];
-  list.pop();
-}
-
-function arrayClone(arr, n) {
-  var copy = new Array(n);
-  for (var i = 0; i < n; ++i)
-    copy[i] = arr[i];
-  return copy;
-}
-
-function unwrapListeners(arr) {
-  var ret = new Array(arr.length);
-  for (var i = 0; i < ret.length; ++i) {
-    ret[i] = arr[i].listener || arr[i];
-  }
-  return ret;
-}
-
-function objectCreatePolyfill(proto) {
-  var F = function() {};
-  F.prototype = proto;
-  return new F;
-}
-function objectKeysPolyfill(obj) {
-  var keys = [];
-  for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) {
-    keys.push(k);
-  }
-  return k;
-}
-function functionBindPolyfill(context) {
-  var fn = this;
-  return function () {
-    return fn.apply(context, arguments);
-  };
-}
-
-},{}],20:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -4881,7 +4620,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (process){
 module.exports = function (pid) {
   if (module.exports.stub !== module.exports) {
@@ -4898,7 +4637,7 @@ module.exports.stub = module.exports;
 
 }).call(this,require('_process'))
 
-},{"_process":23}],22:[function(require,module,exports){
+},{"_process":22}],21:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -5205,7 +4944,7 @@ var substr = 'ab'.substr(-1) === 'b'
 
 }).call(this,require('_process'))
 
-},{"_process":23}],23:[function(require,module,exports){
+},{"_process":22}],22:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5391,7 +5130,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 (function (global){
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation.
