@@ -512,7 +512,7 @@ async function waitExpectMockCall (mockFcn: jest.Mock<void, any>, checkCallback?
 /**
  * Crash the child thread
  */
-async function crashChild(
+async function crashChild (
 	threaded: Promisify<TestClassErrors>,
 	onClosed: jest.Mock<void, []>,
 	onError: jest.Mock<void, [_e: any]>
