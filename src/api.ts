@@ -29,15 +29,19 @@ export interface ThreadedClassConfig {
 	threadId?: string
 	/** If the process crashes or freezes it's automatically restarted. (ThreadedClassManager will emit the "restarted" event upon restart) */
 	autoRestart?: boolean
-	/** If the process needs to restart, how long to wait for it to initalize, before failing. (default is 1000ms) */
+	/** If the process needs to restart, how long to wait for it to initalize, before failing. (default is 1000ms, 0 disables this timeout) */
 	restartTimeout?: number
-	/** If the process is being killed, how long to wait for it to terminate, before failing. (default is 1000ms) */
+	/** If an autoRestart fails and this is set, ThreadedClass will continue to try to restart the thread. (defaults is 1, 0 means continue to restart indefinitely) */
+	autoRestartRetryCount?: number
+	/** (milliseconds), how long to wait before retrying to restart the thread. (default is 1000 ms) */
+	autoRestartRetryDelay?: number
+	/** If the process is being killed, how long to wait for it to terminate, before failing. (default is 1000ms, 0 disables this timeout) */
 	killTimeout?: number
 	/** Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. */
 	disableMultithreading?: boolean
 	/** Set path to worker, used in browser */
 	pathToWorker?: string
-	/** (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms) */
+	/** (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms, 0 disables this timeout) */
 	freezeLimit?: number
 	/** Optional: name of the instance, used in debugging */
 	instanceName?: string
@@ -51,3 +55,6 @@ export interface WebWorkerMemoryUsage {
 export type MemUsageReportInner = NodeJS.MemoryUsage | WebWorkerMemoryUsage | { error: string }
 
 export type MemUsageReport = MemUsageReportInner & { description: string }
+
+export class RestartTimeoutError extends Error { name = 'RestartTimeoutError' }
+export class KillTimeoutError extends Error { name = 'KillTimeoutError' }

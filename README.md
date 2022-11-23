@@ -95,9 +95,13 @@ An optional options object can be passed to threadedClass() with the following p
 | `threadUsage` | number | A number between 0 - 1, how large part of a thread the instance takes up. For example; if set to 0.1, a thread will be re-used for up to 10 instances. |
 | `threadId` | string | Set to an arbitrary id to put the instance in a specific thread. Instances with the same threadIds will be put in the same thread. |
 | `autoRestart` | boolean | If the process crashes or freezes it's automatically restarted. (ThreadedClassManager will emit the "restarted" event upon restart) |
+| `restartTimeout` | number | (milliseconds), if the process needs to restart, how long to wait for it to initalize, before failing. (default is 1000ms, 0 disables this timeout) |
+| `autoRestartRetryCount` | number | If an autoRestart fails and this is set, ThreadedClass will continue to try to restart the thread. (defaults is 1, 0 means continue to restart indefinitely) |
+| `autoRestartRetryDelay` | number | (milliseconds), how long to wait before retrying to restart the thread after autoRestart fails. (default is 1000 ms) |
+| `killTimeout` | number | (milliseconds), if the process is being killed, how long to wait for it to terminate, before failing. (default is 1000ms, 0 disables this timeout)  |
 | `disableMultithreading` | boolean | Set to true to disable multi-threading, this might be useful when you want to disable multi-threading but keep the interface unchanged. |
 | `pathToWorker` | string | Set path to worker, used in browser |
-| `freezeLimit` | number | (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms) |
+| `freezeLimit` | number | (milliseconds), how long to wait before considering the child to be unresponsive. (default is 1000 ms, 0 disables this timeout) |
 
 ## Features
 

@@ -22,7 +22,7 @@ const getTests = (disableMultithreading: boolean) => {
 			ThreadedClassManager.handleExit = RegisterExitHandlers.NO
 			ThreadedClassManager.debug = false
 
-			threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [], { disableMultithreading })
+			threaded = await threadedClass<TestClassErrors, typeof TestClassErrors>(TESTCLASS_PATH, 'TestClassErrors', [{}], { disableMultithreading })
 			onClosedListener = ThreadedClassManager.onEvent(threaded, 'thread_closed', onClosed)
 			onErrorListener = ThreadedClassManager.onEvent(threaded, 'error', onError)
 

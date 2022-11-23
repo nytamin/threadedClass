@@ -6,7 +6,13 @@ export class TestClassErrors extends EventEmitter {
 	private lastAsyncError: Error | null = null
 	private unhandledPromiseRejections: string[] = []
 
-	constructor (failInConstructorAfter?: number, counterFile?: string) {
+	constructor (options: {
+		failInConstructorAfter?: number,
+		busyConstructorAfter?: number,
+		busyConstructorTimeMs?: number,
+		busyConstructorCount?: number,
+		counterFile?: string
+	}) {
 		super()
 
 		// Catch unhandled promises:
@@ -14,18 +20,27 @@ export class TestClassErrors extends EventEmitter {
 			this.unhandledPromiseRejections.push(`${message}` + (typeof message === 'object' ? (message as any).stack : ''))
 		})
 
-		if (failInConstructorAfter && counterFile) {
-			let state = '0'
+		if (options.counterFile) {
+			let state = 0
 			try {
-				state = readFileSync(counterFile, {
+				state = Number.parseInt(readFileSync(options.counterFile, {
 					encoding: 'utf8'
-				})
+				}), 10)
 			} catch (_err) {
 				// ignore
 			}
-			writeFileSync(counterFile, String(Number.parseInt(state, 10) + 1))
+			writeFileSync(options.counterFile, String(state + 1))
 
-			if (state === String(failInConstructorAfter)) {
+			if (options.busyConstructorAfter && state >= options.busyConstructorAfter && state < options.busyConstructorAfter + (options.busyConstructorCount ?? 1)) {
+				const start = Date.now()
+				let i = 0
+				while (Date.now() < start + (options.busyConstructorTimeMs ?? 200)) {
+					i++
+				}
+				console.log(i)
+			}
+
+			if (options.failInConstructorAfter && state === options.failInConstructorAfter) {
 				throw new Error('Error in constructor')
 			}
 		}
