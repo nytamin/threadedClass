@@ -74,31 +74,11 @@ gulp.task('minify-worker', function () {
 		.pipe(gulp.dest('./dist/js/'))
 });
 
-gulp.task('browserify-asar-loader', function () {
-
-	var b = browserify({
-		entries: './dist/asar-loader.js',
-		node: true,
-		debug: true
-	}).exclude('worker_threads')
-	return b.bundle()
-		.pipe(source('app.js'))
-		.pipe(rename("asar-loader.js"))
-		.pipe(buffer())
-		.pipe(sourcemaps.init({loadMaps: true}))
-		.pipe(uglify())
-		.on('error', log.error)
-		.pipe(sourcemaps.write('./'))
-		.pipe(gulp.dest('./dist/js/'))
-});
-
-
 gulp.task('browserify', gulp.parallel([
 	'browserify-main',
 	'browserify-worker',
 	'minify-main',
 	'minify-worker',
-	'browserify-asar-loader'
 ]))
 
 gulp.task('copy-browser-examples', function () {

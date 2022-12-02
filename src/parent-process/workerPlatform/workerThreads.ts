@@ -3,12 +3,8 @@ import { Message } from '../../shared/sharedApi'
 import { getWorkerThreads } from '../../shared/lib'
 import { WorkerPlatformBase } from './_base'
 import { readFileSync } from 'fs'
-import * as path from 'path'
 
 const WorkerThreads = getWorkerThreads()
-
-const DEFAULT_ELECTRON_LOADER = path.join(__dirname, '../../js/asar-loader.js')
-const isInAsar = Object.prototype.hasOwnProperty.call(process.versions, 'electron') && DEFAULT_ELECTRON_LOADER.match(/.asar(\/|\\)/)
 
 /** Functions for spawning worker-threads in NodeJS */
 
@@ -24,9 +20,6 @@ export class WorkerThread extends WorkerPlatformBase {
 
 		// Figure out the loader to use. This is to allow for some environment setup (eg require behaviour modification) before trying to run threadedClass
 		let loader = process.env.THREADEDCLASS_WORKERTHREAD_LOADER
-		if (!loader && isInAsar) {
-			loader = DEFAULT_ELECTRON_LOADER
-		}
 
 		if (loader) {
 			// The WorkerThreads may will not be able to load this file, so we must do it in the parent
