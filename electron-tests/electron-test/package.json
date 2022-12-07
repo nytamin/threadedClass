@@ -1,0 +1,21 @@
+{
+  "name": "electron-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "test": "",
+  "scripts": {
+    "test:all": "yarn install && yarn test:vanilla && yarn test:electron && yarn test:electron-compiled",
+    "test:vanilla": "node index.js",
+    "test:electron": "electron .",
+    "electron-compile": "yarn electron-builder",
+    "test:electron-compiled": "dist/win-unpacked/electron-test.exe"
+  },
+  "dependencies": {
+    "threadedclass": "1.2.1-nightly--20221205-135702-1e063a1.0"
+  },
+  "devDependencies": {
+    "electron": "22",
+    "electron-builder": "^23.6.0"
+  }
+}
