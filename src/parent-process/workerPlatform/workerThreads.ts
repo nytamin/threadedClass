@@ -8,14 +8,14 @@ import * as path from 'path'
 const WorkerThreads = getWorkerThreads()
 
 const DEFAULT_ELECTRON_LOADER = path.join(__dirname, '../../js/asar-loader.js')
-let needsCustomElectronLoader = false;
-const electronVersion = (process.versions as any).electron as string;
+let needsCustomElectronLoader = false
+const electronVersion = (process.versions as any).electron as string
 if (electronVersion && DEFAULT_ELECTRON_LOADER.match(/.asar(\/|\\)/)) {
 	// we are running in electron and from inside an asar file
 	// electron versions below 17.3 need this manual loader
 	const [major, minor] = electronVersion.split('.').map((x) => parseInt(x, 10))
 	if (major < 17 || (major === 17 && minor < 3)) {
-		needsCustomElectronLoader = true;
+		needsCustomElectronLoader = true
 	}
 }
 
