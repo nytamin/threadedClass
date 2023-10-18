@@ -95,24 +95,35 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 		}
 		function decodeResultFromWorker (instance: ChildInstance, encodedResult: any) {
 			return decodeArguments(() => instance.proxy, [encodedResult], (a: ArgDefinition) => {
-				return (...args: any[]) => {
-					return new Promise((resolve, reject) => {
-						// Function result function is called from parent
-						sendCallback(
-							instance,
-							a.value,
-							args, (_instance, err, encodedResult) => {
-								// Function result is returned from worker
-								if (err) {
-									reject(err)
-								} else {
-									let result = decodeResultFromWorker(_instance, encodedResult)
-									resolve(result)
+				const callbackId = a.value[0]
+				const count = a.value[1]
+
+				let callback = instance.child.remoteFns[callbackId]?.ref.deref()
+				if (!callback) {
+					callback = (...args: any[]) => {
+						return new Promise((resolve, reject) => {
+							// Function result function is called from parent
+							sendCallback(
+								instance,
+								callbackId,
+								args, (_instance, err, encodedResult) => {
+									// Function result is returned from worker
+									if (err) {
+										reject(err)
+									} else {
+										let result = decodeResultFromWorker(_instance, encodedResult)
+										resolve(result)
+									}
 								}
-							}
-						)
-					})
+							)
+						})
+					}
+					instance.child.remoteFns[callbackId] = { ref: new WeakRef(callback), count }
+					instance.child.finalizationRegistry.register(callback, callbackId)
+				} else {
+					instance.child.remoteFns[callbackId].count = count
 				}
+				return callback
 			})[0]
 		}
 		function onMessageFromInstance (instance: ChildInstance, m: Message.From.Instance.Any) {
@@ -130,10 +141,10 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 			} else if (m.cmd === Message.From.Instance.CommandType.CALLBACK) {
 				// Callback function is called by worker
 				let msg: Message.From.Instance.Callback = m
-				let callback = instance.child.callbacks[msg.callbackId]
+				let callback = instance.child.callbacks.get(msg.callbackId)
 				if (callback) {
 					try {
-						Promise.resolve(callback(...msg.args))
+						Promise.resolve(callback.fun(...msg.args))
 						.then((result: any) => {
 							let encodedResult = encodeArguments(instance, instance.child.callbacks, [result], !!config.disableMultithreading)
 							sendReplyToInstance(
