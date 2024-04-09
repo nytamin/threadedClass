@@ -144,9 +144,13 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							)
 						})
 						.catch((err: Error) => {
+							// Don't reply if there's nooone to receive the answer
+							if (!instance.child.alive || instance.child.isClosing) return
 							replyError(instance, msg, err)
 						})
 					} catch (err) {
+						// Don't reply if there's nooone to receive the answer
+						if (!instance.child.alive || instance.child.isClosing) return
 						replyError(instance, msg, err)
 					}
 				} else throw Error(`callback "${msg.callbackId}" not found in instance ${m.instanceId}`)
