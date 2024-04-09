@@ -1,4 +1,5 @@
 import { ThreadedClassConfig } from '../api'
+import { CallbackMap } from './callbackMap'
 
 // This file contains definitions for the API between the child and parent process.
 
@@ -153,12 +154,13 @@ export namespace Message {
 		}
 		/** Defines messages sent from the parent process to the child process */
 		export namespace Child {
-			export type AnyConstr	= ReplyConstr 	| GetMemUsageConstr
-			export type Any			= Reply 		| GetMemUsage
+			export type AnyConstr	= ReplyConstr 	| GetMemUsageConstr	| CallbackFinalizeConstr
+			export type Any			= Reply 		| GetMemUsage		| CallbackFinalize
 
 			export enum CommandType {
 				GET_MEM_USAGE = 'get_mem_usage',
-				REPLY = 'reply'
+				REPLY = 'reply',
+				CALLBACK_FINALIZE = 'callback_finalize'
 			}
 
 			export interface GetMemUsageConstr {
@@ -173,6 +175,13 @@ export namespace Message {
 				error?: Error | string
 			}
 			export type Reply = ReplyConstr & ChildBase
+
+			export interface CallbackFinalizeConstr {
+				cmd: CommandType.CALLBACK_FINALIZE
+				callbackId: string
+				count: number
+			}
+			export type CallbackFinalize = CallbackFinalizeConstr & ChildBase
 		}
 	}
 	/** Containes definitions of messages sent from the child process */
@@ -209,7 +218,8 @@ export namespace Message {
 			export enum CommandType {
 				LOG = 'log',
 				REPLY = 'reply',
-				CALLBACK = 'callback'
+				CALLBACK = 'callback',
+				CALLBACK_FINALIZE = 'callback_finalize'
 			}
 
 			export interface LogConstr {
@@ -233,8 +243,15 @@ export namespace Message {
 			}
 			export type Callback = CallbackConstr & ChildBase
 
-			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr
-			export type Any 		= Reply			| Callback			| Log
+			export interface CallbackFinalizeConstr {
+				cmd: CommandType.CALLBACK_FINALIZE
+				callbackId: string
+				count: number
+			}
+			export type CallbackFinalize = CallbackFinalizeConstr & ChildBase
+
+			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr 	| CallbackFinalizeConstr
+			export type Any 		= Reply			| Callback			| Log			| CallbackFinalize
 		}
 	}
 }
@@ -258,7 +275,7 @@ enum ArgumentType {
 }
 
 let argumentsCallbackId: number = 0
-export function encodeArguments (instance: any, callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
+export function encodeArguments (instance: any, callbacks: CallbackMap, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
 	try {
 		return args.map((arg, i): ArgDefinition => {
 			try {
@@ -278,15 +295,14 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 				if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
 				if (typeof arg === 'function') {
 					// have we seen this one before?
-					for (const id in callbacks) {
-						if (callbacks[id] === arg) {
-							return { type: ArgumentType.FUNCTION, value: id + '' }
-						}
+					const existingCallback = callbacks.get(arg)
+					if (existingCallback) {
+						return { type: ArgumentType.FUNCTION, value: [ existingCallback.id, ++existingCallback.count ] }
 					}
 					// new function, so add it to our list
-					const callbackId = argumentsCallbackId++
-					callbacks[callbackId + ''] = arg
-					return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+					const callbackId = (argumentsCallbackId++).toString()
+					callbacks.insert(callbackId, arg, 0)
+					return { type: ArgumentType.FUNCTION, value: [ callbackId, 0 ] }
 				}
 				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
 				if (arg === null) return { type: ArgumentType.NULL, value: arg }

@@ -1,4 +1,5 @@
 import isRunning = require('is-running')
+import { CallbackMap } from '../shared/callbackMap'
 import {
 	MemUsageReportInner,
 	ThreadedClassConfig,
@@ -24,8 +25,9 @@ export abstract class Worker {
 	}
 	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
 
-	private callbacks: {[key: string]: Function} = {}
-	private remoteFns: {[key: string]: (...args: any[]) => Promise<any>} = {}
+	private callbacks = new CallbackMap()
+	private remoteFns: {[key: string]: { ref: WeakRef<(...args: any[]) => Promise<any>>; count: number }} = {}
+	private finalizationRegistry = new FinalizationRegistry(this.finalizeRemoteFunction.bind(this))
 
 	protected disabledMultithreading: boolean = false
 
@@ -84,13 +86,16 @@ export abstract class Worker {
 	private decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
 		// Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
 		return decodeArguments(() => handle.instance, args, (a: ArgDefinition) => {
-			const callbackId = a.value
+			const callbackId = a.value[0]
+			const count = a.value[1]
 
-			if (!this.remoteFns[callbackId]) {
-				this.remoteFns[callbackId] = ((...args: any[]) => {
+			let callback = this.remoteFns[callbackId]?.ref.deref()
+
+			if (!callback) {
+				callback = ((...args: any[]) => {
 					const orgError = new Error()
 					return new Promise((resolve, reject) => {
-						const callbackId = a.value
+						const callbackId = a.value[0]
 						this.sendCallback(
 							handle,
 							callbackId,
@@ -117,9 +122,14 @@ export abstract class Worker {
 						)
 					})
 				})
+
+				this.remoteFns[callbackId] = { ref: new WeakRef(callback), count }
+				this.finalizationRegistry.register(callback, callbackId)
+			} else {
+				this.remoteFns[callbackId].count = count
 			}
 
-			return this.remoteFns[callbackId]
+			return callback
 		})
 	}
 	private encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {
@@ -169,6 +179,14 @@ export abstract class Worker {
 			args: args
 		}
 		this.sendInstanceMessageToParent(handle, msg, cb)
+	}
+	private sendCallbackFinalize (handle: ChildHandle, callbackId: string, count: number) {
+		let msg: Message.From.Child.CallbackFinalizeConstr = {
+			cmd: Message.From.Child.CommandType.CALLBACK_FINALIZE,
+			callbackId,
+			count
+		}
+		this.sendChildMessageToParent(handle, msg)
 	}
 	private getAllProperties (obj: Object) {
 		let props: Array<string> = []
@@ -401,10 +419,10 @@ export abstract class Worker {
 			// A "callback" is a function that has been sent to the parent process from the child instance.
 
 			let msg: Message.To.Instance.Callback = m
-			let callback = this.callbacks[msg.callbackId]
+			let callback = this.callbacks.get(msg.callbackId)
 			if (callback) {
 				try {
-					Promise.resolve(callback(...msg.args))
+					Promise.resolve(callback.fun(...msg.args))
 					.then((result: any) => {
 						const encodedResult = this.encodeArgumentsToParent(instance, [result])
 						this.replyToInstanceMessage(handle, msg, encodedResult[0])
@@ -438,6 +456,12 @@ export abstract class Worker {
 			)
 			const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0]
 			this.replyToChildMessage(handle, m, encodedResult)
+		} else if (m.cmd === Message.To.Child.CommandType.CALLBACK_FINALIZE) {
+			let msg: Message.To.Child.CallbackFinalize = m
+			const currentCallback = this.callbacks.get(msg.callbackId)
+			if (currentCallback && msg.count >= currentCallback.count) {
+				this.callbacks.delete(msg.callbackId)
+			}
 		}
 	}
 	private startOrphanMonitoring () {
@@ -452,6 +476,13 @@ export abstract class Worker {
 					}, 100)
 				}
 			}, pingTime)
+		}
+	}
+	private finalizeRemoteFunction (callbackId: string) {
+		const remoteFun = this.remoteFns[callbackId]
+		if (!remoteFun?.ref.deref()) {
+			this.sendCallbackFinalize(this.childHandler, callbackId, remoteFun.count)
+			delete this.remoteFns[callbackId]
 		}
 	}
 }
