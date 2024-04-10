@@ -208,7 +208,7 @@ export namespace Message {
 		export namespace Child {
 			export enum CommandType {
 				LOG = 'log',
-				REPLY = 'reply',
+				REPLY = 'reply'
 			}
 
 			export interface LogConstr {
