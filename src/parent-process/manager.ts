@@ -930,42 +930,7 @@ ${getStack()}`)
 				cb(null, msg.reply)
 			}
 			delete child.instanceMessageQueue[msg.replyTo + '']
-		} else if (message.cmd === Message.From.Child.CommandType.CALLBACK) {
-			// Callback function is called by worker
-			let msg: Message.From.Child.Callback = message
-			let callback = child.callbacks[msg.callbackId]
-			if (callback) {
-				try {
-					Promise.resolve(callback(...msg.args))
-					.then((result: any) => {
-						let encodedResult = encodeArguments({}, child.callbacks, [result], !!child.process.isFakeProcess)
-						this._sendReplyToChild(
-							child,
-							msg.cmdId,
-							undefined,
-							encodedResult[0]
-						)
-					})
-					.catch((err: Error) => {
-						this._replyErrorToChild(child, msg, err)
-					})
-				} catch (err) {
-					this._replyErrorToChild(child, msg, err)
-				}
-			} else throw Error(`callback "${msg.callbackId}" not found in child ${child.id}`)
 		}
-	}
-	private _replyErrorToChild (child: Child, messageToReplyTo: Message.From.Child.Callback, error: Error) {
-		this._sendReplyToChild(child, messageToReplyTo.cmdId, error)
-	}
-	private _sendReplyToChild (child: Child, replyTo: number, error?: Error, reply?: any, cb?: CallbackFunction) {
-		let msg: Message.To.Child.ReplyConstr = {
-			cmd: Message.To.Child.CommandType.REPLY,
-			replyTo: replyTo,
-			reply: reply,
-			error: error ? (error.stack || error).toString() : error
-		}
-		this.sendMessageToChild(child, msg, cb)
 	}
 	private _findFreeChild (threadUsage: number): Child | null {
 		let id = Object.keys(this._children).find((id) => {

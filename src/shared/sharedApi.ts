@@ -209,7 +209,6 @@ export namespace Message {
 			export enum CommandType {
 				LOG = 'log',
 				REPLY = 'reply',
-				CALLBACK = 'callback'
 			}
 
 			export interface LogConstr {
@@ -226,15 +225,8 @@ export namespace Message {
 			}
 			export type Reply = ReplyConstr & ChildBase
 
-			export interface CallbackConstr {
-				cmd: CommandType.CALLBACK
-				callbackId: string
-				args: Array<any>
-			}
-			export type Callback = CallbackConstr & ChildBase
-
-			export type AnyConstr 	= ReplyConstr 	| CallbackConstr 	| LogConstr
-			export type Any 		= Reply			| Callback			| Log
+			export type AnyConstr 	= ReplyConstr  	| LogConstr
+			export type Any 		= Reply			| Log
 		}
 	}
 }

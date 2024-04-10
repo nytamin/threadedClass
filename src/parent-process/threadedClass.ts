@@ -144,7 +144,6 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							)
 						})
 						.catch((err: Error) => {
-							// Don't reply if there's no one to receive the answer
 							try {
 								replyError(instance, msg, err)
 							} catch (e) {
@@ -152,7 +151,6 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							}
 						})
 					} catch (err) {
-						// Don't reply if there's no one to receive the answer
 						try {
 							replyError(instance, msg, err)
 						} catch (e) {
