@@ -144,14 +144,20 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							)
 						})
 						.catch((err: Error) => {
-							// Don't reply if there's nooone to receive the answer
-							if (!instance.child.alive || instance.child.isClosing) return
-							replyError(instance, msg, err)
+							// Don't reply if there's no one to receive the answer
+							try {
+								replyError(instance, msg, err)
+							} catch (e) {
+								ThreadedClassManagerInternal.debugLogError(new Error(`ThreadedClass: Thrown error in callback "${msg.callbackId}": Unable to forward error to child due to: ${e}`))
+							}
 						})
 					} catch (err) {
-						// Don't reply if there's nooone to receive the answer
-						if (!instance.child.alive || instance.child.isClosing) return
-						replyError(instance, msg, err)
+						// Don't reply if there's no one to receive the answer
+						try {
+							replyError(instance, msg, err)
+						} catch (e) {
+							ThreadedClassManagerInternal.debugLogError(new Error(`ThreadedClass: Thrown error in callback "${msg.callbackId}": Unable to forward error to child due to: ${e}`))
+						}
 					}
 				} else throw Error(`callback "${msg.callbackId}" not found in instance ${m.instanceId}`)
 			}

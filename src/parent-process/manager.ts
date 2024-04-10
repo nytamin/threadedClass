@@ -1059,7 +1059,7 @@ ${getStack()}`)
 		})
 		child.methods = {}
 	}
-	/** trace to console.error if debugging is enabled*/
+	/** trace to console.error if debugging is enabled */
 	public debugLogError (...args: any[]) {
 		if (this.debug) this.consoleError(...args)
 
