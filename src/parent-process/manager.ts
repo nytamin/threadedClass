@@ -224,7 +224,7 @@ export class ThreadedClassManagerClassInternal {
 			this._children[newChild.id] = newChild
 			child = newChild
 
-			if (this.debug) this.consoleLog(`New child: "${newChild.id}"`)
+			this.debugLog(`New child: "${newChild.id}"`)
 		}
 
 		return child
@@ -260,7 +260,7 @@ export class ThreadedClassManagerClassInternal {
 		}
 		child.instances[instance.id] = instance
 
-		if (this.debug) this.consoleLog(`Add instance "${instance.id}" to "${child.id}"`)
+		this.debugLog(`Add instance "${instance.id}" to "${child.id}"`)
 
 		return instance
 	}
@@ -405,7 +405,7 @@ export class ThreadedClassManagerClassInternal {
 		return Promise.all(
 			Object.keys(this._children).map((id) => {
 				const child = this._children[id]
-				if (this.debug) this.consoleLog(`Killing child "${this.getChildDescriptor(child)}"`)
+				this.debugLog(`Killing child "${this.getChildDescriptor(child)}"`)
 				return this.killChild(id, 'killAllChildren')
 			})
 		).then(() => {
@@ -832,7 +832,7 @@ ${getStack()}`)
 
 					} else {
 						this._emitProxyEvent(child, 'error', err)
-						if (this.debug) this.consoleError('Error when running restartChild()', err)
+						this.debugLogError('Error when running restartChild()', err)
 
 						// Clean up the child:
 						this.killChild(child, 'timeout when restarting', true).catch((e) => {
@@ -846,7 +846,7 @@ ${getStack()}`)
 					this.killChild(child, `child has crashed (${reason})`, false)
 					.catch((err) => {
 						this._emitProxyEvent(child, 'error', err)
-						if (this.debug) this.consoleError('Error when running killChild()', err)
+						this.debugLogError('Error when running killChild()', err)
 					})
 				}
 			}
@@ -885,14 +885,14 @@ ${getStack()}`)
 		})
 		child.process.on('error', (err) => {
 			this._emitProxyEvent(child, 'error', err)
-			if (this.debug) this.consoleError('Error from child ' + child.id, err)
+			this.debugLogError('Error from child ' + child.id, err)
 		})
 		child.process.on('message', (message: Message.From.Any) => {
 			if (message.messageType === 'child') {
 				try {
 					this._onMessageFromChild(child, message)
 				} catch (e) {
-					if (this.debug) this.consoleError(`Error in onMessageCallback in child ${child.id}`, message, e)
+					this.debugLogError(`Error in onMessageCallback in child ${child.id}`, message, e)
 					throw e
 				}
 			} else if (message.messageType === 'instance') {
@@ -901,18 +901,18 @@ ${getStack()}`)
 					try {
 						instance.onMessageCallback(instance, message)
 					} catch (e) {
-						if (this.debug) this.consoleError(`Error in onMessageCallback in instance ${instance.id}`, message, instance, e)
+						this.debugLogError(`Error in onMessageCallback in instance ${instance.id}`, message, instance, e)
 						throw e
 					}
 				} else {
 					const err = new Error(`Instance "${message.instanceId}" not found. Received message "${message.messageType}" from child "${child.id}", "${childName(child)}"`)
 					this._emitProxyEvent(child, 'error', err)
-					if (this.debug) this.consoleError(err)
+					this.debugLogError(err)
 				}
 			} else {
 				const err = new Error(`Unknown messageType "${message['messageType']}"!`)
 				this._emitProxyEvent(child, 'error', err)
-				if (this.debug) this.consoleError(err)
+				this.debugLogError(err)
 			}
 		})
 	}
@@ -1000,7 +1000,7 @@ ${getStack()}`)
 			} else {
 				child = idOrChild
 			}
-			if (this.debug) this.consoleLog(`Killing child ${child.id} due to: ${reason}`)
+			this.debugLog(`Killing child ${child.id} due to: ${reason}`)
 			if (child) {
 				if (cleanUp) {
 					this.clearRestartTimeout(child)
@@ -1059,6 +1059,17 @@ ${getStack()}`)
 		})
 		child.methods = {}
 	}
+	/** trace to console.error if debugging is enabled*/
+	public debugLogError (...args: any[]) {
+		if (this.debug) this.consoleError(...args)
+
+	}
+	/** trace to console.error if debugging is enabled */
+	public debugLog (...args: any[]) {
+		if (this.debug) this.consoleLog(...args)
+
+	}
+
 	/** trace to console.error */
 	private consoleError (...args: any[]) {
 		console.error(`ThreadedClass Error (${this.uniqueId})`, ...args)
