@@ -144,10 +144,18 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 							)
 						})
 						.catch((err: Error) => {
-							replyError(instance, msg, err)
+							try {
+								replyError(instance, msg, err)
+							} catch (e) {
+								ThreadedClassManagerInternal.debugLogError(new Error(`ThreadedClass: Thrown error in callback "${msg.callbackId}": Unable to forward error to child due to: ${e}`))
+							}
 						})
 					} catch (err) {
-						replyError(instance, msg, err)
+						try {
+							replyError(instance, msg, err)
+						} catch (e) {
+							ThreadedClassManagerInternal.debugLogError(new Error(`ThreadedClass: Thrown error in callback "${msg.callbackId}": Unable to forward error to child due to: ${e}`))
+						}
 					}
 				} else throw Error(`callback "${msg.callbackId}" not found in instance ${m.instanceId}`)
 			}
