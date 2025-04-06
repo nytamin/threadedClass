@@ -73,8 +73,7 @@ jobs:
           yarn unit --coverage=true
         env:
           CI: true
-      - name: Send test coverage # Note: codecov will merge the coverage reports automatically. This is good, since different node-versions utilize different code paths.
-        run: |
-          yarn send-coverage
+      - name: Send coverage
+        uses: codecov/codecov-action@v4
         env:
-          CI: true
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
