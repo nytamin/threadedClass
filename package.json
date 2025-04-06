@@ -18,7 +18,6 @@
     "url": "https://github.com/nytamin/threadedClass/issues"
   },
   "scripts": {
-    "info": "npm-scripts-info",
     "build": "trash dist && yarn build:all",
     "buildtest": "yarn build:main && yarn unit",
     "build:main": "tsc -p tsconfig.build.json",
@@ -36,26 +35,11 @@
     "docs:test": "yarn docs:html",
     "docs:html": "typedoc src/index.ts --excludePrivate --theme default --out docs",
     "docs:prepare": "yarn docs:html && yarn build:all && yarn docs:copy",
-    "docs:publish": "yarn docs:prepare && gh-pages -d docs -m \"Updates [skip ci]\"",
     "docs:copy": "gulp copy-to-docs",
-    "help": "gh-pages -h",
     "release": "standard-version",
     "reset": "git clean -dfx && git reset --hard && yarn",
     "validate:dependencies": "yarn audit --groups dependencies",
     "validate:dev-dependencies": "yarn audit --groups devDependencies"
-  },
-  "scripts-info": {
-    "info": "Display information about the scripts",
-    "build": "(Trash and re)build the library",
-    "lint": "Lint all typescript source files",
-    "unit": "Build the library and run unit tests",
-    "test": "Lint, build, and test the library",
-    "watch": "Watch source files, rebuild library on changes, rerun relevant tests",
-    "cov": "Run tests, generate the HTML coverage report, and open it in a browser",
-    "docs": "Generate HTML API documentation and open it in a browser",
-    "docs:publish": "Generate HTML API documentation and push it to GitHub Pages",
-    "release": "Bump package.json version, update CHANGELOG.md, tag a release",
-    "reset": "Delete all untracked files and reset the repo to the last commit"
   },
   "engines": {
     "node": ">=8.0"
@@ -75,14 +59,12 @@
     "browserify": "^16.5.0",
     "casparcg-connection": "^3.0.1",
     "codecov": "^3.8.3",
-    "gh-pages": "^2.1.1",
     "gulp": "^4.0.2",
     "gulp-rename": "^1.4.0",
     "gulp-sourcemaps": "^2.6.5",
     "gulp-uglify": "^3.0.2",
     "gulp-uglify-es": "^1.0.4",
     "jest": "^26.0.1",
-    "npm-scripts-info": "^0.3.9",
     "open-cli": "^6.0.1",
     "standard-version": "^9.0.0",
     "trash-cli": "^3.1.0",
