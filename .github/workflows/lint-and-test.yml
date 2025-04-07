@@ -4,9 +4,9 @@ name: Lint and Test
 on:
   push:
     branches:
-      - '**'
+      - "**"
     tags:
-      - 'v**'
+      - "v**"
   pull_request:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -25,7 +25,7 @@ jobs:
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
-          path: '**/node_modules'
+          path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Prepare Environment
@@ -44,8 +44,9 @@ jobs:
     name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        node_version: ['10', '12', '14', '16', '18']
+        node_version: ["10", "12", "14", "16", "18", "20", "22"]
         os: [ubuntu-latest] # [windows-latest, macOS-latest]
     timeout-minutes: 10
     steps:
@@ -58,7 +59,7 @@ jobs:
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
-          path: '**/node_modules'
+          path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Prepare Environment
@@ -72,8 +73,7 @@ jobs:
           yarn unit --coverage=true
         env:
           CI: true
-      - name: Send test coverage # Note: codecov will merge the coverage reports automatically. This is good, since different node-versions utilize different code paths.
-        run: |
-          yarn send-coverage
+      - name: Send coverage
+        uses: codecov/codecov-action@v4
         env:
-          CI: true
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
