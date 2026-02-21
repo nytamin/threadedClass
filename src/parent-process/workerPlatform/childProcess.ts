@@ -5,7 +5,7 @@ import { EncodingStrategy, Message } from '../../shared/sharedApi'
 export class ChildProcessWorker extends WorkerPlatformBase {
 	private worker: ChildProcess
 
-	public override readonly encodingStrategy= EncodingStrategy.JSON
+	public override readonly encodingStrategy = EncodingStrategy.JSON
 
 	constructor (path: string) {
 		super()
