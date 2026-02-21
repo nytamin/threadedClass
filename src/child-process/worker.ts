@@ -231,10 +231,26 @@ export abstract class Worker {
 					return moduleClass
 				})
 			} else {
-				pModuleClass = Promise.resolve(require(msg.modulePath))
-				.then((module) => {
-					return module[msg.exportName]
-				})
+				if (this._config.importWorkerFile) {
+					// Use new Function to prevent TypeScript (targeting CommonJS) from
+					// downleveling import() to require(). This preserves native ESM dynamic
+					// import, which is necessary for proper ESM support.
+					const dynamicImport = new Function(
+						'modulePath',
+						'return import(modulePath)'
+					)
+					pModuleClass = dynamicImport(msg.modulePath).then(
+						(module: any) => {
+							return module[msg.exportName]
+						}
+					)
+				} else {
+					pModuleClass = Promise.resolve(
+						require(msg.modulePath)
+					).then((module) => {
+						return module[msg.exportName]
+					})
+				}
 			}
 
 			pModuleClass

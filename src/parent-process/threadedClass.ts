@@ -171,12 +171,17 @@ export function threadedClass<T, TCtor extends new (...args: any) => T> (
 				if (!parentCallPath) throw new Error('Unable to resolve parent file path')
 				if (!thisCallPath) throw new Error('Unable to resolve own file path')
 
-				let absPathToModule = (
-					orgModule.match(/^\./) ?
-					path.resolve(parentCallPath, '../', orgModule) :
-					orgModule
-				)
-				pathToModule = require.resolve(absPathToModule)
+				let absPathToModule = orgModule.match(/^\./)
+					? path.resolve(parentCallPath, '../', orgModule)
+					: orgModule
+				try {
+					pathToModule = require.resolve(absPathToModule)
+				} catch {
+					// require.resolve() fails in ESM contexts where the .js file doesn't exist
+					// on disk (e.g. Vitest running TypeScript source directly). Try substituting
+					// .ts for .js so the worker's import() can load the source file directly.
+					pathToModule = absPathToModule
+				}
 
 				pathToWorker = thisCallPath
 					.replace(/parent-process/,'child-process')

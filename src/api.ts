@@ -45,7 +45,8 @@ export interface ThreadedClassConfig {
 	freezeLimit?: number
 	/** Optional: name of the instance, used in debugging */
 	instanceName?: string
-
+	/** Whether to use import instead of require for the worker file */
+	importWorkerFile?: boolean
 }
 export interface WebWorkerMemoryUsage {
 	jsHeapSizeLimit: number
