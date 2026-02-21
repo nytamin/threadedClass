@@ -1,5 +1,6 @@
 import {
 	CallbackFunction,
+	EncodingStrategy,
 	Message
 } from '../shared/sharedApi'
 import {
@@ -15,7 +16,6 @@ const WorkerThreads = getWorkerThreads()
 // This means that all code in this file is considered to be sandboxed in the child process.
 
 function send (message: Message.From.Any) {
-
 	if (WorkerThreads) {
 		if (WorkerThreads.parentPort) {
 			WorkerThreads.parentPort.postMessage(message)
@@ -33,13 +33,31 @@ function send (message: Message.From.Any) {
 }
 
 class ThreadedWorker extends Worker {
+	constructor () {
+		super()
+		// Detect transport: worker_threads and web-workers use structured clone;
+		// child_process fork uses JSON (the default).
+		const isWorkerThread = WorkerThreads
+			? !WorkerThreads.isMainThread
+			: false
+		if (isBrowser() || isWorkerThread) {
+			this.encodingStrategy = EncodingStrategy.StructuredClone
+		}
+	}
 
-	protected sendInstanceMessageToParent (handle: InstanceHandle, msg: Message.From.Instance.AnyConstr, cb?: CallbackFunction) {
-		const message: Message.From.Instance.Any = {...msg, ...{
-			messageType: 'instance',
-			cmdId: handle.cmdId++,
-			instanceId: handle.id
-		}}
+	protected sendInstanceMessageToParent (
+		handle: InstanceHandle,
+		msg: Message.From.Instance.AnyConstr,
+		cb?: CallbackFunction
+	) {
+		const message: Message.From.Instance.Any = {
+			...msg,
+			...{
+				messageType: 'instance',
+				cmdId: handle.cmdId++,
+				instanceId: handle.id
+			}
+		}
 		if (cb) {
 			handle.queue[message.cmdId + ''] = {
 				// Store an error, just so we can append the original stack later in case there's an error:
@@ -49,11 +67,18 @@ class ThreadedWorker extends Worker {
 		}
 		send(message)
 	}
-	protected sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction) {
-		const message: Message.From.Child.Any = {...msg, ...{
-			messageType: 'child',
-			cmdId: handle.cmdId++
-		}}
+	protected sendChildMessageToParent (
+		handle: ChildHandle,
+		msg: Message.From.Child.AnyConstr,
+		cb?: CallbackFunction
+	) {
+		const message: Message.From.Child.Any = {
+			...msg,
+			...{
+				messageType: 'child',
+				cmdId: handle.cmdId++
+			}
+		}
 		if (cb) {
 			handle.queue[message.cmdId + ''] = {
 				// Store an error, just so we can append the original stack later in case there's an error:

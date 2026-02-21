@@ -1,5 +1,5 @@
 import { Worker as IWorker } from 'worker_threads'
-import { Message } from '../../shared/sharedApi'
+import { EncodingStrategy, Message } from '../../shared/sharedApi'
 import { getWorkerThreads } from '../../shared/lib'
 import { WorkerPlatformBase } from './_base'
 
@@ -8,6 +8,8 @@ const WorkerThreads = getWorkerThreads()
 /** Functions for spawning worker-threads in NodeJS */
 
 export class WorkerThread extends WorkerPlatformBase {
+	public override readonly encodingStrategy =
+		EncodingStrategy.StructuredClone
 	private worker: IWorker
 
 	constructor (pathToWorker: string) {
@@ -15,7 +17,9 @@ export class WorkerThread extends WorkerPlatformBase {
 
 		// @ts-ignore
 		// this.worker = new window.Worker(pathToWorker)
-		if (!WorkerThreads) throw new Error('Unable to create Worker thread! Not supported!')
+		if (!WorkerThreads) {
+			throw new Error('Unable to create Worker thread! Not supported!')
+		}
 
 		// No loader, so run the worker directly
 		this.worker = new WorkerThreads.Worker(pathToWorker, {

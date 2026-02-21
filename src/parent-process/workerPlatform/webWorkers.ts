@@ -1,9 +1,11 @@
-import { Message } from '../../shared/sharedApi'
+import { EncodingStrategy, Message } from '../../shared/sharedApi'
 import { WorkerPlatformBase } from './_base'
 
 /** Functions for emulating child-process in web-workers */
 
 export class WebWorkerProcess extends WorkerPlatformBase {
+	public override readonly encodingStrategy =
+		EncodingStrategy.StructuredClone
 	private worker: WebWorker
 
 	constructor (pathToWorker: string) {
@@ -30,7 +32,10 @@ export class WebWorkerProcess extends WorkerPlatformBase {
 				str.match(/cannot be accessed from origin/) &&
 				str.match(/file:\/\//)
 			) {
-				throw Error('Unable to create Web-Worker. Not allowed to run from local file system.\n' + str)
+				throw Error(
+					'Unable to create Web-Worker. Not allowed to run from local file system.\n' +
+						str
+				)
 			} else {
 				throw error
 			}
@@ -52,5 +57,4 @@ export class WebWorkerProcess extends WorkerPlatformBase {
 type WebWorker = any
 export function forkWebWorker (pathToWorker: string): WebWorkerProcess {
 	return new WebWorkerProcess(pathToWorker)
-
 }
