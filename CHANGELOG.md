@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/nytamin/threadedClass/compare/1.3.0...1.4.0) (2026-02-23)
+
+
+### Features
+
+* cheaper buffer cloning ([#107](https://github.com/nytamin/threadedClass/issues/107)) ([1bcc824](https://github.com/nytamin/threadedClass/commit/1bcc82413c64e0913bae8822ac32a29ecc2fb340))
+
 ## [1.3.0](https://github.com/nytamin/threadedClass/compare/1.2.2...1.3.0) (2025-04-07)
 
 
