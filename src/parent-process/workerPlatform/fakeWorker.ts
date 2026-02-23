@@ -1,8 +1,9 @@
-import { Message } from '../../shared/sharedApi'
+import { EncodingStrategy, Message } from '../../shared/sharedApi'
 import { WorkerPlatformBase } from './_base'
 import { FakeWorker } from '../../child-process/fake-worker'
 
 export class FakeProcess extends WorkerPlatformBase {
+	public override readonly encodingStrategy = EncodingStrategy.InProcess
 	private worker: FakeWorker
 
 	constructor () {

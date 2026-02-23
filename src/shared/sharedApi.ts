@@ -55,9 +55,15 @@ export namespace Message {
 
 		/** Defines messages sent from the parent process to the child instance */
 		export namespace Instance {
-
-			export type AnyConstr 	= InitConstr 	| FcnConstr 	| ReplyConstr 	| SetConstr | KillConstr 	| CallbackConstr 	| PingConstr
-			export type Any 		= Init 			| Fcn 			| Reply 		| Set 		| Kill			| Callback			| Ping
+			export type AnyConstr =
+				| InitConstr
+				| FcnConstr
+				| ReplyConstr
+				| SetConstr
+				| KillConstr
+				| CallbackConstr
+				| PingConstr
+			export type Any = Init | Fcn | Reply | Set | Kill | Callback | Ping
 
 			export enum CommandType {
 				INIT = 'init',
@@ -153,8 +159,8 @@ export namespace Message {
 		}
 		/** Defines messages sent from the parent process to the child process */
 		export namespace Child {
-			export type AnyConstr	= ReplyConstr 	| GetMemUsageConstr
-			export type Any			= Reply 		| GetMemUsage
+			export type AnyConstr = ReplyConstr | GetMemUsageConstr
+			export type Any = Reply | GetMemUsage
 
 			export enum CommandType {
 				GET_MEM_USAGE = 'get_mem_usage',
@@ -201,8 +207,8 @@ export namespace Message {
 			}
 			export type Reply = ReplyConstr & InstanceBase
 
-			export type AnyConstr 	= ReplyConstr 	| CallbackConstr
-			export type Any 		= Reply 		| Callback
+			export type AnyConstr = ReplyConstr | CallbackConstr
+			export type Any = Reply | Callback
 		}
 		/** Defines messages sent from the child process to the parent process */
 		export namespace Child {
@@ -225,13 +231,30 @@ export namespace Message {
 			}
 			export type Reply = ReplyConstr & ChildBase
 
-			export type AnyConstr 	= ReplyConstr  	| LogConstr
-			export type Any 		= Reply			| Log
+			export type AnyConstr = ReplyConstr | LogConstr
+			export type Any = Reply | Log
 		}
 	}
 }
 
-export type CallbackFunction = (e: Error | string | null, res?: ArgDefinition) => void
+/**
+ * Determines how arguments are encoded when crossing an IPC boundary.
+ *
+ * - `InProcess`       – no IPC (disableMultithreading). Originals are passed by reference.
+ * - `JSON`            – child_process fork. Everything is JSON-serialised; Buffers must be base64-encoded.
+ * - `StructuredClone` – worker_threads / web-worker postMessage. The engine's structured-clone
+ *                       algorithm handles TypedArrays natively, so no base64 encoding is needed.
+ */
+export enum EncodingStrategy {
+	InProcess = 'inprocess',
+	JSON = 'json',
+	StructuredClone = 'structured-clone'
+}
+
+export type CallbackFunction = (
+	e: Error | string | null,
+	res?: ArgDefinition
+) => void
 
 export interface ArgDefinition {
 	type: ArgumentType
@@ -250,39 +273,95 @@ enum ArgumentType {
 }
 
 let argumentsCallbackId: number = 0
-export function encodeArguments (instance: any, callbacks: {[key: string]: Function}, args: any[], disabledMultithreading: boolean): ArgDefinition[] {
+export function encodeArguments (
+	instance: any,
+	callbacks: { [key: string]: Function },
+	args: any[],
+	strategy: EncodingStrategy
+): ArgDefinition[] {
 	try {
 		return args.map((arg, i): ArgDefinition => {
 			try {
-
 				if (typeof arg === 'object' && arg === instance) {
 					return { type: ArgumentType.OBJECT, value: 'self' }
 				}
 
-				if (disabledMultithreading) {
+				if (strategy === EncodingStrategy.InProcess) {
 					// In single-threaded mode, we can send the arguments directly, without any conversion:
-					if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, original: arg, value: null }
-					if (typeof arg === 'object') return { type: ArgumentType.OBJECT, original: arg, value: null }
+					if (arg instanceof Buffer || arg instanceof Uint8Array) {
+						return {
+							type: ArgumentType.BUFFER,
+							original: arg,
+							value: null
+						}
+					}
+					if (typeof arg === 'object') {
+						return {
+							type: ArgumentType.OBJECT,
+							original: arg,
+							value: null
+						}
+					}
 				}
 
-				if (arg instanceof Buffer) return { type: ArgumentType.BUFFER, value: arg.toString('hex') }
-				if (typeof arg === 'string') return { type: ArgumentType.STRING, value: arg }
-				if (typeof arg === 'number') return { type: ArgumentType.NUMBER, value: arg }
+				if (strategy === EncodingStrategy.StructuredClone) {
+					// worker_threads / web-worker: engine clones TypedArrays natively.
+					// Pass the Buffer/Uint8Array as-is; it arrives on the other side as a Uint8Array.
+					if (arg instanceof Buffer || arg instanceof Uint8Array) {
+						return { type: ArgumentType.BUFFER, value: arg }
+					}
+				}
+
+				// EncodingStrategy.JSON: Buffer/Uint8Array must be base64-encoded because JSON.stringify loses binary data
+				if (arg instanceof Buffer) {
+					return {
+						type: ArgumentType.BUFFER,
+						value: arg.toString('base64')
+					}
+				}
+				if (arg instanceof Uint8Array) {
+					return {
+						type: ArgumentType.BUFFER,
+						value: Buffer.from(
+							arg.buffer,
+							arg.byteOffset,
+							arg.byteLength
+						).toString('base64')
+					}
+				}
+				if (typeof arg === 'string') {
+					return { type: ArgumentType.STRING, value: arg }
+				}
+				if (typeof arg === 'number') {
+					return { type: ArgumentType.NUMBER, value: arg }
+				}
 				if (typeof arg === 'function') {
 					// have we seen this one before?
 					for (const id in callbacks) {
 						if (callbacks[id] === arg) {
-							return { type: ArgumentType.FUNCTION, value: id + '' }
+							return {
+								type: ArgumentType.FUNCTION,
+								value: id + ''
+							}
 						}
 					}
 					// new function, so add it to our list
 					const callbackId = argumentsCallbackId++
 					callbacks[callbackId + ''] = arg
-					return { type: ArgumentType.FUNCTION, value: callbackId + '' }
+					return {
+						type: ArgumentType.FUNCTION,
+						value: callbackId + ''
+					}
 				}
-				if (arg === undefined) return { type: ArgumentType.UNDEFINED, value: arg }
-				if (arg === null) return { type: ArgumentType.NULL, value: arg }
-				if (typeof arg === 'object') return { type: ArgumentType.OBJECT, value: arg }
+				if (arg === undefined) {
+					return { type: ArgumentType.UNDEFINED, value: arg }
+				}
+				if (arg === null) {
+					return { type: ArgumentType.NULL, value: arg }
+				}
+				if (typeof arg === 'object') {
+					return { type: ArgumentType.OBJECT, value: arg }
+				}
 
 				return { type: ArgumentType.OTHER, value: arg }
 			} catch (e) {
@@ -296,14 +375,27 @@ export function encodeArguments (instance: any, callbacks: {[key: string]: Funct
 	}
 }
 export type ArgCallback = (...args: any[]) => Promise<any>
-export function decodeArguments (instance: () => any, args: Array<ArgDefinition>, getCallback: (arg: ArgDefinition) => ArgCallback): Array<any | ArgCallback> {
+export function decodeArguments (
+	instance: () => any,
+	args: Array<ArgDefinition>,
+	getCallback: (arg: ArgDefinition) => ArgCallback
+): Array<any | ArgCallback> {
 	// Go through arguments and de-serialize them
 	return args.map((a) => {
 		if (a.original !== undefined) return a.original
 
 		if (a.type === ArgumentType.STRING) return a.value
 		if (a.type === ArgumentType.NUMBER) return a.value
-		if (a.type === ArgumentType.BUFFER) return Buffer.from(a.value, 'hex')
+		if (a.type === ArgumentType.BUFFER) {
+			// value is either a base64 string (JSON strategy) or a Uint8Array (StructuredClone).
+			// Use the ArrayBuffer form so that if the buffer was transferred (zero-copy postMessage)
+			// the Buffer wraps it without an extra copy.
+			if (typeof a.value === 'string') {
+				return Buffer.from(a.value, 'base64')
+			}
+			const u = a.value as Uint8Array
+			return Buffer.from(u.buffer, u.byteOffset, u.byteLength)
+		}
 		if (a.type === ArgumentType.UNDEFINED) return a.value
 		if (a.type === ArgumentType.NULL) return a.value
 		if (a.type === ArgumentType.FUNCTION) {

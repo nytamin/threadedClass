@@ -4,11 +4,19 @@ import {
 	ThreadedClassConfig,
 	WebWorkerMemoryUsage
 } from '../api'
-import { assertNever, combineErrorStacks, getErrorStack, isBrowser, nodeSupportsWorkerThreads, stripStack } from '../shared/lib'
+import {
+	assertNever,
+	combineErrorStacks,
+	getErrorStack,
+	isBrowser,
+	nodeSupportsWorkerThreads,
+	stripStack
+} from '../shared/lib'
 import {
 	ArgDefinition,
 	decodeArguments,
 	encodeArguments,
+	EncodingStrategy,
 	Message,
 	CallbackFunction,
 	InitProps,
@@ -22,19 +30,27 @@ export abstract class Worker {
 		cmdId: 0,
 		queue: {}
 	}
-	protected instanceHandles: {[instanceId: string]: InstanceHandle} = {}
+	protected instanceHandles: { [instanceId: string]: InstanceHandle } = {}
 
-	private callbacks: {[key: string]: Function} = {}
-	private remoteFns: {[key: string]: (...args: any[]) => Promise<any>} = {}
+	private callbacks: { [key: string]: Function } = {}
+	private remoteFns: { [key: string]: (...args: any[]) => Promise<any> } = {}
 
-	protected disabledMultithreading: boolean = false
+	protected encodingStrategy: EncodingStrategy
 
 	private _parentPid: number = 0
 	private _config?: ThreadedClassConfig
 
 	protected abstract killInstance (handle: InstanceHandle): void
-	protected abstract sendInstanceMessageToParent (handle: InstanceHandle, msg: Message.From.Instance.AnyConstr, cb?: CallbackFunction): void
-	protected abstract sendChildMessageToParent (handle: ChildHandle, msg: Message.From.Child.AnyConstr, cb?: CallbackFunction): void
+	protected abstract sendInstanceMessageToParent (
+		handle: InstanceHandle,
+		msg: Message.From.Instance.AnyConstr,
+		cb?: CallbackFunction
+	): void
+	protected abstract sendChildMessageToParent (
+		handle: ChildHandle,
+		msg: Message.From.Child.AnyConstr,
+		cb?: CallbackFunction
+	): void
 
 	public onMessageFromParent (m: Message.To.Any) {
 		// A message was received from Parent
@@ -42,7 +58,9 @@ export abstract class Worker {
 		if (m.messageType === 'instance') {
 			let handle: InstanceHandle = this.instanceHandles[m.instanceId]
 			if (!handle && m.cmd !== Message.To.Instance.CommandType.INIT) {
-				console.log(`Child process: Unknown instanceId: "${m.instanceId}"`)
+				console.log(
+					`Child process: Unknown instanceId: "${m.instanceId}"`
+				)
 				return // fail silently?
 			}
 			if (!handle) {
@@ -58,7 +76,11 @@ export abstract class Worker {
 				this.handleInstanceMessageFromParent(m, handle)
 			} catch (e) {
 				if (m.cmdId) {
-					this.replyInstanceError(handle, m, `Error: ${e.toString()} ${e.stack} thrown in handleInstanceMessageFromParent on instance "${m.instanceId}"`)
+					this.replyInstanceError(
+						handle,
+						m,
+						`Error: ${e.toString()} ${e.stack} thrown in handleInstanceMessageFromParent on instance "${m.instanceId}"`
+					)
 				} else this.log('Error: ' + e.toString(), e.stack)
 			}
 		} else if (m.messageType === 'child') {
@@ -68,7 +90,11 @@ export abstract class Worker {
 				this.handleChildMessageFromParent(m, handle)
 			} catch (e) {
 				if (m.cmdId) {
-					this.replyChildError(handle, m, `Error: ${e.toString()} ${e.stack} thrown in handleChildMessageFromParent on child`)
+					this.replyChildError(
+						handle,
+						m,
+						`Error: ${e.toString()} ${e.stack} thrown in handleChildMessageFromParent on child`
+					)
 				} else this.log('Error: ' + e.toString(), e.stack)
 			}
 		}
@@ -81,63 +107,121 @@ export abstract class Worker {
 		this.sendLog(['Error', ...data])
 	}
 
-	private decodeArgumentsFromParent (handle: InstanceHandle, args: Array<ArgDefinition>) {
+	private decodeArgumentsFromParent (
+		handle: InstanceHandle,
+		args: Array<ArgDefinition>
+	) {
 		// Note: handle.instance could change if this was called for the constructor parameters, so it needs to be loose
-		return decodeArguments(() => handle.instance, args, (a: ArgDefinition) => {
-			const callbackId = a.value
+		return decodeArguments(
+			() => handle.instance,
+			args,
+			(a: ArgDefinition) => {
+				const callbackId = a.value
 
-			if (!this.remoteFns[callbackId]) {
-				this.remoteFns[callbackId] = ((...args: any[]) => {
-					const orgError = new Error()
-					return new Promise((resolve, reject) => {
-						const callbackId = a.value
-						this.sendCallback(
-							handle,
-							callbackId,
-							args,
-							(err, encodedResult) => {
-								if (err) {
+				if (!this.remoteFns[callbackId]) {
+					this.remoteFns[callbackId] = (...args: any[]) => {
+						const orgError = new Error()
+						return new Promise((resolve, reject) => {
+							const callbackId = a.value
+							this.sendCallback(
+								handle,
+								callbackId,
+								args,
+								(err, encodedResult) => {
+									if (err) {
+										const errStack = stripStack(
+											getErrorStack(err),
+											[
+												/[\\/]parent-process[\\/]manager/,
+												/[\\/]eventemitter3[\\/]index/
+											]
+										)
+										const orgStack = (orgError.stack + '')
+											.split('\n')
+											.slice(2) // Remove the first two lines, since they are internal to ThreadedClass
+											.join('\n')
 
-									const errStack = stripStack(getErrorStack(err), [
-										/[\\/]parent-process[\\/]manager/,
-										/[\\/]eventemitter3[\\/]index/
-									])
-									const orgStack = (orgError.stack + '')
-										.split('\n')
-										.slice(2) // Remove the first two lines, since they are internal to ThreadedClass
-										.join('\n')
-
-									reject(combineErrorStacks(errStack, orgStack))
-									// reject(err)
-								} else {
-									const result = encodedResult ? this.decodeArgumentsFromParent(handle, [encodedResult]) : [encodedResult]
-									resolve(result[0])
+										reject(
+											combineErrorStacks(
+												errStack,
+												orgStack
+											)
+										)
+										// reject(err)
+									} else {
+										const result = encodedResult
+											? this.decodeArgumentsFromParent(
+													handle,
+													[encodedResult]
+												)
+											: [encodedResult]
+										resolve(result[0])
+									}
 								}
-							}
-						)
-					})
-				})
-			}
+							)
+						})
+					}
+				}
 
-			return this.remoteFns[callbackId]
-		})
+				return this.remoteFns[callbackId]
+			}
+		)
 	}
-	private encodeArgumentsToParent (instance: any, args: any[]): ArgDefinition[] {
-		return encodeArguments(instance, this.callbacks, args, this.disabledMultithreading)
+	private encodeArgumentsToParent (
+		instance: any,
+		args: any[]
+	): ArgDefinition[] {
+		return encodeArguments(
+			instance,
+			this.callbacks,
+			args,
+			this.encodingStrategy
+		)
 	}
-	private replyToInstanceMessage (handle: InstanceHandle, messageToReplyTo: Message.To.Instance.Any, reply: any) {
-		this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply)
+	private replyToInstanceMessage (
+		handle: InstanceHandle,
+		messageToReplyTo: Message.To.Instance.Any,
+		reply: any
+	) {
+		this.sendInstanceReplyToParent(
+			handle,
+			messageToReplyTo.cmdId,
+			undefined,
+			reply
+		)
 	}
-	private replyToChildMessage (handle: ChildHandle, messageToReplyTo: Message.To.Child.Any, reply: any) {
-		this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, undefined, reply)
+	private replyToChildMessage (
+		handle: ChildHandle,
+		messageToReplyTo: Message.To.Child.Any,
+		reply: any
+	) {
+		this.sendChildReplyToParent(
+			handle,
+			messageToReplyTo.cmdId,
+			undefined,
+			reply
+		)
 	}
-	private replyInstanceError (handle: InstanceHandle, messageToReplyTo: Message.To.Instance.Any, error: any) {
+	private replyInstanceError (
+		handle: InstanceHandle,
+		messageToReplyTo: Message.To.Instance.Any,
+		error: any
+	) {
 		this.sendInstanceReplyToParent(handle, messageToReplyTo.cmdId, error)
 	}
-	private replyChildError (handle: ChildHandle, messageToReplyTo: Message.To.Child.Any, error: any) {
+	private replyChildError (
+		handle: ChildHandle,
+		messageToReplyTo: Message.To.Child.Any,
+		error: any
+	) {
 		this.sendChildReplyToParent(handle, messageToReplyTo.cmdId, error)
 	}
-	private sendInstanceReplyToParent (handle: InstanceHandle, replyTo: number, error?: Error, reply?: any) {
+	private sendInstanceReplyToParent (
+		handle: InstanceHandle,
+		replyTo: number,
+		error?: Error,
+		reply?: any
+	) {
 		let msg: Message.From.Instance.ReplyConstr = {
 			cmd: Message.From.Instance.CommandType.REPLY,
 			replyTo: replyTo,
@@ -146,7 +230,12 @@ export abstract class Worker {
 		}
 		this.sendInstanceMessageToParent(handle, msg)
 	}
-	private sendChildReplyToParent (handle: ChildHandle, replyTo: number, error?: Error, reply?: any) {
+	private sendChildReplyToParent (
+		handle: ChildHandle,
+		replyTo: number,
+		error?: Error,
+		reply?: any
+	) {
 		let msg: Message.From.Child.ReplyConstr = {
 			cmd: Message.From.Child.CommandType.REPLY,
 			replyTo: replyTo,
@@ -162,7 +251,12 @@ export abstract class Worker {
 		}
 		this.sendChildMessageToParent(this.childHandler, msg)
 	}
-	private sendCallback (handle: InstanceHandle, callbackId: string, args: any[], cb: CallbackFunction) {
+	private sendCallback (
+		handle: InstanceHandle,
+		callbackId: string,
+		args: any[],
+		cb: CallbackFunction
+	) {
 		let msg: Message.From.Instance.CallbackConstr = {
 			cmd: Message.From.Instance.CommandType.CALLBACK,
 			callbackId: callbackId,
@@ -179,7 +273,10 @@ export abstract class Worker {
 		} while (obj)
 		return props
 	}
-	private handleInstanceMessageFromParent (m: Message.To.Instance.Any, handle: InstanceHandle) {
+	private handleInstanceMessageFromParent (
+		m: Message.To.Instance.Any,
+		handle: InstanceHandle
+	) {
 		const instance = handle.instance
 		if (m.cmd === Message.To.Instance.CommandType.INIT) {
 			// This is the initial message sent from the parent process upon initialization.
@@ -203,13 +300,15 @@ export abstract class Worker {
 						if (oReq.response) {
 							resolve(oReq.response)
 						} else {
-							reject(Error(`Bad reply from ${msg.modulePath} in instance ${handle.id}`))
+							reject(
+								Error(
+									`Bad reply from ${msg.modulePath} in instance ${handle.id}`
+								)
+							)
 						}
 					}
 					oReq.send()
-				})
-				.then((bodyString: string) => {
-
+				}).then((bodyString: string) => {
 					// This is a terrible hack, I'm ashamed of myself.
 					// Better solutions are very much appreciated.
 
@@ -226,120 +325,141 @@ export abstract class Worker {
 					let moduleClass = eval(fcn)()
 					f = f
 					if (!moduleClass) {
-						throw Error(`${msg.exportName} not found in ${msg.modulePath}`)
+						throw Error(
+							`${msg.exportName} not found in ${msg.modulePath}`
+						)
 					}
 					return moduleClass
 				})
 			} else {
-				pModuleClass = Promise.resolve(require(msg.modulePath))
-				.then((module) => {
-					return module[msg.exportName]
-				})
+				pModuleClass = Promise.resolve(require(msg.modulePath)).then(
+					(module) => {
+						return module[msg.exportName]
+					}
+				)
 			}
 
 			pModuleClass
-			.then((moduleClass) => {
-				if (!moduleClass) {
-					return Promise.reject('Failed to find class')
-				}
-
-				const handle: InstanceHandle = {
-					id: msg.instanceId,
-					cmdId: 0,
-					queue: {},
-					instance: null // Note: This is dangerous, but gets set right after.
-				}
-				const decodedArgs = this.decodeArgumentsFromParent(handle, msg.args)
-				handle.instance = ((...args: Array<any>) => {
-					return new moduleClass(...args)
-				}).apply(null, decodedArgs)
-
-				this.instanceHandles[handle.id] = handle
-
-				const instance = handle.instance
-
-				const allProps = this.getAllProperties(instance)
-				const props: InitProps = []
-				allProps.forEach((prop: string) => {
-					if ([
-						'constructor',
-						'__defineGetter__',
-						'__defineSetter__',
-						'hasOwnProperty',
-						'__lookupGetter__',
-						'__lookupSetter__',
-						'isPrototypeOf',
-						'propertyIsEnumerable',
-						'toString',
-						'valueOf',
-						'__proto__',
-						'toLocaleString'
-					].indexOf(prop) !== -1) return
-
-					let descriptor = Object.getOwnPropertyDescriptor(instance, prop)
-					let inProto: number = 0
-					let proto = instance.__proto__
-					while (!descriptor) {
-						if (!proto) break
-						descriptor = Object.getOwnPropertyDescriptor(proto, prop)
-						inProto++
-						proto = proto.__proto__
+				.then((moduleClass) => {
+					if (!moduleClass) {
+						return Promise.reject('Failed to find class')
 					}
 
-					if (!descriptor) descriptor = {}
-
-					let descr: InitPropDescriptor = {
-						// configurable:	!!descriptor.configurable,
-						inProto: 		inProto,
-						enumerable:		!!descriptor.enumerable,
-						writable:		!!descriptor.writable,
-						get:			!!descriptor.get,
-						set:			!!descriptor.set,
-						readable:		!!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
+					const handle: InstanceHandle = {
+						id: msg.instanceId,
+						cmdId: 0,
+						queue: {},
+						instance: null // Note: This is dangerous, but gets set right after.
 					}
+					const decodedArgs = this.decodeArgumentsFromParent(
+						handle,
+						msg.args
+					)
+					handle.instance = ((...args: Array<any>) => {
+						return new moduleClass(...args)
+					}).apply(null, decodedArgs)
 
-					if (typeof instance[prop] === 'function') {
-						props.push({
-							key: prop,
-							type: InitPropType.FUNCTION,
-							descriptor: descr
-						})
-					} else {
-						props.push({
-							key: prop,
-							type: InitPropType.VALUE,
-							descriptor: descr
-						})
-					}
+					this.instanceHandles[handle.id] = handle
+
+					const instance = handle.instance
+
+					const allProps = this.getAllProperties(instance)
+					const props: InitProps = []
+					allProps.forEach((prop: string) => {
+						if (
+							[
+								'constructor',
+								'__defineGetter__',
+								'__defineSetter__',
+								'hasOwnProperty',
+								'__lookupGetter__',
+								'__lookupSetter__',
+								'isPrototypeOf',
+								'propertyIsEnumerable',
+								'toString',
+								'valueOf',
+								'__proto__',
+								'toLocaleString'
+							].indexOf(prop) !== -1
+						) {
+							return
+						}
+
+						let descriptor = Object.getOwnPropertyDescriptor(
+							instance,
+							prop
+						)
+						let inProto: number = 0
+						let proto = instance.__proto__
+						while (!descriptor) {
+							if (!proto) break
+							descriptor = Object.getOwnPropertyDescriptor(
+								proto,
+								prop
+							)
+							inProto++
+							proto = proto.__proto__
+						}
+
+						if (!descriptor) descriptor = {}
+
+						let descr: InitPropDescriptor = {
+							// configurable:	!!descriptor.configurable,
+							inProto: inProto,
+							enumerable: !!descriptor.enumerable,
+							writable: !!descriptor.writable,
+							get: !!descriptor.get,
+							set: !!descriptor.set,
+							readable: !!(!descriptor.get && !descriptor.get) // if no getter or setter, ie an ordinary property
+						}
+
+						if (typeof instance[prop] === 'function') {
+							props.push({
+								key: prop,
+								type: InitPropType.FUNCTION,
+								descriptor: descr
+							})
+						} else {
+							props.push({
+								key: prop,
+								type: InitPropType.VALUE,
+								descriptor: descr
+							})
+						}
+					})
+					this.replyToInstanceMessage(handle, msg, props)
+					return
 				})
-				this.replyToInstanceMessage(handle, msg, props)
-				return
-			})
-			.catch((err: any) => {
-				const errStack = stripStack(err.stack || err.toString(), [
-					/onMessageFromParent/,
-					/threadedclass-worker/
-				])
+				.catch((err: any) => {
+					const errStack = stripStack(err.stack || err.toString(), [
+						/onMessageFromParent/,
+						/threadedclass-worker/
+					])
 
-				let errorResponse: string = `${errStack}\n executing constructor of instance "${m.instanceId}"`
-				this.replyInstanceError(handle, msg, errorResponse)
-				return
-			})
+					let errorResponse: string = `${errStack}\n executing constructor of instance "${m.instanceId}"`
+					this.replyInstanceError(handle, msg, errorResponse)
+					return
+				})
 
-			if (!m.config.disableMultithreading && !nodeSupportsWorkerThreads()) {
+			if (
+				!m.config.disableMultithreading &&
+				!nodeSupportsWorkerThreads()
+			) {
 				this.startOrphanMonitoring()
 			}
-
 		} else if (m.cmd === Message.To.Instance.CommandType.PING) {
 			// This is a message from the parent process. It's just a ping, used to check if this instance is alive.
 			this.replyToInstanceMessage(handle, m, null)
-
 		} else if (m.cmd === Message.To.Instance.CommandType.REPLY) {
 			// A reply to an earlier message.
 
 			const msg: Message.To.Instance.Reply = m
 			let cb = handle.queue[msg.replyTo + '']
-			if (!cb) throw Error(`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`)
+			if (!cb) {
+				throw Error(
+					`cmdId "${msg.cmdId}" not found in instance ${m.instanceId}!`
+				)
+			}
 			if (msg.error) {
 				cb.cb(msg.error)
 			} else {
@@ -364,29 +484,35 @@ export abstract class Worker {
 			}
 
 			Promise.resolve(p)
-			.then((result) => {
-				const encodedResult = this.encodeArgumentsToParent(instance, [result])
-				this.replyToInstanceMessage(handle, msg, encodedResult[0])
-			})
-			.catch((err) => {
+				.then((result) => {
+					const encodedResult = this.encodeArgumentsToParent(
+						instance,
+						[result]
+					)
+					this.replyToInstanceMessage(handle, msg, encodedResult[0])
+				})
+				.catch((err) => {
+					const errStack = stripStack(err.stack || err.toString(), [
+						/onMessageFromParent/,
+						/threadedclass-worker/
+					])
 
-				const errStack = stripStack(err.stack || err.toString(), [
-					/onMessageFromParent/,
-					/threadedclass-worker/
-				])
-
-				let errorResponse: string = `${errStack}\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
-				this.replyInstanceError(handle, msg, errorResponse)
-			})
+					let errorResponse: string = `${errStack}\n executing function "${msg.fcn}" of instance "${m.instanceId}"`
+					this.replyInstanceError(handle, msg, errorResponse)
+				})
 		} else if (m.cmd === Message.To.Instance.CommandType.SET) {
 			// A setter has been called by the parent
 
 			let msg: Message.To.Instance.Set = m
 
-			const fixedValue = this.decodeArgumentsFromParent(handle, [msg.value])[0]
+			const fixedValue = this.decodeArgumentsFromParent(handle, [
+				msg.value
+			])[0]
 			instance[msg.property] = fixedValue
 
-			const encodedResult = this.encodeArgumentsToParent(instance, [fixedValue])
+			const encodedResult = this.encodeArgumentsToParent(instance, [
+				fixedValue
+			])
 			this.replyToInstanceMessage(handle, msg, encodedResult[0])
 		} else if (m.cmd === Message.To.Instance.CommandType.KILL) {
 			// A Kill-command has been sent by the parent.
@@ -405,38 +531,55 @@ export abstract class Worker {
 			if (callback) {
 				try {
 					Promise.resolve(callback(...msg.args))
-					.then((result: any) => {
-						const encodedResult = this.encodeArgumentsToParent(instance, [result])
-						this.replyToInstanceMessage(handle, msg, encodedResult[0])
-					})
-					.catch((err: Error) => {
-						let errorResponse: string = (err.stack || err.toString()) + `\n executing callback of instance "${m.instanceId}"`
-						this.replyInstanceError(handle, msg, errorResponse)
-					})
+						.then((result: any) => {
+							const encodedResult = this.encodeArgumentsToParent(
+								instance,
+								[result]
+							)
+							this.replyToInstanceMessage(
+								handle,
+								msg,
+								encodedResult[0]
+							)
+						})
+						.catch((err: Error) => {
+							let errorResponse: string =
+								(err.stack || err.toString()) +
+								`\n executing callback of instance "${m.instanceId}"`
+							this.replyInstanceError(handle, msg, errorResponse)
+						})
 				} catch (err) {
-					let errorResponse: string = (err.stack || err.toString()) + `\n executing (outer) callback of instance "${m.instanceId}"`
+					let errorResponse: string =
+						(err.stack || err.toString()) +
+						`\n executing (outer) callback of instance "${m.instanceId}"`
 					this.replyInstanceError(handle, msg, errorResponse)
 				}
 			} else {
-				this.replyInstanceError(handle, msg, `Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`)
+				this.replyInstanceError(
+					handle,
+					msg,
+					`Callback "${msg.callbackId}" not found on instance "${m.instanceId}"`
+				)
 			}
 		} else {
 			assertNever(m)
 		}
 	}
-	private handleChildMessageFromParent (m: Message.To.Child.Any, handle: ChildHandle) {
+	private handleChildMessageFromParent (
+		m: Message.To.Child.Any,
+		handle: ChildHandle
+	) {
 		if (m.cmd === Message.To.Child.CommandType.GET_MEM_USAGE) {
-
-			let memUsage: MemUsageReportInner = (
-				process ?
-				process.memoryUsage() :
-				// @ts-ignore web-worker global window
-				window ?
-				// @ts-ignore web-worker global window
-				window.performance.memory as WebWorkerMemoryUsage :
-				{ error: 'N/A' }
-			)
-			const encodedResult = this.encodeArgumentsToParent({}, [memUsage])[0]
+			let memUsage: MemUsageReportInner = process
+				? process.memoryUsage()
+				: // @ts-ignore web-worker global window
+					window
+					? // @ts-ignore web-worker global window
+						(window.performance.memory as WebWorkerMemoryUsage)
+					: { error: 'N/A' }
+			const encodedResult = this.encodeArgumentsToParent({}, [
+				memUsage
+			])[0]
 			this.replyToChildMessage(handle, m, encodedResult)
 		}
 	}
@@ -446,7 +589,9 @@ export abstract class Worker {
 
 			setInterval(() => {
 				if (this._parentPid && !isRunning(this._parentPid)) {
-					console.log(`Parent pid ${this._parentPid} missing, exiting process!`)
+					console.log(
+						`Parent pid ${this._parentPid} missing, exiting process!`
+					)
 					setTimeout(() => {
 						process.exit(27)
 					}, 100)
@@ -458,14 +603,15 @@ export abstract class Worker {
 
 export interface MessageHandle {
 	cmdId: number
-	queue: {[cmdId: string]: {
-		traceError?: Error
-		cb: CallbackFunction
-	}}
+	queue: {
+		[cmdId: string]: {
+			traceError?: Error;
+			cb: CallbackFunction;
+		};
+	}
 }
 export interface InstanceHandle extends MessageHandle {
 	id: string
 	instance: any
 }
-export interface ChildHandle extends MessageHandle {
-}
+export interface ChildHandle extends MessageHandle {}

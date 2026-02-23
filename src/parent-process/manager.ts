@@ -514,7 +514,7 @@ export class ThreadedClassManagerClassInternal {
 		config: ThreadedClassConfig,
 		cb?: InstanceCallbackInitFunction
 	) {
-		let encodedArgs = encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, !!config.disableMultithreading)
+		let encodedArgs = encodeArguments(instance, instance.child.callbacks, instance.constructorArgs, child.process.encodingStrategy)
 
 		let msg: Message.To.Instance.InitConstr = {
 			cmd: Message.To.Instance.CommandType.INIT,

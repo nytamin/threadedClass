@@ -1,9 +1,11 @@
 import { ChildProcess, fork } from 'child_process'
 import { WorkerPlatformBase } from './_base'
-import { Message } from '../../shared/sharedApi'
+import { EncodingStrategy, Message } from '../../shared/sharedApi'
 
 export class ChildProcessWorker extends WorkerPlatformBase {
 	private worker: ChildProcess
+
+	public override readonly encodingStrategy = EncodingStrategy.JSON
 
 	constructor (path: string) {
 		super()
