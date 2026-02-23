@@ -80,9 +80,9 @@ jobs:
       - name: Determine publish info
         id: do-publish
         run: |
-          # If this run was started manually, choose nightly for main and experimental otherwise.
+          # If this run was started manually, choose nightly for master and experimental otherwise.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
               echo "Publishing nightly"
               echo "tag=nightly" >> $GITHUB_OUTPUT
             else
@@ -97,7 +97,8 @@ jobs:
 
           else
             # Otherwise (push by tag), keep the previous logic: compare published vs package.json
-            PUBLISHED_VERSION=$(yarn npm info --json . | jq -c '.version' -r)
+            # PUBLISHED_VERSION=$(yarn npm info --json . | jq -c '.version' -r)
+            PUBLISHED_VERSION=$(yarn info --json . | jq -c '.data.version' -r)
             THIS_VERSION=$(node -p "require('./package.json').version")
             # Simple bash helper to compare version numbers
             verlte() {
@@ -122,7 +123,7 @@ jobs:
           # Bump to prerelease version if needed
           if [ "${{ steps.do-publish.outputs.prerelease }}" != "" ]; then
             OLD_VERSION=$(node -p "require('./package.json').version")
-            yarn --new-version ${OLD_VERSION}-${{ steps.do-publish.outputs.prerelease }}
+            yarn version --new-version ${OLD_VERSION}-${{ steps.do-publish.outputs.prerelease }}
           fi
 
           yarn build
