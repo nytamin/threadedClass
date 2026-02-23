@@ -117,12 +117,12 @@ jobs:
           fi
       - name: Prepare build
         run: |
-          yarn install
+          yarn install --ignore-engines
 
           # Bump to prerelease version if needed
           if [ "${{ steps.do-publish.outputs.prerelease }}" != "" ]; then
             OLD_VERSION=$(node -p "require('./package.json').version")
-            yarn version ${OLD_VERSION}-${{ steps.do-publish.outputs.prerelease }}
+            yarn --new-version ${OLD_VERSION}-${{ steps.do-publish.outputs.prerelease }}
           fi
 
           yarn build
