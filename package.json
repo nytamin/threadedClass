@@ -51,7 +51,6 @@
   ],
   "devDependencies": {
     "@types/callsites": "^3.0.0",
-    "@types/is-running": "^2.1.0",
     "@types/jest": "^24.0.18",
     "@types/node": "^12.12.5",
     "browserify": "^16.5.0",
@@ -83,7 +82,6 @@
   "dependencies": {
     "callsites": "^3.1.0",
     "eventemitter3": "^4.0.4",
-    "is-running": "^2.1.0",
     "tslib": "^1.13.0"
   },
   "standard-version": {

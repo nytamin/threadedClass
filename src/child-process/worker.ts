@@ -1,4 +1,3 @@
-import isRunning = require('is-running')
 import {
 	MemUsageReportInner,
 	ThreadedClassConfig,
@@ -9,6 +8,7 @@ import {
 	combineErrorStacks,
 	getErrorStack,
 	isBrowser,
+	isRunning,
 	nodeSupportsWorkerThreads,
 	stripStack
 } from '../shared/lib'

@@ -1,5 +1,4 @@
-import { nodeSupportsWorkerThreads } from '../shared/lib'
-import isRunning = require('is-running')
+import { isRunning, nodeSupportsWorkerThreads } from '../shared/lib'
 import { fork } from 'child_process'
 
 const TESTCLASS_RUNNER_PATH = './test-lib/testClass-runner.js'

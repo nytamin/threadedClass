@@ -12,6 +12,18 @@ export function nodeSupportsWorkerThreads () {
 	const workerThreads = getWorkerThreads()
 	return !!workerThreads
 }
+/**
+ * Returns true if a process with the given pid is currently running
+ */
+export function isRunning (pid: number): boolean {
+	try {
+		// Sending signal 0 doesn't kill the process, it only checks for its existence:
+		return process.kill(pid, 0)
+	} catch (e) {
+		// EPERM means the process exists but we don't have permission to signal it:
+		return (e as NodeJS.ErrnoException).code === 'EPERM'
+	}
+}
 
 export function getWorkerThreads (): typeof import('worker_threads') | null {
 	try {

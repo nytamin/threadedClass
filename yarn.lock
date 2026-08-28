@@ -613,11 +613,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/is-running@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@types/is-running/-/is-running-2.1.0.tgz#883e7bb60ac9cbf256b43727790bfb0110ccb86a"
-  integrity sha512-y1JGY9nExw7elDF/PUGqV4wQi7PVqa4hsxHf2fXLpc0jpD5kzx5BRldqeuqJQAuctnbsIqWxzYoGxSayvgynBQ==
-
 "@types/istanbul-lib-coverage@*", "@types/istanbul-lib-coverage@^2.0.0", "@types/istanbul-lib-coverage@^2.0.1":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.3.tgz#4ba8ddb720221f432e443bd5f9117fd22cfd4762"
@@ -3826,11 +3821,6 @@ is-relative@^1.0.0:
   integrity sha512-Kw/ReK0iqwKeu0MITLFuj0jbPAmEiOsIwyIXvvbfa6QfmN9pkD1M+8pdk7Rl/dTKbH34/XBFMbgD4iMJhLQbGA==
   dependencies:
     is-unc-path "^1.0.0"
-
-is-running@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/is-running/-/is-running-2.1.0.tgz#30a73ff5cc3854e4fc25490809e9f5abf8de09e0"
-  integrity sha1-MKc/9cw4VOT8JUkICen1q/jeCeA=
 
 is-stream@^1.1.0:
   version "1.1.0"
