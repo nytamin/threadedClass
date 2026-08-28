@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/nytamin/threadedClass/compare/v1.4.0...v1.4.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* remove is-running dependency ([d5bbf62](https://github.com/nytamin/threadedClass/commit/d5bbf62938659fd9c2cb27659d44ee6fffe9f7af))
+
 ## [1.4.0](https://github.com/nytamin/threadedClass/compare/1.3.0...1.4.0) (2026-02-23)
 
 
